@@ -1,0 +1,93 @@
+"use client";
+
+import { useStore } from "@/store";
+
+interface HeaderProps {
+  onOpenUpload: () => void;
+  onOpenScoring: () => void;
+}
+
+export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
+  const { isDraftMode, setDraftMode, batters, pitchers, draftState, resetDraft } =
+    useStore();
+
+  const totalPlayers = batters.length + pitchers.length;
+  const draftedCount = draftState.draftedIds.length;
+  const keeperCount = draftState.keeperIds.length;
+
+  return (
+    <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+            Pointer
+          </h1>
+          {totalPlayers > 0 && (
+            <span className="text-sm text-zinc-500">
+              {batters.length} batters, {pitchers.length} pitchers
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onOpenUpload}
+            className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          >
+            Upload CSV
+          </button>
+
+          <button
+            onClick={onOpenScoring}
+            className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          >
+            Scoring
+          </button>
+
+          <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700" />
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+              Draft Mode
+            </span>
+            <button
+              role="switch"
+              aria-checked={isDraftMode}
+              onClick={() => setDraftMode(!isDraftMode)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                isDraftMode
+                  ? "bg-emerald-500"
+                  : "bg-zinc-300 dark:bg-zinc-600"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isDraftMode ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </label>
+
+          {isDraftMode && (
+            <>
+              <span className="text-sm text-zinc-500">
+                {draftedCount} drafted
+                {keeperCount > 0 && `, ${keeperCount} keepers`}
+              </span>
+              <button
+                onClick={() => {
+                  if (confirm("Reset all draft picks?")) {
+                    resetDraft();
+                  }
+                }}
+                className="rounded-md px-2 py-1 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+              >
+                Reset
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

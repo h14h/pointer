@@ -1,0 +1,423 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  flexRender,
+  type SortingState,
+  type ColumnDef,
+} from "@tanstack/react-table";
+import { useStore } from "@/store";
+import { calculatePlayerPoints } from "@/lib/calculatePoints";
+import type { Player, RankedPlayer } from "@/types";
+
+type PlayerView = "all" | "batters" | "pitchers";
+type DraftFilter = "all" | "available" | "drafted" | "keepers";
+
+export function Leaderboard() {
+  const {
+    batters,
+    pitchers,
+    scoringSettings,
+    draftState,
+    isDraftMode,
+    toggleDrafted,
+    toggleKeeper,
+  } = useStore();
+
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "projectedPoints", desc: true },
+  ]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [playerView, setPlayerView] = useState<PlayerView>("all");
+  const [draftFilter, setDraftFilter] = useState<DraftFilter>("available");
+
+  // Calculate points and create ranked players
+  const rankedPlayers = useMemo(() => {
+    let players: Player[] = [];
+
+    if (playerView === "all" || playerView === "batters") {
+      players = [...players, ...batters];
+    }
+    if (playerView === "all" || playerView === "pitchers") {
+      players = [...players, ...pitchers];
+    }
+
+    return players.map((player) => ({
+      player,
+      projectedPoints: calculatePlayerPoints(player, scoringSettings),
+      isDrafted: draftState.draftedIds.includes(player._id),
+      isKeeper: draftState.keeperIds.includes(player._id),
+    }));
+  }, [batters, pitchers, scoringSettings, draftState, playerView]);
+
+  // Filter by draft status in draft mode
+  const filteredPlayers = useMemo(() => {
+    if (!isDraftMode || draftFilter === "all") return rankedPlayers;
+
+    return rankedPlayers.filter((p) => {
+      switch (draftFilter) {
+        case "available":
+          return !p.isDrafted && !p.isKeeper;
+        case "drafted":
+          return p.isDrafted;
+        case "keepers":
+          return p.isKeeper;
+        default:
+          return true;
+      }
+    });
+  }, [rankedPlayers, isDraftMode, draftFilter]);
+
+  const columns = useMemo<ColumnDef<RankedPlayer>[]>(() => {
+    const baseColumns: ColumnDef<RankedPlayer>[] = [
+      {
+        id: "rank",
+        header: "#",
+        size: 50,
+        cell: ({ row }) => (
+          <span className="text-zinc-500">{row.index + 1}</span>
+        ),
+        enableSorting: false,
+      },
+      {
+        accessorKey: "player.Name",
+        header: "Name",
+        size: 180,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            {isDraftMode && (
+              <input
+                type="checkbox"
+                checked={row.original.isDrafted || row.original.isKeeper}
+                onChange={() => toggleDrafted(row.original.player._id)}
+                className="h-4 w-4 rounded border-zinc-300"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+            <span
+              className={
+                row.original.isDrafted
+                  ? "text-zinc-400 line-through"
+                  : row.original.isKeeper
+                  ? "font-semibold text-amber-600"
+                  : ""
+              }
+            >
+              {row.original.player.Name}
+            </span>
+            {row.original.isKeeper && (
+              <span className="rounded bg-amber-100 px-1 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                K
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "player.Team",
+        header: "Team",
+        size: 60,
+      },
+      {
+        accessorKey: "player._type",
+        header: "Type",
+        size: 60,
+        cell: ({ row }) => (
+          <span
+            className={`rounded px-1.5 py-0.5 text-xs font-medium ${
+              row.original.player._type === "batter"
+                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+            }`}
+          >
+            {row.original.player._type === "batter" ? "BAT" : "PIT"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "projectedPoints",
+        header: "Points",
+        size: 80,
+        cell: ({ row }) => (
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+            {row.original.projectedPoints.toFixed(1)}
+          </span>
+        ),
+      },
+    ];
+
+    // Add type-specific stat columns
+    if (playerView === "batters" || playerView === "all") {
+      const batterCols: ColumnDef<RankedPlayer>[] = [
+        {
+          id: "HR",
+          header: "HR",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "batter"
+              ? (row.player as unknown as Record<string, number>).HR
+              : null,
+          cell: ({ getValue }) => getValue() ?? "-",
+        },
+        {
+          id: "R",
+          header: "R",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "batter"
+              ? (row.player as unknown as Record<string, number>).R
+              : null,
+          cell: ({ getValue }) => getValue() ?? "-",
+        },
+        {
+          id: "RBI",
+          header: "RBI",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "batter"
+              ? (row.player as unknown as Record<string, number>).RBI
+              : null,
+          cell: ({ getValue }) => getValue() ?? "-",
+        },
+        {
+          id: "SB",
+          header: "SB",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "batter"
+              ? (row.player as unknown as Record<string, number>).SB
+              : null,
+          cell: ({ getValue }) => getValue() ?? "-",
+        },
+        {
+          id: "AVG",
+          header: "AVG",
+          size: 60,
+          accessorFn: (row) =>
+            row.player._type === "batter"
+              ? (row.player as unknown as Record<string, number>).AVG
+              : null,
+          cell: ({ getValue }) => {
+            const val = getValue() as number | null;
+            return val ? val.toFixed(3).replace(/^0/, "") : "-";
+          },
+        },
+      ];
+      baseColumns.push(...batterCols);
+    }
+
+    if (playerView === "pitchers" || playerView === "all") {
+      const pitcherCols: ColumnDef<RankedPlayer>[] = [
+        {
+          id: "W",
+          header: "W",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "pitcher"
+              ? (row.player as unknown as Record<string, number>).W
+              : null,
+          cell: ({ getValue }) => getValue() ?? "-",
+        },
+        {
+          id: "SO_P",
+          header: "K",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "pitcher"
+              ? (row.player as unknown as Record<string, number>).SO
+              : null,
+          cell: ({ getValue }) => getValue() ?? "-",
+        },
+        {
+          id: "ERA",
+          header: "ERA",
+          size: 60,
+          accessorFn: (row) =>
+            row.player._type === "pitcher"
+              ? (row.player as unknown as Record<string, number>).ERA
+              : null,
+          cell: ({ getValue }) => {
+            const val = getValue() as number | null;
+            return val ? val.toFixed(2) : "-";
+          },
+        },
+        {
+          id: "IP",
+          header: "IP",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "pitcher"
+              ? (row.player as unknown as Record<string, number>).IP
+              : null,
+          cell: ({ getValue }) => getValue() ?? "-",
+        },
+      ];
+      baseColumns.push(...pitcherCols);
+    }
+
+    // ADP column
+    baseColumns.push({
+      id: "ADP",
+      header: "ADP",
+      size: 60,
+      accessorFn: (row) => (row.player as unknown as Record<string, number | null>).ADP,
+      cell: ({ getValue }) => {
+        const val = getValue() as number | null;
+        return val ? Math.round(val) : "-";
+      },
+    });
+
+    return baseColumns;
+  }, [playerView, isDraftMode, toggleDrafted]);
+
+  const table = useReactTable({
+    data: filteredPlayers,
+    columns,
+    state: {
+      sorting,
+      globalFilter,
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: (row, _, filterValue) => {
+      const name = row.original.player.Name.toLowerCase();
+      const team = row.original.player.Team.toLowerCase();
+      const search = filterValue.toLowerCase();
+      return name.includes(search) || team.includes(search);
+    },
+  });
+
+  const handleRowClick = (player: RankedPlayer) => {
+    if (!isDraftMode) return;
+    toggleDrafted(player.player._id);
+  };
+
+  const handleRowContextMenu = (e: React.MouseEvent, player: RankedPlayer) => {
+    if (!isDraftMode) return;
+    e.preventDefault();
+    toggleKeeper(player.player._id);
+  };
+
+  if (batters.length === 0 && pitchers.length === 0) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center text-zinc-500">
+        <p className="mb-2 text-lg">No players loaded</p>
+        <p className="text-sm">Upload a CSV file to get started</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col">
+      {/* Filters */}
+      <div className="mb-4 flex flex-wrap items-center gap-4">
+        <input
+          type="text"
+          placeholder="Search players..."
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+          className="w-64 rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        />
+
+        <select
+          value={playerView}
+          onChange={(e) => setPlayerView(e.target.value as PlayerView)}
+          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        >
+          <option value="all">All Players</option>
+          <option value="batters">Batters Only</option>
+          <option value="pitchers">Pitchers Only</option>
+        </select>
+
+        {isDraftMode && (
+          <select
+            value={draftFilter}
+            onChange={(e) => setDraftFilter(e.target.value as DraftFilter)}
+            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          >
+            <option value="available">Available</option>
+            <option value="all">All</option>
+            <option value="drafted">Drafted</option>
+            <option value="keepers">Keepers</option>
+          </select>
+        )}
+
+        <span className="text-sm text-zinc-500">
+          {filteredPlayers.length} players
+        </span>
+
+        {isDraftMode && (
+          <span className="text-xs text-zinc-400">
+            Click to draft, right-click for keeper
+          </span>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+        <table className="w-full text-sm">
+          <thead className="bg-zinc-50 dark:bg-zinc-800">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    style={{ width: header.getSize() }}
+                    className={`px-3 py-2 text-left text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 ${
+                      header.column.getCanSort()
+                        ? "cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-100"
+                        : ""
+                    }`}
+                    onClick={header.column.getToggleSortingHandler()}
+                  >
+                    <div className="flex items-center gap-1">
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                      {{
+                        asc: " ↑",
+                        desc: " ↓",
+                      }[header.column.getIsSorted() as string] ?? null}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                onClick={() => handleRowClick(row.original)}
+                onContextMenu={(e) => handleRowContextMenu(e, row.original)}
+                className={`border-t border-zinc-100 dark:border-zinc-800 ${
+                  isDraftMode ? "cursor-pointer" : ""
+                } ${
+                  row.original.isDrafted
+                    ? "bg-zinc-50 dark:bg-zinc-800/50"
+                    : row.original.isKeeper
+                    ? "bg-amber-50 dark:bg-amber-900/10"
+                    : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                }`}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="px-3 py-2">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

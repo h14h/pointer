@@ -16,6 +16,18 @@ A web app to help with fantasy baseball drafts by calculating projected point to
 
 ---
 
+## Implementation Status
+
+- [x] Phase 1: Core Data Types & State Management
+- [x] Phase 2: CSV Upload & Parsing
+- [x] Phase 3: Scoring Settings Form
+- [x] Phase 4: Player Leaderboard (basic)
+- [x] Phase 5: Draft Mode
+- [ ] Phase 6: UI/UX Polish (dark mode, mobile)
+- [ ] Future: Position filtering (requires position data)
+
+---
+
 ## Phase 1: Core Data Types & State Management
 
 ### 1.1 Define TypeScript Types
