@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useStore } from "@/store";
 import { scoringPresets, presetNames } from "@/lib/presets";
+import { useDebouncedCallback } from "@/lib/useDebounce";
 import type { ScoringSettings } from "@/types";
 
 interface ScoringFormProps {
@@ -49,6 +50,25 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
   const { scoringSettings, setScoringSettings, updateBattingScoring, updatePitchingScoring } =
     useStore();
   const [tab, setTab] = useState<Tab>("batting");
+
+  // Debounce scoring updates to prevent excessive recalculations
+  const debouncedUpdateBatting = useDebouncedCallback(
+    useCallback(
+      (key: keyof ScoringSettings["batting"], value: number) =>
+        updateBattingScoring(key, value),
+      [updateBattingScoring]
+    ),
+    150
+  );
+
+  const debouncedUpdatePitching = useDebouncedCallback(
+    useCallback(
+      (key: keyof ScoringSettings["pitching"], value: number) =>
+        updatePitchingScoring(key, value),
+      [updatePitchingScoring]
+    ),
+    150
+  );
 
   const handlePreset = (presetKey: string) => {
     const preset = scoringPresets[presetKey];
@@ -114,9 +134,10 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   <input
                     type="number"
                     step="0.5"
-                    value={scoringSettings.batting[key]}
+                    defaultValue={scoringSettings.batting[key]}
+                    key={`batting-${key}-${scoringSettings.name}`}
                     onChange={(e) =>
-                      updateBattingScoring(key, parseFloat(e.target.value) || 0)
+                      debouncedUpdateBatting(key, parseFloat(e.target.value) || 0)
                     }
                     className="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   />
@@ -130,9 +151,10 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   <input
                     type="number"
                     step="0.5"
-                    value={scoringSettings.pitching[key]}
+                    defaultValue={scoringSettings.pitching[key]}
+                    key={`pitching-${key}-${scoringSettings.name}`}
                     onChange={(e) =>
-                      updatePitchingScoring(key, parseFloat(e.target.value) || 0)
+                      debouncedUpdatePitching(key, parseFloat(e.target.value) || 0)
                     }
                     className="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   />

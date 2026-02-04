@@ -79,10 +79,29 @@ export interface PitcherStats {
   ADP: number | null;
 }
 
-export type Player = (BatterStats | PitcherStats) & {
-  _type: "batter" | "pitcher";
-  _id: string; // Generated unique ID
+export type BatterPlayer = BatterStats & {
+  _type: "batter";
+  _id: string;
 };
+
+export type PitcherPlayer = PitcherStats & {
+  _type: "pitcher";
+  _id: string;
+};
+
+export type TwoWayPlayer = {
+  _type: "two-way";
+  _id: string;
+  Name: string;
+  Team: string;
+  PlayerId: string;
+  MLBAMID: string;
+  ADP: number | null;
+  _battingStats: Omit<BatterStats, "Name" | "Team" | "PlayerId" | "MLBAMID" | "ADP">;
+  _pitchingStats: Omit<PitcherStats, "Name" | "Team" | "PlayerId" | "MLBAMID" | "ADP">;
+};
+
+export type Player = BatterPlayer | PitcherPlayer | TwoWayPlayer;
 
 // League scoring configuration
 export interface ScoringSettings {
@@ -142,6 +161,7 @@ export interface RankedPlayer {
 export interface AppState {
   batters: Player[];
   pitchers: Player[];
+  twoWayPlayers: TwoWayPlayer[];
   scoringSettings: ScoringSettings;
   draftState: DraftState;
   isDraftMode: boolean;

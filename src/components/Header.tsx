@@ -8,10 +8,17 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
-  const { isDraftMode, setDraftMode, batters, pitchers, draftState, resetDraft } =
-    useStore();
+  const {
+    isDraftMode,
+    setDraftMode,
+    batters,
+    pitchers,
+    twoWayPlayers,
+    draftState,
+    resetDraft,
+  } = useStore();
 
-  const totalPlayers = batters.length + pitchers.length;
+  const totalPlayers = batters.length + pitchers.length + twoWayPlayers.length;
   const draftedCount = draftState.draftedIds.length;
   const keeperCount = draftState.keeperIds.length;
 
@@ -24,7 +31,8 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
           </h1>
           {totalPlayers > 0 && (
             <span className="text-sm text-zinc-500">
-              {batters.length} batters, {pitchers.length} pitchers
+              {batters.length} batters, {pitchers.length} pitchers,{" "}
+              {twoWayPlayers.length} two-way
             </span>
           )}
         </div>

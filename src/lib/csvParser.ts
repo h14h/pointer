@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import type { Player, BatterStats, PitcherStats } from "@/types";
+import type { Player, BatterStats, PitcherStats, TwoWayPlayer, BatterPlayer, PitcherPlayer } from "@/types";
 
 // Parse numeric value, returning 0 for empty/invalid
 function parseNumber(value: string | undefined): number {
@@ -34,7 +34,34 @@ function detectPlayerType(headers: string[]): "batter" | "pitcher" {
   return batterMatches > pitcherMatches ? "batter" : "pitcher";
 }
 
-export function parseBatterRow(row: Record<string, string>, index: number): Player {
+export interface IdConfig {
+  source: IdSource;
+  customColumn?: string;
+}
+
+function resolvePlayerId(
+  row: Record<string, string>,
+  index: number,
+  type: "batter" | "pitcher",
+  idConfig: IdConfig
+): string {
+  switch (idConfig.source) {
+    case "MLBAMID":
+      return row.MLBAMID || row.mlbamid || `${type}-${index}`;
+    case "PlayerId":
+      return row.PlayerId || row.playerid || `${type}-${index}`;
+    case "custom":
+      return idConfig.customColumn ? (row[idConfig.customColumn] || `${type}-${index}`) : `${type}-${index}`;
+    case "generated":
+      return `${type}-${index}`;
+  }
+}
+
+export function parseBatterRow(
+  row: Record<string, string>,
+  index: number,
+  idConfig: IdConfig
+): Player {
   const stats: BatterStats = {
     Name: row.Name || row.name || "",
     Team: row.Team || row.team || "",
@@ -73,11 +100,15 @@ export function parseBatterRow(row: Record<string, string>, index: number): Play
   return {
     ...stats,
     _type: "batter",
-    _id: stats.PlayerId || `batter-${index}`,
+    _id: resolvePlayerId(row, index, "batter", idConfig),
   };
 }
 
-export function parsePitcherRow(row: Record<string, string>, index: number): Player {
+export function parsePitcherRow(
+  row: Record<string, string>,
+  index: number,
+  idConfig: IdConfig
+): Player {
   const stats: PitcherStats = {
     Name: row.Name || row.name || "",
     Team: row.Team || row.team || "",
@@ -112,20 +143,39 @@ export function parsePitcherRow(row: Record<string, string>, index: number): Pla
   return {
     ...stats,
     _type: "pitcher",
-    _id: stats.PlayerId || `pitcher-${index}`,
+    _id: resolvePlayerId(row, index, "pitcher", idConfig),
   };
 }
+
+export type IdSource = "MLBAMID" | "PlayerId" | "custom" | "generated";
 
 export interface ParseResult {
   players: Player[];
   type: "batter" | "pitcher";
   rowCount: number;
   errors: string[];
+  idSource: IdSource;
+  availableColumns: string[];
+  needsIdSelection: boolean;
+}
+
+function detectIdSource(headers: string[]): { source: IdSource; needsSelection: boolean } {
+  const hasMLBAMID = headers.some((h) => h.toLowerCase() === "mlbamid");
+  const hasPlayerId = headers.some((h) => h.toLowerCase() === "playerid");
+
+  if (hasMLBAMID) {
+    return { source: "MLBAMID", needsSelection: false };
+  }
+  if (hasPlayerId) {
+    return { source: "PlayerId", needsSelection: false };
+  }
+  return { source: "generated", needsSelection: true };
 }
 
 export function parsePlayerCSV(
   content: string,
-  forceType?: "batter" | "pitcher"
+  forceType?: "batter" | "pitcher",
+  idConfig?: IdConfig
 ): ParseResult {
   const delimiter = detectDelimiter(content);
   const errors: string[] = [];
@@ -145,14 +195,30 @@ export function parsePlayerCSV(
 
   const headers = result.meta.fields || [];
   const type = forceType || detectPlayerType(headers);
+  const { source: detectedSource, needsSelection } = detectIdSource(headers);
+
+  // If no ID config provided and we need selection, return early with metadata
+  if (!idConfig && needsSelection) {
+    return {
+      players: [],
+      type,
+      rowCount: result.data.length,
+      errors,
+      idSource: "generated",
+      availableColumns: headers,
+      needsIdSelection: true,
+    };
+  }
+
+  const finalIdConfig: IdConfig = idConfig || { source: detectedSource };
 
   const players: Player[] = result.data
     .map((row, index) => {
       try {
         if (type === "batter") {
-          return parseBatterRow(row, index);
+          return parseBatterRow(row, index, finalIdConfig);
         } else {
-          return parsePitcherRow(row, index);
+          return parsePitcherRow(row, index, finalIdConfig);
         }
       } catch (e) {
         errors.push(`Row ${index}: Failed to parse - ${e}`);
@@ -166,5 +232,115 @@ export function parsePlayerCSV(
     type,
     rowCount: players.length,
     errors,
+    idSource: finalIdConfig.source,
+    availableColumns: headers,
+    needsIdSelection: false,
   };
+}
+
+export function extractBattingStats(
+  batter: BatterPlayer
+): TwoWayPlayer["_battingStats"] {
+  return {
+    G: batter.G,
+    PA: batter.PA,
+    AB: batter.AB,
+    H: batter.H,
+    "1B": batter["1B"],
+    "2B": batter["2B"],
+    "3B": batter["3B"],
+    HR: batter.HR,
+    R: batter.R,
+    RBI: batter.RBI,
+    BB: batter.BB,
+    IBB: batter.IBB,
+    SO: batter.SO,
+    HBP: batter.HBP,
+    SF: batter.SF,
+    SH: batter.SH,
+    GDP: batter.GDP,
+    SB: batter.SB,
+    CS: batter.CS,
+    AVG: batter.AVG,
+    OBP: batter.OBP,
+    SLG: batter.SLG,
+    OPS: batter.OPS,
+    ISO: batter.ISO,
+    BABIP: batter.BABIP,
+    "wRC+": batter["wRC+"],
+    WAR: batter.WAR,
+  };
+}
+
+export function extractPitchingStats(
+  pitcher: PitcherPlayer
+): TwoWayPlayer["_pitchingStats"] {
+  return {
+    W: pitcher.W,
+    L: pitcher.L,
+    QS: pitcher.QS,
+    G: pitcher.G,
+    GS: pitcher.GS,
+    SV: pitcher.SV,
+    HLD: pitcher.HLD,
+    BS: pitcher.BS,
+    IP: pitcher.IP,
+    H: pitcher.H,
+    R: pitcher.R,
+    ER: pitcher.ER,
+    HR: pitcher.HR,
+    BB: pitcher.BB,
+    IBB: pitcher.IBB,
+    HBP: pitcher.HBP,
+    SO: pitcher.SO,
+    ERA: pitcher.ERA,
+    WHIP: pitcher.WHIP,
+    "K/9": pitcher["K/9"],
+    "BB/9": pitcher["BB/9"],
+    FIP: pitcher.FIP,
+    WAR: pitcher.WAR,
+  };
+}
+
+/**
+ * Merges newly uploaded players with existing players of the opposite type.
+ * Creates TwoWayPlayer entries when a batter and pitcher share the same ID.
+ */
+export function mergePlayers(
+  newPlayers: Player[],
+  existingPlayers: Player[],
+  newType: "batter" | "pitcher"
+): { merged: Player[]; remaining: Player[] } {
+  const existingById = new Map(existingPlayers.map((p) => [p._id, p]));
+  const merged: Player[] = [];
+  const remaining: Player[] = [];
+
+  for (const newPlayer of newPlayers) {
+    const existing = existingById.get(newPlayer._id);
+
+    if (existing && existing._type !== newPlayer._type) {
+      // Found a match - create two-way player
+      const batter = newType === "batter" ? newPlayer : existing;
+      const pitcher = newType === "pitcher" ? newPlayer : existing;
+
+      const twoWay: TwoWayPlayer = {
+        _type: "two-way",
+        _id: newPlayer._id,
+        Name: batter.Name || pitcher.Name,
+        Team: batter.Team || pitcher.Team,
+        PlayerId: (batter as BatterPlayer).PlayerId || (pitcher as PitcherPlayer).PlayerId,
+        MLBAMID: (batter as BatterPlayer).MLBAMID || (pitcher as PitcherPlayer).MLBAMID,
+        ADP: (batter as BatterPlayer).ADP ?? (pitcher as PitcherPlayer).ADP,
+        _battingStats: extractBattingStats(batter as BatterPlayer),
+        _pitchingStats: extractPitchingStats(pitcher as PitcherPlayer),
+      };
+
+      merged.push(twoWay);
+      existingById.delete(newPlayer._id); // Remove from existing so it doesn't stay
+    } else {
+      remaining.push(newPlayer);
+    }
+  }
+
+  return { merged, remaining };
 }

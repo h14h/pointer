@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { parsePlayerCSV, type ParseResult } from "@/lib/csvParser";
+import {
+  parsePlayerCSV,
+  mergePlayers,
+  extractBattingStats,
+  extractPitchingStats,
+  type ParseResult,
+  type IdConfig,
+  type IdSource,
+} from "@/lib/csvParser";
 import { useStore } from "@/store";
+import type { BatterPlayer, PitcherPlayer, TwoWayPlayer } from "@/types";
 
 interface CsvUploadProps {
   isOpen: boolean;
@@ -10,24 +19,51 @@ interface CsvUploadProps {
 }
 
 export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
-  const { setBatters, setPitchers, batters, pitchers } = useStore();
+  const {
+    setBatters,
+    setPitchers,
+    batters,
+    pitchers,
+    twoWayPlayers,
+    setTwoWayPlayers,
+    removeBattersByIds,
+    removePitchersByIds,
+  } = useStore();
   const [dragActive, setDragActive] = useState(false);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [uploadType, setUploadType] = useState<"auto" | "batter" | "pitcher">("auto");
+  const [rawContent, setRawContent] = useState<string | null>(null);
+  const [selectedIdSource, setSelectedIdSource] = useState<IdSource | "custom">("generated");
+  const [customIdColumn, setCustomIdColumn] = useState<string>("");
 
   const handleFile = useCallback(
     (file: File) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target?.result as string;
+        setRawContent(content);
         const forceType = uploadType === "auto" ? undefined : uploadType;
         const result = parsePlayerCSV(content, forceType);
         setParseResult(result);
+        if (result.needsIdSelection && result.availableColumns.length > 0) {
+          setCustomIdColumn(result.availableColumns[0]);
+        }
       };
       reader.readAsText(file);
     },
     [uploadType]
   );
+
+  const handleIdSelection = useCallback(() => {
+    if (!rawContent) return;
+    const forceType = uploadType === "auto" ? undefined : uploadType;
+    const idConfig: IdConfig =
+      selectedIdSource === "custom"
+        ? { source: "custom", customColumn: customIdColumn }
+        : { source: selectedIdSource };
+    const result = parsePlayerCSV(rawContent, forceType, idConfig);
+    setParseResult(result);
+  }, [rawContent, uploadType, selectedIdSource, customIdColumn]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -51,17 +87,97 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
     if (!parseResult) return;
 
     if (parseResult.type === "batter") {
-      setBatters(parseResult.players);
+      const incomingBatters = parseResult.players as BatterPlayer[];
+      const twoWayMap = new Map(twoWayPlayers.map((player) => [player._id, player]));
+      const battersForMerge: BatterPlayer[] = [];
+
+      for (const batter of incomingBatters) {
+        const existingTwoWay = twoWayMap.get(batter._id);
+        if (existingTwoWay) {
+          const updatedTwoWay: TwoWayPlayer = {
+            ...existingTwoWay,
+            Name: batter.Name || existingTwoWay.Name,
+            Team: batter.Team || existingTwoWay.Team,
+            PlayerId: batter.PlayerId || existingTwoWay.PlayerId,
+            MLBAMID: batter.MLBAMID || existingTwoWay.MLBAMID,
+            ADP: batter.ADP ?? existingTwoWay.ADP,
+            _battingStats: {
+              ...existingTwoWay._battingStats,
+              ...extractBattingStats(batter),
+            },
+          };
+          twoWayMap.set(batter._id, updatedTwoWay);
+        } else {
+          battersForMerge.push(batter);
+        }
+      }
+
+      const { merged, remaining } = mergePlayers(battersForMerge, pitchers, "batter");
+      const mergedTwoWay = merged as TwoWayPlayer[];
+      const mergedIds = mergedTwoWay.map((player) => player._id);
+
+      for (const player of mergedTwoWay) {
+        twoWayMap.set(player._id, player);
+      }
+
+      setBatters(remaining);
+      setTwoWayPlayers(Array.from(twoWayMap.values()));
+      if (mergedIds.length > 0) {
+        removePitchersByIds(mergedIds);
+      }
     } else {
-      setPitchers(parseResult.players);
+      const incomingPitchers = parseResult.players as PitcherPlayer[];
+      const twoWayMap = new Map(twoWayPlayers.map((player) => [player._id, player]));
+      const pitchersForMerge: PitcherPlayer[] = [];
+
+      for (const pitcher of incomingPitchers) {
+        const existingTwoWay = twoWayMap.get(pitcher._id);
+        if (existingTwoWay) {
+          const updatedTwoWay: TwoWayPlayer = {
+            ...existingTwoWay,
+            Name: pitcher.Name || existingTwoWay.Name,
+            Team: pitcher.Team || existingTwoWay.Team,
+            PlayerId: pitcher.PlayerId || existingTwoWay.PlayerId,
+            MLBAMID: pitcher.MLBAMID || existingTwoWay.MLBAMID,
+            ADP: pitcher.ADP ?? existingTwoWay.ADP,
+            _pitchingStats: {
+              ...existingTwoWay._pitchingStats,
+              ...extractPitchingStats(pitcher),
+            },
+          };
+          twoWayMap.set(pitcher._id, updatedTwoWay);
+        } else {
+          pitchersForMerge.push(pitcher);
+        }
+      }
+
+      const { merged, remaining } = mergePlayers(pitchersForMerge, batters, "pitcher");
+      const mergedTwoWay = merged as TwoWayPlayer[];
+      const mergedIds = mergedTwoWay.map((player) => player._id);
+
+      for (const player of mergedTwoWay) {
+        twoWayMap.set(player._id, player);
+      }
+
+      setPitchers(remaining);
+      setTwoWayPlayers(Array.from(twoWayMap.values()));
+      if (mergedIds.length > 0) {
+        removeBattersByIds(mergedIds);
+      }
     }
 
     setParseResult(null);
+    setRawContent(null);
+    setSelectedIdSource("generated");
+    setCustomIdColumn("");
     onClose();
   };
 
   const handleCancel = () => {
     setParseResult(null);
+    setRawContent(null);
+    setSelectedIdSource("generated");
+    setCustomIdColumn("");
     onClose();
   };
 
@@ -121,10 +237,10 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               </label>
             </div>
 
-            {(batters.length > 0 || pitchers.length > 0) && (
+            {(batters.length > 0 || pitchers.length > 0 || twoWayPlayers.length > 0) && (
               <p className="mb-4 text-sm text-zinc-500">
                 Currently loaded: {batters.length} batters, {pitchers.length}{" "}
-                pitchers
+                pitchers, {twoWayPlayers.length} two-way
               </p>
             )}
 
@@ -134,6 +250,65 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                 className="rounded-md px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
               >
                 Cancel
+              </button>
+            </div>
+          </>
+        ) : parseResult.needsIdSelection ? (
+          <>
+            <div className="mb-4 rounded-md bg-amber-50 p-4 dark:bg-amber-900/20">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                No MLBAMID or PlayerId column found
+              </p>
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                Select a column to use as the unique player identifier, or generate IDs automatically.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                ID Source
+              </label>
+              <select
+                value={selectedIdSource}
+                onChange={(e) => setSelectedIdSource(e.target.value as IdSource | "custom")}
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              >
+                <option value="generated">Generate IDs automatically</option>
+                <option value="custom">Use a column from the file</option>
+              </select>
+            </div>
+
+            {selectedIdSource === "custom" && (
+              <div className="mb-4">
+                <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Select Column
+                </label>
+                <select
+                  value={customIdColumn}
+                  onChange={(e) => setCustomIdColumn(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                >
+                  {parseResult.availableColumns.map((col) => (
+                    <option key={col} value={col}>
+                      {col}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleCancel}
+                className="rounded-md px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleIdSelection}
+                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                Continue
               </button>
             </div>
           </>

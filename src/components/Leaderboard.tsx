@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -21,6 +21,7 @@ export function Leaderboard() {
   const {
     batters,
     pitchers,
+    twoWayPlayers,
     scoringSettings,
     draftState,
     isDraftMode,
@@ -35,24 +36,41 @@ export function Leaderboard() {
   const [playerView, setPlayerView] = useState<PlayerView>("all");
   const [draftFilter, setDraftFilter] = useState<DraftFilter>("available");
 
+  // Create Sets for O(1) lookups instead of O(n) array.includes()
+  const draftedIdsSet = useMemo(
+    () => new Set(draftState.draftedIds),
+    [draftState.draftedIds]
+  );
+  const keeperIdsSet = useMemo(
+    () => new Set(draftState.keeperIds),
+    [draftState.keeperIds]
+  );
+
+  // Memoize toggle handler to prevent column regeneration
+  const handleToggleDrafted = useCallback(
+    (playerId: string) => toggleDrafted(playerId),
+    [toggleDrafted]
+  );
+
   // Calculate points and create ranked players
   const rankedPlayers = useMemo(() => {
     let players: Player[] = [];
 
-    if (playerView === "all" || playerView === "batters") {
-      players = [...players, ...batters];
-    }
-    if (playerView === "all" || playerView === "pitchers") {
-      players = [...players, ...pitchers];
+    if (playerView === "all") {
+      players = [...batters, ...pitchers, ...twoWayPlayers];
+    } else if (playerView === "batters") {
+      players = [...batters, ...twoWayPlayers];
+    } else {
+      players = [...pitchers, ...twoWayPlayers];
     }
 
     return players.map((player) => ({
       player,
-      projectedPoints: calculatePlayerPoints(player, scoringSettings),
-      isDrafted: draftState.draftedIds.includes(player._id),
-      isKeeper: draftState.keeperIds.includes(player._id),
+      projectedPoints: calculatePlayerPoints(player, scoringSettings, playerView),
+      isDrafted: draftedIdsSet.has(player._id),
+      isKeeper: keeperIdsSet.has(player._id),
     }));
-  }, [batters, pitchers, scoringSettings, draftState, playerView]);
+  }, [batters, pitchers, twoWayPlayers, scoringSettings, draftedIdsSet, keeperIdsSet, playerView]);
 
   // Filter by draft status in draft mode
   const filteredPlayers = useMemo(() => {
@@ -93,7 +111,7 @@ export function Leaderboard() {
               <input
                 type="checkbox"
                 checked={row.original.isDrafted || row.original.isKeeper}
-                onChange={() => toggleDrafted(row.original.player._id)}
+                onChange={() => handleToggleDrafted(row.original.player._id)}
                 className="h-4 w-4 rounded border-zinc-300"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -131,10 +149,16 @@ export function Leaderboard() {
             className={`rounded px-1.5 py-0.5 text-xs font-medium ${
               row.original.player._type === "batter"
                 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                : row.original.player._type === "pitcher"
+                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
             }`}
           >
-            {row.original.player._type === "batter" ? "BAT" : "PIT"}
+            {row.original.player._type === "batter"
+              ? "BAT"
+              : row.original.player._type === "pitcher"
+              ? "PIT"
+              : "2W"}
           </span>
         ),
       },
@@ -160,6 +184,8 @@ export function Leaderboard() {
           accessorFn: (row) =>
             row.player._type === "batter"
               ? (row.player as unknown as Record<string, number>).HR
+              : row.player._type === "two-way"
+              ? row.player._battingStats.HR
               : null,
           cell: ({ getValue }) => getValue() ?? "-",
         },
@@ -170,6 +196,8 @@ export function Leaderboard() {
           accessorFn: (row) =>
             row.player._type === "batter"
               ? (row.player as unknown as Record<string, number>).R
+              : row.player._type === "two-way"
+              ? row.player._battingStats.R
               : null,
           cell: ({ getValue }) => getValue() ?? "-",
         },
@@ -180,6 +208,8 @@ export function Leaderboard() {
           accessorFn: (row) =>
             row.player._type === "batter"
               ? (row.player as unknown as Record<string, number>).RBI
+              : row.player._type === "two-way"
+              ? row.player._battingStats.RBI
               : null,
           cell: ({ getValue }) => getValue() ?? "-",
         },
@@ -190,6 +220,8 @@ export function Leaderboard() {
           accessorFn: (row) =>
             row.player._type === "batter"
               ? (row.player as unknown as Record<string, number>).SB
+              : row.player._type === "two-way"
+              ? row.player._battingStats.SB
               : null,
           cell: ({ getValue }) => getValue() ?? "-",
         },
@@ -200,6 +232,8 @@ export function Leaderboard() {
           accessorFn: (row) =>
             row.player._type === "batter"
               ? (row.player as unknown as Record<string, number>).AVG
+              : row.player._type === "two-way"
+              ? row.player._battingStats.AVG
               : null,
           cell: ({ getValue }) => {
             const val = getValue() as number | null;
@@ -219,6 +253,8 @@ export function Leaderboard() {
           accessorFn: (row) =>
             row.player._type === "pitcher"
               ? (row.player as unknown as Record<string, number>).W
+              : row.player._type === "two-way"
+              ? row.player._pitchingStats.W
               : null,
           cell: ({ getValue }) => getValue() ?? "-",
         },
@@ -229,6 +265,8 @@ export function Leaderboard() {
           accessorFn: (row) =>
             row.player._type === "pitcher"
               ? (row.player as unknown as Record<string, number>).SO
+              : row.player._type === "two-way"
+              ? row.player._pitchingStats.SO
               : null,
           cell: ({ getValue }) => getValue() ?? "-",
         },
@@ -239,6 +277,8 @@ export function Leaderboard() {
           accessorFn: (row) =>
             row.player._type === "pitcher"
               ? (row.player as unknown as Record<string, number>).ERA
+              : row.player._type === "two-way"
+              ? row.player._pitchingStats.ERA
               : null,
           cell: ({ getValue }) => {
             const val = getValue() as number | null;
@@ -252,6 +292,8 @@ export function Leaderboard() {
           accessorFn: (row) =>
             row.player._type === "pitcher"
               ? (row.player as unknown as Record<string, number>).IP
+              : row.player._type === "two-way"
+              ? row.player._pitchingStats.IP
               : null,
           cell: ({ getValue }) => getValue() ?? "-",
         },
@@ -272,7 +314,7 @@ export function Leaderboard() {
     });
 
     return baseColumns;
-  }, [playerView, isDraftMode, toggleDrafted]);
+  }, [playerView, isDraftMode, handleToggleDrafted]);
 
   const table = useReactTable({
     data: filteredPlayers,
@@ -294,10 +336,13 @@ export function Leaderboard() {
     },
   });
 
-  const handleRowClick = (player: RankedPlayer) => {
-    if (!isDraftMode) return;
-    toggleDrafted(player.player._id);
-  };
+  const handleRowClick = useCallback(
+    (player: RankedPlayer) => {
+      if (!isDraftMode) return;
+      handleToggleDrafted(player.player._id);
+    },
+    [isDraftMode, handleToggleDrafted]
+  );
 
   const handleRowContextMenu = (e: React.MouseEvent, player: RankedPlayer) => {
     if (!isDraftMode) return;
@@ -305,7 +350,7 @@ export function Leaderboard() {
     toggleKeeper(player.player._id);
   };
 
-  if (batters.length === 0 && pitchers.length === 0) {
+  if (batters.length === 0 && pitchers.length === 0 && twoWayPlayers.length === 0) {
     return (
       <div className="flex h-96 flex-col items-center justify-center text-zinc-500">
         <p className="mb-2 text-lg">No players loaded</p>

@@ -4,6 +4,7 @@ import type {
   Player,
   ScoringSettings,
   DraftState,
+  TwoWayPlayer,
 } from "@/types";
 
 // Default ESPN-style scoring
@@ -46,6 +47,7 @@ interface Store {
   // Data
   batters: Player[];
   pitchers: Player[];
+  twoWayPlayers: TwoWayPlayer[];
   scoringSettings: ScoringSettings;
   draftState: DraftState;
   isDraftMode: boolean;
@@ -53,6 +55,10 @@ interface Store {
   // Actions
   setBatters: (batters: Player[]) => void;
   setPitchers: (pitchers: Player[]) => void;
+  setTwoWayPlayers: (players: TwoWayPlayer[]) => void;
+  addTwoWayPlayers: (players: TwoWayPlayer[]) => void;
+  removeBattersByIds: (ids: string[]) => void;
+  removePitchersByIds: (ids: string[]) => void;
   setScoringSettings: (settings: ScoringSettings) => void;
   updateBattingScoring: (key: keyof ScoringSettings["batting"], value: number) => void;
   updatePitchingScoring: (key: keyof ScoringSettings["pitching"], value: number) => void;
@@ -69,6 +75,7 @@ export const useStore = create<Store>()(
       // Initial state
       batters: [],
       pitchers: [],
+      twoWayPlayers: [],
       scoringSettings: defaultScoringSettings,
       draftState: {
         draftedIds: [],
@@ -80,6 +87,23 @@ export const useStore = create<Store>()(
       setBatters: (batters) => set({ batters }),
 
       setPitchers: (pitchers) => set({ pitchers }),
+
+      setTwoWayPlayers: (players) => set({ twoWayPlayers: players }),
+
+      addTwoWayPlayers: (players) =>
+        set((state) => ({
+          twoWayPlayers: [...state.twoWayPlayers, ...players],
+        })),
+
+      removeBattersByIds: (ids) =>
+        set((state) => ({
+          batters: state.batters.filter((b) => !ids.includes(b._id)),
+        })),
+
+      removePitchersByIds: (ids) =>
+        set((state) => ({
+          pitchers: state.pitchers.filter((p) => !ids.includes(p._id)),
+        })),
 
       setScoringSettings: (settings) => set({ scoringSettings: settings }),
 
@@ -145,6 +169,7 @@ export const useStore = create<Store>()(
         set({
           batters: [],
           pitchers: [],
+          twoWayPlayers: [],
           draftState: {
             draftedIds: [],
             keeperIds: [],
