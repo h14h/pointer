@@ -25,6 +25,7 @@ import {
   resolveCompleteGames,
   resolveShutouts,
 } from "@/lib/pitchingOutcomes";
+import { isValidBaseballIp } from "@/lib/ipMath";
 import type {
   Player,
   RankedPlayer,
@@ -200,6 +201,26 @@ const LeaderboardTable = memo(function LeaderboardTable({
     [twoWayPlayers]
   );
 
+  const useBaseballIp = useMemo(() => {
+    const pitcherIps = [
+      ...pitchers,
+      ...twoWayPlayers,
+    ]
+      .map((player) => {
+        if (player._type === "two-way") {
+          return player._pitchingStats.IP;
+        }
+        if (player._type === "pitcher") {
+          return player.IP;
+        }
+        return null;
+      })
+      .filter((ip): ip is number => typeof ip === "number");
+
+    if (pitcherIps.length === 0) return false;
+    return pitcherIps.every((ip) => isValidBaseballIp(ip));
+  }, [pitchers, twoWayPlayers]);
+
   // Create Sets for O(1) lookups instead of O(n) array.includes()
   const draftedIdsSet = useMemo(
     () => new Set(draftState.draftedIds),
@@ -260,7 +281,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 
     return players.map((player) => ({
       player,
-      projectedPoints: calculatePlayerPoints(player, scoringSettings, playerView),
+      projectedPoints: calculatePlayerPoints(player, scoringSettings, playerView, useBaseballIp),
       isDrafted: draftedIdsSet.has(player._id),
       isKeeper: keeperIdsSet.has(player._id),
     }));
@@ -275,6 +296,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
     canMergeTwoWay,
     mergeTwoWayRankings,
     twoWayIds,
+    useBaseballIp,
   ]);
 
   // Filter by draft status in draft mode
@@ -469,9 +491,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
           size: 50,
           accessorFn: (row) =>
             row.player._type === "pitcher"
-              ? resolveQualityStarts(row.player)
+              ? resolveQualityStarts(row.player, useBaseballIp)
               : row.player._type === "two-way"
-              ? resolveQualityStarts(row.player._pitchingStats)
+              ? resolveQualityStarts(row.player._pitchingStats, useBaseballIp)
               : null,
           cell: ({ getValue }) => {
             const val = getValue() as number | null;
@@ -484,9 +506,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
           size: 50,
           accessorFn: (row) =>
             row.player._type === "pitcher"
-              ? resolveCompleteGames(row.player)
+              ? resolveCompleteGames(row.player, useBaseballIp)
               : row.player._type === "two-way"
-              ? resolveCompleteGames(row.player._pitchingStats)
+              ? resolveCompleteGames(row.player._pitchingStats, useBaseballIp)
               : null,
           cell: ({ getValue }) => {
             const val = getValue() as number | null;
@@ -499,9 +521,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
           size: 50,
           accessorFn: (row) =>
             row.player._type === "pitcher"
-              ? resolveShutouts(row.player)
+              ? resolveShutouts(row.player, useBaseballIp)
               : row.player._type === "two-way"
-              ? resolveShutouts(row.player._pitchingStats)
+              ? resolveShutouts(row.player._pitchingStats, useBaseballIp)
               : null,
           cell: ({ getValue }) => {
             const val = getValue() as number | null;
@@ -564,7 +586,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
     });
 
     return baseColumns;
-  }, [playerView, isDraftMode, handleToggleDrafted]);
+  }, [playerView, isDraftMode, handleToggleDrafted, useBaseballIp]);
 
   const table = useReactTable({
     data: filteredPlayers,

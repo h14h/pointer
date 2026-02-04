@@ -1,4 +1,5 @@
 import type { PitcherStats } from "@/types";
+import { normalizeIp } from "@/lib/ipMath";
 
 export type PitchingOutcomeParams = {
   qsMinIp: number;
@@ -172,12 +173,15 @@ function adjustedInningsPitched(
   IP: number,
   G: number | undefined,
   GS: number,
-  reliefIpPerAppearance: number
+  reliefIpPerAppearance: number,
+  useBaseballIp: boolean
 ): number {
+  const ipInfo = useBaseballIp ? normalizeIp(IP) : null;
+  const innings = useBaseballIp ? (ipInfo && ipInfo.valid ? ipInfo.innings : 0) : IP;
   const reliefApps = Math.max((G ?? GS) - GS, 0);
-  if (reliefApps <= 0) return IP;
+  if (reliefApps <= 0) return innings;
   const reliefIp = reliefApps * reliefIpPerAppearance;
-  return Math.max(IP - reliefIp, 0);
+  return Math.max(innings - reliefIp, 0);
 }
 
 function effectiveEra(
@@ -259,11 +263,14 @@ export function estimateQualityStarts(
     "K/9"?: number;
     "BB/9"?: number;
   },
-  params: PitchingOutcomeParams = DEFAULT_PITCHING_OUTCOME_PARAMS
+  params: PitchingOutcomeParams = DEFAULT_PITCHING_OUTCOME_PARAMS,
+  useBaseballIp = false
 ): number {
   void params;
 
-  const { GS, IP, ERA } = input;
+  const { GS, ERA } = input;
+  const ipInfo = useBaseballIp ? normalizeIp(input.IP) : null;
+  const IP = useBaseballIp ? (ipInfo && ipInfo.valid ? ipInfo.innings : 0) : input.IP;
   if (GS <= 0 || IP <= 0 || ERA <= 0) return 0;
   if (GS < 6) return 0;
 
@@ -290,11 +297,14 @@ export function estimateCompleteGames(
     "K/9"?: number;
     "BB/9"?: number;
   },
-  params: PitchingOutcomeParams = DEFAULT_PITCHING_OUTCOME_PARAMS
+  params: PitchingOutcomeParams = DEFAULT_PITCHING_OUTCOME_PARAMS,
+  useBaseballIp = false
 ): number {
   void params;
 
-  const { GS, IP, ERA } = input;
+  const { GS, ERA } = input;
+  const ipInfo = useBaseballIp ? normalizeIp(input.IP) : null;
+  const IP = useBaseballIp ? (ipInfo && ipInfo.valid ? ipInfo.innings : 0) : input.IP;
   if (GS <= 0 || IP <= 0 || ERA <= 0) return 0;
   if (GS < 6) return 0;
 
@@ -322,12 +332,15 @@ export function estimateShutouts(
     "K/9"?: number;
     "BB/9"?: number;
   },
-  params: PitchingOutcomeParams = DEFAULT_PITCHING_OUTCOME_PARAMS
+  params: PitchingOutcomeParams = DEFAULT_PITCHING_OUTCOME_PARAMS,
+  useBaseballIp = false
 ): number {
   void params;
   void input.CG;
 
-  const { GS, IP, ERA } = input;
+  const { GS, ERA } = input;
+  const ipInfo = useBaseballIp ? normalizeIp(input.IP) : null;
+  const IP = useBaseballIp ? (ipInfo && ipInfo.valid ? ipInfo.innings : 0) : input.IP;
   if (GS <= 0 || IP <= 0 || ERA <= 0) return 0;
   if (GS < 6) return 0;
 
@@ -347,58 +360,70 @@ export function resolveQualityStarts(
   stats: Pick<
     PitcherStats,
     "QS" | "GS" | "G" | "IP" | "ERA" | "W" | "FIP" | "WHIP" | "K/9" | "BB/9"
-  >
+  >,
+  useBaseballIp = false
 ): number {
   if ((stats.QS ?? 0) > 0) return stats.QS;
   if ((stats.GS ?? 0) <= 0) return 0;
-  if ((stats.IP ?? 0) <= 0) return 0;
+  const rawIp = stats.IP ?? 0;
+  const ipInfo = useBaseballIp ? normalizeIp(rawIp) : null;
+  const ipValue = useBaseballIp ? (ipInfo && ipInfo.valid ? ipInfo.innings : 0) : rawIp;
+  if (ipValue <= 0) return 0;
   if ((stats.ERA ?? 0) <= 0) return 0;
 
   return estimateQualityStarts({
     GS: stats.GS,
     G: stats.G,
-    IP: stats.IP,
+    IP: rawIp,
     ERA: stats.ERA,
     W: stats.W ?? 0,
     FIP: stats.FIP,
     WHIP: stats.WHIP,
     "K/9": stats["K/9"],
     "BB/9": stats["BB/9"],
-  });
+  }, undefined, useBaseballIp);
 }
 
 export function resolveCompleteGames(
   stats: Pick<
     PitcherStats,
     "CG" | "GS" | "G" | "IP" | "ERA" | "FIP" | "WHIP" | "K/9" | "BB/9"
-  >
+  >,
+  useBaseballIp = false
 ): number {
   if ((stats.CG ?? 0) > 0) return stats.CG;
   if ((stats.GS ?? 0) <= 0) return 0;
-  if ((stats.IP ?? 0) <= 0) return 0;
+  const rawIp = stats.IP ?? 0;
+  const ipInfo = useBaseballIp ? normalizeIp(rawIp) : null;
+  const ipValue = useBaseballIp ? (ipInfo && ipInfo.valid ? ipInfo.innings : 0) : rawIp;
+  if (ipValue <= 0) return 0;
   if ((stats.ERA ?? 0) <= 0) return 0;
 
   return estimateCompleteGames({
     GS: stats.GS,
     G: stats.G,
-    IP: stats.IP,
+    IP: rawIp,
     ERA: stats.ERA,
     FIP: stats.FIP,
     WHIP: stats.WHIP,
     "K/9": stats["K/9"],
     "BB/9": stats["BB/9"],
-  });
+  }, undefined, useBaseballIp);
 }
 
 export function resolveShutouts(
   stats: Pick<
     PitcherStats,
     "ShO" | "CG" | "GS" | "G" | "IP" | "ERA" | "FIP" | "WHIP" | "K/9" | "BB/9"
-  >
+  >,
+  useBaseballIp = false
 ): number {
   if ((stats.ShO ?? 0) > 0) return stats.ShO;
   if ((stats.GS ?? 0) <= 0) return 0;
-  if ((stats.IP ?? 0) <= 0) return 0;
+  const rawIp = stats.IP ?? 0;
+  const ipInfo = useBaseballIp ? normalizeIp(rawIp) : null;
+  const ipValue = useBaseballIp ? (ipInfo && ipInfo.valid ? ipInfo.innings : 0) : rawIp;
+  if (ipValue <= 0) return 0;
   if ((stats.ERA ?? 0) <= 0) return 0;
 
   const cg = (stats.CG ?? 0) > 0
@@ -406,23 +431,23 @@ export function resolveShutouts(
     : estimateCompleteGames({
         GS: stats.GS,
         G: stats.G,
-        IP: stats.IP,
+        IP: rawIp,
         ERA: stats.ERA,
         FIP: stats.FIP,
         WHIP: stats.WHIP,
         "K/9": stats["K/9"],
         "BB/9": stats["BB/9"],
-      });
+      }, undefined, useBaseballIp);
 
   return estimateShutouts({
     GS: stats.GS,
     G: stats.G,
-    IP: stats.IP,
+    IP: rawIp,
     ERA: stats.ERA,
     CG: cg,
     FIP: stats.FIP,
     WHIP: stats.WHIP,
     "K/9": stats["K/9"],
     "BB/9": stats["BB/9"],
-  });
+  }, undefined, useBaseballIp);
 }

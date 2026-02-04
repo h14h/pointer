@@ -4,6 +4,7 @@ import {
   resolveCompleteGames,
   resolveShutouts,
 } from "@/lib/pitchingOutcomes";
+import { normalizeIp } from "@/lib/ipMath";
 
 export function calculateBatterPoints(
   player: BatterStats,
@@ -35,16 +36,22 @@ export function calculateBatterPoints(
 
 export function calculatePitcherPoints(
   player: PitcherStats,
-  settings: ScoringSettings["pitching"]
+  settings: ScoringSettings["pitching"],
+  useBaseballIp = false
 ): number {
   let points = 0;
 
-  points += (player.IP || 0) * settings.IP;
+  if (useBaseballIp) {
+    const ipInfo = normalizeIp(player.IP || 0);
+    points += (ipInfo.valid ? ipInfo.innings : 0) * settings.IP;
+  } else {
+    points += (player.IP || 0) * settings.IP;
+  }
   points += (player.W || 0) * settings.W;
   points += (player.L || 0) * settings.L;
-  points += resolveQualityStarts(player) * settings.QS;
-  points += resolveCompleteGames(player) * settings.CG;
-  points += resolveShutouts(player) * settings.ShO;
+  points += resolveQualityStarts(player, useBaseballIp) * settings.QS;
+  points += resolveCompleteGames(player, useBaseballIp) * settings.CG;
+  points += resolveShutouts(player, useBaseballIp) * settings.ShO;
   points += (player.SV || 0) * settings.SV;
   points += (player.BS || 0) * settings.BS;
   points += (player.HLD || 0) * settings.HLD;
@@ -87,16 +94,22 @@ function calculateTwoWayBattingPoints(
 
 function calculateTwoWayPitchingPoints(
   stats: TwoWayPlayer["_pitchingStats"],
-  settings: ScoringSettings["pitching"]
+  settings: ScoringSettings["pitching"],
+  useBaseballIp = false
 ): number {
   let points = 0;
 
-  points += (stats.IP || 0) * settings.IP;
+  if (useBaseballIp) {
+    const ipInfo = normalizeIp(stats.IP || 0);
+    points += (ipInfo.valid ? ipInfo.innings : 0) * settings.IP;
+  } else {
+    points += (stats.IP || 0) * settings.IP;
+  }
   points += (stats.W || 0) * settings.W;
   points += (stats.L || 0) * settings.L;
-  points += resolveQualityStarts(stats) * settings.QS;
-  points += resolveCompleteGames(stats) * settings.CG;
-  points += resolveShutouts(stats) * settings.ShO;
+  points += resolveQualityStarts(stats, useBaseballIp) * settings.QS;
+  points += resolveCompleteGames(stats, useBaseballIp) * settings.CG;
+  points += resolveShutouts(stats, useBaseballIp) * settings.ShO;
   points += (stats.SV || 0) * settings.SV;
   points += (stats.BS || 0) * settings.BS;
   points += (stats.HLD || 0) * settings.HLD;
@@ -113,23 +126,30 @@ function calculateTwoWayPitchingPoints(
 export function calculatePlayerPoints(
   player: Player,
   settings: ScoringSettings,
-  viewMode?: "all" | "batters" | "pitchers"
+  viewMode?: "all" | "batters" | "pitchers",
+  useBaseballIp = false
 ): number {
   if (player._type === "batter") {
     return calculateBatterPoints(player as BatterStats, settings.batting);
   } else if (player._type === "pitcher") {
-    return calculatePitcherPoints(player as PitcherStats, settings.pitching);
+    return calculatePitcherPoints(player as PitcherStats, settings.pitching, useBaseballIp);
   } else {
     // Two-way player
     const twoWay = player as TwoWayPlayer;
     if (viewMode === "batters") {
       return Math.round(calculateTwoWayBattingPoints(twoWay._battingStats, settings.batting) * 10) / 10;
     } else if (viewMode === "pitchers") {
-      return Math.round(calculateTwoWayPitchingPoints(twoWay._pitchingStats, settings.pitching) * 10) / 10;
+      return Math.round(
+        calculateTwoWayPitchingPoints(twoWay._pitchingStats, settings.pitching, useBaseballIp) * 10
+      ) / 10;
     } else {
       // Combined points for "all" view
       const battingPoints = calculateTwoWayBattingPoints(twoWay._battingStats, settings.batting);
-      const pitchingPoints = calculateTwoWayPitchingPoints(twoWay._pitchingStats, settings.pitching);
+      const pitchingPoints = calculateTwoWayPitchingPoints(
+        twoWay._pitchingStats,
+        settings.pitching,
+        useBaseballIp
+      );
       return Math.round((battingPoints + pitchingPoints) * 10) / 10;
     }
   }
