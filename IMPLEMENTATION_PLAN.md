@@ -181,6 +181,10 @@ Create `/src/lib/calculatePoints.ts`:
 - Handle both hitters and pitchers
 - Handle missing stats gracefully
 
+### 4.4 Quality Start Estimation
+
+- [x] Estimate QS from projected GS/IP/ERA/W when projections omit QS.
+
 ### 4.2 Leaderboard Table
 
 Create `/src/components/Leaderboard.tsx`:

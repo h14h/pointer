@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-table";
 import { useStore } from "@/store";
 import { calculatePlayerPoints } from "@/lib/calculatePoints";
+import { resolveQualityStarts } from "@/lib/qualityStarts";
 import type { Player, RankedPlayer } from "@/types";
 
 type PlayerView = "all" | "batters" | "pitchers";
@@ -257,6 +258,21 @@ export function Leaderboard() {
               ? row.player._pitchingStats.W
               : null,
           cell: ({ getValue }) => getValue() ?? "-",
+        },
+        {
+          id: "QS",
+          header: "QS",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "pitcher"
+              ? resolveQualityStarts(row.player)
+              : row.player._type === "two-way"
+              ? resolveQualityStarts(row.player._pitchingStats)
+              : null,
+          cell: ({ getValue }) => {
+            const val = getValue() as number | null;
+            return val === null ? "-" : val.toFixed(1);
+          },
         },
         {
           id: "SO_P",
