@@ -1,5 +1,13 @@
 import Papa from "papaparse";
-import type { Player, BatterStats, PitcherStats, TwoWayPlayer, BatterPlayer, PitcherPlayer } from "@/types";
+import type {
+  Player,
+  BatterStats,
+  PitcherStats,
+  TwoWayPlayer,
+  BatterPlayer,
+  PitcherPlayer,
+  IdSource,
+} from "@/types";
 
 // Parse numeric value, returning 0 for empty/invalid
 function parseNumber(value: string | undefined): number {
@@ -26,7 +34,7 @@ function detectDelimiter(content: string): string {
 // Detect if data is batters or pitchers based on columns
 function detectPlayerType(headers: string[]): "batter" | "pitcher" {
   const batterColumns = ["PA", "AB", "1B", "2B", "3B", "SB", "CS", "AVG", "OBP", "SLG"];
-  const pitcherColumns = ["ERA", "WHIP", "IP", "GS", "SV", "QS", "K/9", "BB/9"];
+  const pitcherColumns = ["ERA", "WHIP", "IP", "GS", "SV", "QS", "CG", "ShO", "K/9", "BB/9"];
 
   const batterMatches = batterColumns.filter((col) => headers.includes(col)).length;
   const pitcherMatches = pitcherColumns.filter((col) => headers.includes(col)).length;
@@ -117,6 +125,8 @@ export function parsePitcherRow(
     W: parseNumber(row.W),
     L: parseNumber(row.L),
     QS: parseNumber(row.QS),
+    CG: parseNumber(row.CG),
+    ShO: parseNumber(row.ShO),
     G: parseNumber(row.G),
     GS: parseNumber(row.GS),
     SV: parseNumber(row.SV),
@@ -146,8 +156,6 @@ export function parsePitcherRow(
     _id: resolvePlayerId(row, index, "pitcher", idConfig),
   };
 }
-
-export type IdSource = "MLBAMID" | "PlayerId" | "custom" | "generated";
 
 export interface ParseResult {
   players: Player[];
@@ -279,6 +287,8 @@ export function extractPitchingStats(
     W: pitcher.W,
     L: pitcher.L,
     QS: pitcher.QS,
+    CG: pitcher.CG,
+    ShO: pitcher.ShO,
     G: pitcher.G,
     GS: pitcher.GS,
     SV: pitcher.SV,

@@ -1,6 +1,14 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import {
+  useMemo,
+  useState,
+  useCallback,
+  useDeferredValue,
+  memo,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -12,30 +20,185 @@ import {
 } from "@tanstack/react-table";
 import { useStore } from "@/store";
 import { calculatePlayerPoints } from "@/lib/calculatePoints";
-import { resolveQualityStarts } from "@/lib/qualityStarts";
-import type { Player, RankedPlayer } from "@/types";
+import {
+  resolveQualityStarts,
+  resolveCompleteGames,
+  resolveShutouts,
+} from "@/lib/pitchingOutcomes";
+import type {
+  Player,
+  RankedPlayer,
+  DraftState,
+  ScoringSettings,
+  ProjectionGroup,
+} from "@/types";
 
 type PlayerView = "all" | "batters" | "pitchers";
 type DraftFilter = "all" | "available" | "drafted" | "keepers";
 
 export function Leaderboard() {
   const {
-    batters,
-    pitchers,
-    twoWayPlayers,
+    projectionGroups,
+    activeProjectionGroupId,
+    setActiveProjectionGroup,
     scoringSettings,
     draftState,
     isDraftMode,
     toggleDrafted,
     toggleKeeper,
+    mergeTwoWayRankings,
   } = useStore();
+  const currentGroupId =
+    activeProjectionGroupId ?? projectionGroups[0]?.id ?? null;
+  const deferredGroupId = useDeferredValue(currentGroupId);
+  const isSwitchingGroups = deferredGroupId !== currentGroupId;
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [playerView, setPlayerView] = useState<PlayerView>("all");
+  const [draftFilter, setDraftFilter] = useState<DraftFilter>("available");
+  return (
+    <div className="flex flex-col">
+      {/* Filters */}
+      <div className="mb-4 flex flex-wrap items-center gap-4">
+        <input
+          type="text"
+          placeholder="Search players..."
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+          className="w-64 rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        />
+
+        <select
+          value={playerView}
+          onChange={(e) => setPlayerView(e.target.value as PlayerView)}
+          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        >
+          <option value="all">All Players</option>
+          <option value="batters">Batters Only</option>
+          <option value="pitchers">Pitchers Only</option>
+        </select>
+
+        {projectionGroups.length > 1 && (
+          <div className="flex items-center gap-2">
+            <select
+              value={currentGroupId ?? ""}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                setActiveProjectionGroup(nextId);
+              }}
+              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            >
+              {projectionGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+            {isSwitchingGroups && (
+              <span
+                className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-emerald-600"
+                aria-label="Loading projections"
+              />
+            )}
+          </div>
+        )}
+
+
+        {isDraftMode && (
+          <select
+            value={draftFilter}
+            onChange={(e) => setDraftFilter(e.target.value as DraftFilter)}
+            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          >
+            <option value="available">Available</option>
+            <option value="all">All</option>
+            <option value="drafted">Drafted</option>
+            <option value="keepers">Keepers</option>
+          </select>
+        )}
+
+        {isDraftMode && (
+          <span className="text-xs text-zinc-400">
+            Click to draft, right-click for keeper
+          </span>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="relative">
+        {isSwitchingGroups && (
+          <div className="pointer-events-none absolute inset-0 rounded-lg bg-black/10 dark:bg-black/20" />
+        )}
+        <LeaderboardTable
+          projectionGroups={projectionGroups}
+          activeGroupId={deferredGroupId}
+          scoringSettings={scoringSettings}
+          draftState={draftState}
+          isDraftMode={isDraftMode}
+          mergeTwoWayRankings={mergeTwoWayRankings}
+          toggleDrafted={toggleDrafted}
+          toggleKeeper={toggleKeeper}
+          playerView={playerView}
+          globalFilter={globalFilter}
+          setGlobalFilter={setGlobalFilter}
+          draftFilter={draftFilter}
+        />
+      </div>
+    </div>
+  );
+}
+
+type LeaderboardTableProps = {
+  projectionGroups: ProjectionGroup[];
+  activeGroupId: string | null;
+  scoringSettings: ScoringSettings;
+  draftState: DraftState;
+  isDraftMode: boolean;
+  mergeTwoWayRankings: boolean;
+  toggleDrafted: (playerId: string) => void;
+  toggleKeeper: (playerId: string) => void;
+  playerView: PlayerView;
+  globalFilter: string;
+  setGlobalFilter: Dispatch<SetStateAction<string>>;
+  draftFilter: DraftFilter;
+};
+
+const LeaderboardTable = memo(function LeaderboardTable({
+  projectionGroups,
+  activeGroupId,
+  scoringSettings,
+  draftState,
+  isDraftMode,
+  mergeTwoWayRankings,
+  toggleDrafted,
+  toggleKeeper,
+  playerView,
+  globalFilter,
+  setGlobalFilter,
+  draftFilter,
+}: LeaderboardTableProps) {
+  const activeGroup =
+    projectionGroups.find((group) => group.id === activeGroupId) ??
+    projectionGroups[0] ??
+    null;
+  const batters = activeGroup?.batters ?? [];
+  const pitchers = activeGroup?.pitchers ?? [];
+  const twoWayPlayers = activeGroup?.twoWayPlayers ?? [];
 
   const [sorting, setSorting] = useState<SortingState>([
     { id: "projectedPoints", desc: true },
   ]);
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [playerView, setPlayerView] = useState<PlayerView>("all");
-  const [draftFilter, setDraftFilter] = useState<DraftFilter>("available");
+
+  const canMergeTwoWay =
+    !!activeGroup &&
+    activeGroup.batterIdSource !== null &&
+    activeGroup.batterIdSource !== "generated" &&
+    activeGroup.pitcherIdSource !== null &&
+    activeGroup.pitcherIdSource !== "generated";
+
+  const twoWayIds = useMemo(
+    () => new Set(twoWayPlayers.map((player) => player._id)),
+    [twoWayPlayers]
+  );
 
   // Create Sets for O(1) lookups instead of O(n) array.includes()
   const draftedIdsSet = useMemo(
@@ -56,13 +219,43 @@ export function Leaderboard() {
   // Calculate points and create ranked players
   const rankedPlayers = useMemo(() => {
     let players: Player[] = [];
+    const useMergedTwoWay =
+      canMergeTwoWay && mergeTwoWayRankings && twoWayPlayers.length > 0;
 
     if (playerView === "all") {
-      players = [...batters, ...pitchers, ...twoWayPlayers];
+      if (useMergedTwoWay) {
+        players = [
+          ...batters.filter((player) => !twoWayIds.has(player._id)),
+          ...pitchers.filter((player) => !twoWayIds.has(player._id)),
+          ...twoWayPlayers,
+        ];
+      } else if (batters.length === 0 && pitchers.length === 0 && twoWayPlayers.length > 0) {
+        players = [...twoWayPlayers];
+      } else {
+        players = [...batters, ...pitchers];
+      }
     } else if (playerView === "batters") {
-      players = [...batters, ...twoWayPlayers];
+      if (useMergedTwoWay) {
+        players = [
+          ...batters.filter((player) => !twoWayIds.has(player._id)),
+          ...twoWayPlayers,
+        ];
+      } else if (batters.length === 0 && twoWayPlayers.length > 0) {
+        players = [...twoWayPlayers];
+      } else {
+        players = [...batters];
+      }
     } else {
-      players = [...pitchers, ...twoWayPlayers];
+      if (useMergedTwoWay) {
+        players = [
+          ...pitchers.filter((player) => !twoWayIds.has(player._id)),
+          ...twoWayPlayers,
+        ];
+      } else if (pitchers.length === 0 && twoWayPlayers.length > 0) {
+        players = [...twoWayPlayers];
+      } else {
+        players = [...pitchers];
+      }
     }
 
     return players.map((player) => ({
@@ -71,7 +264,18 @@ export function Leaderboard() {
       isDrafted: draftedIdsSet.has(player._id),
       isKeeper: keeperIdsSet.has(player._id),
     }));
-  }, [batters, pitchers, twoWayPlayers, scoringSettings, draftedIdsSet, keeperIdsSet, playerView]);
+  }, [
+    batters,
+    pitchers,
+    twoWayPlayers,
+    scoringSettings,
+    draftedIdsSet,
+    keeperIdsSet,
+    playerView,
+    canMergeTwoWay,
+    mergeTwoWayRankings,
+    twoWayIds,
+  ]);
 
   // Filter by draft status in draft mode
   const filteredPlayers = useMemo(() => {
@@ -275,6 +479,36 @@ export function Leaderboard() {
           },
         },
         {
+          id: "CG",
+          header: "CG",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "pitcher"
+              ? resolveCompleteGames(row.player)
+              : row.player._type === "two-way"
+              ? resolveCompleteGames(row.player._pitchingStats)
+              : null,
+          cell: ({ getValue }) => {
+            const val = getValue() as number | null;
+            return val === null ? "-" : val.toFixed(1);
+          },
+        },
+        {
+          id: "ShO",
+          header: "ShO",
+          size: 50,
+          accessorFn: (row) =>
+            row.player._type === "pitcher"
+              ? resolveShutouts(row.player)
+              : row.player._type === "two-way"
+              ? resolveShutouts(row.player._pitchingStats)
+              : null,
+          cell: ({ getValue }) => {
+            const val = getValue() as number | null;
+            return val === null ? "-" : val.toFixed(1);
+          },
+        },
+        {
           id: "SO_P",
           header: "K",
           size: 50,
@@ -366,7 +600,7 @@ export function Leaderboard() {
     toggleKeeper(player.player._id);
   };
 
-  if (batters.length === 0 && pitchers.length === 0 && twoWayPlayers.length === 0) {
+  if (!activeGroup || (batters.length === 0 && pitchers.length === 0 && twoWayPlayers.length === 0)) {
     return (
       <div className="flex h-96 flex-col items-center justify-center text-zinc-500">
         <p className="mb-2 text-lg">No players loaded</p>
@@ -376,109 +610,62 @@ export function Leaderboard() {
   }
 
   return (
-    <div className="flex flex-col">
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap items-center gap-4">
-        <input
-          type="text"
-          placeholder="Search players..."
-          value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          className="w-64 rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-        />
-
-        <select
-          value={playerView}
-          onChange={(e) => setPlayerView(e.target.value as PlayerView)}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-        >
-          <option value="all">All Players</option>
-          <option value="batters">Batters Only</option>
-          <option value="pitchers">Pitchers Only</option>
-        </select>
-
-        {isDraftMode && (
-          <select
-            value={draftFilter}
-            onChange={(e) => setDraftFilter(e.target.value as DraftFilter)}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          >
-            <option value="available">Available</option>
-            <option value="all">All</option>
-            <option value="drafted">Drafted</option>
-            <option value="keepers">Keepers</option>
-          </select>
-        )}
-
-        <span className="text-sm text-zinc-500">
-          {filteredPlayers.length} players
-        </span>
-
-        {isDraftMode && (
-          <span className="text-xs text-zinc-400">
-            Click to draft, right-click for keeper
-          </span>
-        )}
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 dark:bg-zinc-800">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    style={{ width: header.getSize() }}
-                    className={`px-3 py-2 text-left text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 ${
-                      header.column.getCanSort()
-                        ? "cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-100"
-                        : ""
-                    }`}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    <div className="flex items-center gap-1">
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      {{
-                        asc: " ↑",
-                        desc: " ↓",
-                      }[header.column.getIsSorted() as string] ?? null}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                onClick={() => handleRowClick(row.original)}
-                onContextMenu={(e) => handleRowContextMenu(e, row.original)}
-                className={`border-t border-zinc-100 dark:border-zinc-800 ${
-                  isDraftMode ? "cursor-pointer" : ""
-                } ${
-                  row.original.isDrafted
-                    ? "bg-zinc-50 dark:bg-zinc-800/50"
-                    : row.original.isKeeper
-                    ? "bg-amber-50 dark:bg-amber-900/10"
-                    : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                }`}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+      <table className="w-full text-sm">
+        <thead className="bg-zinc-50 dark:bg-zinc-800">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <th
+                  key={header.id}
+                  style={{ width: header.getSize() }}
+                  className={`px-3 py-2 text-left text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 ${
+                    header.column.getCanSort()
+                      ? "cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-100"
+                      : ""
+                  }`}
+                  onClick={header.column.getToggleSortingHandler()}
+                >
+                  <div className="flex items-center gap-1">
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
+                    {{
+                      asc: " ↑",
+                      desc: " ↓",
+                    }[header.column.getIsSorted() as string] ?? null}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody>
+          {table.getRowModel().rows.map((row) => (
+            <tr
+              key={row.id}
+              onClick={() => handleRowClick(row.original)}
+              onContextMenu={(e) => handleRowContextMenu(e, row.original)}
+              className={`border-t border-zinc-100 dark:border-zinc-800 ${
+                isDraftMode ? "cursor-pointer" : ""
+              } ${
+                row.original.isDrafted
+                  ? "bg-zinc-50 dark:bg-zinc-800/50"
+                  : row.original.isKeeper
+                  ? "bg-amber-50 dark:bg-amber-900/10"
+                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+              }`}
+            >
+              {row.getVisibleCells().map((cell) => (
+                <td key={cell.id} className="px-3 py-2">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
-}
+});

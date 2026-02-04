@@ -52,6 +52,8 @@ export interface PitcherStats {
   W: number;
   L: number;
   QS: number;
+  CG: number;
+  ShO: number;
   G: number;
   GS: number;
   SV: number;
@@ -103,6 +105,19 @@ export type TwoWayPlayer = {
 
 export type Player = BatterPlayer | PitcherPlayer | TwoWayPlayer;
 
+export type IdSource = "MLBAMID" | "PlayerId" | "custom" | "generated";
+
+export type ProjectionGroup = {
+  id: string;
+  name: string;
+  createdAt: string;
+  batters: Player[];
+  pitchers: Player[];
+  twoWayPlayers: TwoWayPlayer[];
+  batterIdSource: IdSource | null;
+  pitcherIdSource: IdSource | null;
+};
+
 // League scoring configuration
 export interface ScoringSettings {
   name: string;
@@ -131,6 +146,8 @@ export interface ScoringSettings {
     W: number;      // Wins
     L: number;      // Losses (usually negative)
     QS: number;     // Quality starts
+    CG: number;     // Complete games
+    ShO: number;    // Shutouts
     SV: number;     // Saves
     BS: number;     // Blown saves (usually negative)
     HLD: number;    // Holds
@@ -159,9 +176,8 @@ export interface RankedPlayer {
 
 // App state
 export interface AppState {
-  batters: Player[];
-  pitchers: Player[];
-  twoWayPlayers: TwoWayPlayer[];
+  projectionGroups: ProjectionGroup[];
+  activeProjectionGroupId: string | null;
   scoringSettings: ScoringSettings;
   draftState: DraftState;
   isDraftMode: boolean;

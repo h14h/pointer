@@ -35,6 +35,8 @@ const pitchingCategories: { key: keyof ScoringSettings["pitching"]; label: strin
   { key: "W", label: "Wins (W)" },
   { key: "L", label: "Losses (L)" },
   { key: "QS", label: "Quality Starts (QS)" },
+  { key: "CG", label: "Complete Games (CG)" },
+  { key: "ShO", label: "Shutouts (ShO)" },
   { key: "SV", label: "Saves (SV)" },
   { key: "BS", label: "Blown Saves (BS)" },
   { key: "HLD", label: "Holds (HLD)" },
@@ -47,9 +49,28 @@ const pitchingCategories: { key: keyof ScoringSettings["pitching"]; label: strin
 ];
 
 export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
-  const { scoringSettings, setScoringSettings, updateBattingScoring, updatePitchingScoring } =
-    useStore();
+  const {
+    scoringSettings,
+    setScoringSettings,
+    updateBattingScoring,
+    updatePitchingScoring,
+    projectionGroups,
+    activeProjectionGroupId,
+    mergeTwoWayRankings,
+    setMergeTwoWayRankings,
+  } = useStore();
   const [tab, setTab] = useState<Tab>("batting");
+  const activeGroup =
+    projectionGroups.find((group) => group.id === activeProjectionGroupId) ??
+    projectionGroups[0] ??
+    null;
+  const canMergeTwoWay =
+    !!activeGroup &&
+    activeGroup.batterIdSource !== null &&
+    activeGroup.batterIdSource !== "generated" &&
+    activeGroup.pitcherIdSource !== null &&
+    activeGroup.pitcherIdSource !== "generated";
+  const mergeHint = "Merge two-way requires provided player IDs in both uploads.";
 
   // Debounce scoring updates to prevent excessive recalculations
   const debouncedUpdateBatting = useDebouncedCallback(
@@ -100,27 +121,61 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
         </div>
 
         {/* Tabs */}
-        <div className="mb-4 flex border-b border-zinc-200 dark:border-zinc-700">
-          <button
-            onClick={() => setTab("batting")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              tab === "batting"
-                ? "border-b-2 border-emerald-500 text-emerald-600"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        <div className="mb-4 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700">
+          <div className="flex">
+            <button
+              onClick={() => setTab("batting")}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                tab === "batting"
+                  ? "border-b-2 border-emerald-500 text-emerald-600"
+                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              }`}
+            >
+              Batting
+            </button>
+            <button
+              onClick={() => setTab("pitching")}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                tab === "pitching"
+                  ? "border-b-2 border-emerald-500 text-emerald-600"
+                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              }`}
+            >
+              Pitching
+            </button>
+          </div>
+          <div
+            className={`flex items-center gap-2 pr-2 text-sm ${
+              canMergeTwoWay ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-400"
             }`}
+            title={!canMergeTwoWay ? mergeHint : undefined}
           >
-            Batting
-          </button>
-          <button
-            onClick={() => setTab("pitching")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              tab === "pitching"
-                ? "border-b-2 border-emerald-500 text-emerald-600"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            }`}
-          >
-            Pitching
-          </button>
+            <span>Merge two-way</span>
+            <button
+              role="switch"
+              aria-checked={mergeTwoWayRankings}
+              aria-disabled={!canMergeTwoWay}
+              disabled={!canMergeTwoWay}
+              onClick={() => {
+                if (canMergeTwoWay) {
+                  setMergeTwoWayRankings(!mergeTwoWayRankings);
+                }
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                mergeTwoWayRankings && canMergeTwoWay
+                  ? "bg-emerald-500"
+                  : "bg-zinc-300 dark:bg-zinc-600"
+              } ${canMergeTwoWay ? "" : "opacity-50 cursor-not-allowed"}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  mergeTwoWayRankings && canMergeTwoWay
+                    ? "translate-x-6"
+                    : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Form */}

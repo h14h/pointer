@@ -1,5 +1,9 @@
 import type { Player, ScoringSettings, BatterStats, PitcherStats, TwoWayPlayer } from "@/types";
-import { resolveQualityStarts } from "@/lib/qualityStarts";
+import {
+  resolveQualityStarts,
+  resolveCompleteGames,
+  resolveShutouts,
+} from "@/lib/pitchingOutcomes";
 
 export function calculateBatterPoints(
   player: BatterStats,
@@ -39,6 +43,8 @@ export function calculatePitcherPoints(
   points += (player.W || 0) * settings.W;
   points += (player.L || 0) * settings.L;
   points += resolveQualityStarts(player) * settings.QS;
+  points += resolveCompleteGames(player) * settings.CG;
+  points += resolveShutouts(player) * settings.ShO;
   points += (player.SV || 0) * settings.SV;
   points += (player.BS || 0) * settings.BS;
   points += (player.HLD || 0) * settings.HLD;
@@ -89,6 +95,8 @@ function calculateTwoWayPitchingPoints(
   points += (stats.W || 0) * settings.W;
   points += (stats.L || 0) * settings.L;
   points += resolveQualityStarts(stats) * settings.QS;
+  points += resolveCompleteGames(stats) * settings.CG;
+  points += resolveShutouts(stats) * settings.ShO;
   points += (stats.SV || 0) * settings.SV;
   points += (stats.BS || 0) * settings.BS;
   points += (stats.HLD || 0) * settings.HLD;

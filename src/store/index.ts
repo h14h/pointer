@@ -5,6 +5,8 @@ import type {
   ScoringSettings,
   DraftState,
   TwoWayPlayer,
+  ProjectionGroup,
+  IdSource,
 } from "@/types";
 
 // Default ESPN-style scoring
@@ -31,6 +33,8 @@ const defaultScoringSettings: ScoringSettings = {
     W: 5,
     L: -5,
     QS: 3,
+    CG: 0,
+    ShO: 0,
     SV: 5,
     BS: -3,
     HLD: 2,
@@ -45,26 +49,25 @@ const defaultScoringSettings: ScoringSettings = {
 
 interface Store {
   // Data
-  batters: Player[];
-  pitchers: Player[];
-  twoWayPlayers: TwoWayPlayer[];
+  projectionGroups: ProjectionGroup[];
+  activeProjectionGroupId: string | null;
   scoringSettings: ScoringSettings;
   draftState: DraftState;
   isDraftMode: boolean;
+  mergeTwoWayRankings: boolean;
 
   // Actions
-  setBatters: (batters: Player[]) => void;
-  setPitchers: (pitchers: Player[]) => void;
-  setTwoWayPlayers: (players: TwoWayPlayer[]) => void;
-  addTwoWayPlayers: (players: TwoWayPlayer[]) => void;
-  removeBattersByIds: (ids: string[]) => void;
-  removePitchersByIds: (ids: string[]) => void;
+  addProjectionGroup: (group: ProjectionGroup) => void;
+  setActiveProjectionGroup: (id: string) => void;
+  clearProjectionGroups: () => void;
+  removeProjectionGroup: (id: string) => void;
   setScoringSettings: (settings: ScoringSettings) => void;
   updateBattingScoring: (key: keyof ScoringSettings["batting"], value: number) => void;
   updatePitchingScoring: (key: keyof ScoringSettings["pitching"], value: number) => void;
   toggleDrafted: (playerId: string) => void;
   toggleKeeper: (playerId: string) => void;
   setDraftMode: (enabled: boolean) => void;
+  setMergeTwoWayRankings: (enabled: boolean) => void;
   resetDraft: () => void;
   clearAllData: () => void;
 }
@@ -73,37 +76,36 @@ export const useStore = create<Store>()(
   persist(
     (set) => ({
       // Initial state
-      batters: [],
-      pitchers: [],
-      twoWayPlayers: [],
+      projectionGroups: [],
+      activeProjectionGroupId: null,
       scoringSettings: defaultScoringSettings,
       draftState: {
         draftedIds: [],
         keeperIds: [],
       },
       isDraftMode: false,
+      mergeTwoWayRankings: true,
 
       // Actions
-      setBatters: (batters) => set({ batters }),
-
-      setPitchers: (pitchers) => set({ pitchers }),
-
-      setTwoWayPlayers: (players) => set({ twoWayPlayers: players }),
-
-      addTwoWayPlayers: (players) =>
+      addProjectionGroup: (group) =>
         set((state) => ({
-          twoWayPlayers: [...state.twoWayPlayers, ...players],
+          projectionGroups: [...state.projectionGroups, group],
+          activeProjectionGroupId: group.id,
         })),
 
-      removeBattersByIds: (ids) =>
-        set((state) => ({
-          batters: state.batters.filter((b) => !ids.includes(b._id)),
-        })),
+      setActiveProjectionGroup: (id) => set({ activeProjectionGroupId: id }),
 
-      removePitchersByIds: (ids) =>
-        set((state) => ({
-          pitchers: state.pitchers.filter((p) => !ids.includes(p._id)),
-        })),
+      clearProjectionGroups: () => set({ projectionGroups: [], activeProjectionGroupId: null }),
+
+      removeProjectionGroup: (id) =>
+        set((state) => {
+          const projectionGroups = state.projectionGroups.filter((g) => g.id !== id);
+          const activeProjectionGroupId =
+            state.activeProjectionGroupId === id
+              ? projectionGroups[0]?.id ?? null
+              : state.activeProjectionGroupId;
+          return { projectionGroups, activeProjectionGroupId };
+        }),
 
       setScoringSettings: (settings) => set({ scoringSettings: settings }),
 
@@ -156,6 +158,7 @@ export const useStore = create<Store>()(
         }),
 
       setDraftMode: (enabled) => set({ isDraftMode: enabled }),
+      setMergeTwoWayRankings: (enabled) => set({ mergeTwoWayRankings: enabled }),
 
       resetDraft: () =>
         set({
@@ -167,9 +170,8 @@ export const useStore = create<Store>()(
 
       clearAllData: () =>
         set({
-          batters: [],
-          pitchers: [],
-          twoWayPlayers: [],
+          projectionGroups: [],
+          activeProjectionGroupId: null,
           draftState: {
             draftedIds: [],
             keeperIds: [],
@@ -178,6 +180,72 @@ export const useStore = create<Store>()(
     }),
     {
       name: "pointer-storage",
+      version: 3,
+      migrate: (persistedState, version) => {
+        if (version >= 3) return persistedState as Store;
+        const state = persistedState as Store & {
+          batters?: Player[];
+          pitchers?: Player[];
+          twoWayPlayers?: TwoWayPlayer[];
+          batterIdSource?: IdSource | null;
+          pitcherIdSource?: IdSource | null;
+        };
+
+        const ensurePitchingScoring = (settings: ScoringSettings): ScoringSettings => ({
+          ...settings,
+          pitching: {
+            CG: 0,
+            ShO: 0,
+            ...settings.pitching,
+          },
+        });
+
+        if (version === 2) {
+          return {
+            ...state,
+            scoringSettings: ensurePitchingScoring(state.scoringSettings),
+          } as Store;
+        }
+
+        if (state.projectionGroups && state.activeProjectionGroupId !== undefined) {
+          return {
+            ...state,
+            scoringSettings: ensurePitchingScoring(state.scoringSettings),
+          } as Store;
+        }
+
+        const legacyBatters = state.batters ?? [];
+        const legacyPitchers = state.pitchers ?? [];
+        const legacyTwoWay = state.twoWayPlayers ?? [];
+        const hasLegacy =
+          legacyBatters.length > 0 || legacyPitchers.length > 0 || legacyTwoWay.length > 0;
+
+        if (!hasLegacy) {
+          return {
+            ...state,
+            projectionGroups: [],
+            activeProjectionGroupId: null,
+          } as Store;
+        }
+
+        const defaultGroup: ProjectionGroup = {
+          id: "imported",
+          name: "Imported",
+          createdAt: new Date().toISOString(),
+          batters: legacyBatters,
+          pitchers: legacyPitchers,
+          twoWayPlayers: legacyTwoWay,
+          batterIdSource: state.batterIdSource ?? null,
+          pitcherIdSource: state.pitcherIdSource ?? null,
+        };
+
+        return {
+          ...state,
+          projectionGroups: [defaultGroup],
+          activeProjectionGroupId: defaultGroup.id,
+          scoringSettings: ensurePitchingScoring(state.scoringSettings),
+        } as Store;
+      },
     }
   )
 );
