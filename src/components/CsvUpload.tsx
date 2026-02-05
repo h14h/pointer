@@ -316,8 +316,16 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-lg rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
+      <div className="relative mx-0 h-full w-full max-w-none rounded-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xl overflow-y-auto sm:mx-4 sm:h-auto sm:max-h-[85vh] sm:max-w-lg sm:rounded-lg sm:p-6">
+        <button
+          type="button"
+          onClick={handleCancel}
+          aria-label="Close upload modal"
+          className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 text-slate-500 dark:text-slate-300 shadow-sm backdrop-blur transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 sm:right-6 sm:top-6"
+        >
+          <span className="text-lg leading-none">×</span>
+        </button>
+        <h2 className="mb-4 pr-10 text-lg font-semibold text-slate-900 dark:text-slate-100">
           Upload Player Projections
         </h2>
 

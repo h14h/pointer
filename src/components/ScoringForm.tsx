@@ -234,22 +234,30 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-3xl rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl max-h-[85vh] overflow-hidden">
-        <div className="-mx-6 -mt-6 mb-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
+      <div className="relative mx-0 h-full w-full max-w-none rounded-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xl overflow-hidden flex flex-col sm:mx-4 sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl sm:p-6">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close scoring modal"
+          className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 text-slate-500 dark:text-slate-300 shadow-sm backdrop-blur transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 sm:right-6 sm:top-6"
+        >
+          <span className="text-lg leading-none">×</span>
+        </button>
+        <div className="-mx-3 -mt-3 mb-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-3 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-6 sm:py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="pr-12">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Scoring & League</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Tune scoring weights, roster sizes, and draft order.
               </p>
             </div>
-            <div className="flex items-end gap-2">
-              <div className="grid gap-1">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
+              <div className="grid gap-1 sm:min-w-[180px]">
                 <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Preset</span>
                 <select
                   value={presetSelection}
                   onChange={(e) => setPresetSelection(e.target.value)}
-                  className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                  className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40 sm:w-auto"
                 >
                   {presetNames.map((key) => (
                     <option key={key} value={key}>
@@ -260,34 +268,26 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
               </div>
               <button
                 onClick={() => handlePreset(presetSelection)}
-                className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                className="w-full rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 sm:w-auto"
               >
                 Apply Preset
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close scoring modal"
-                className="ml-1 inline-flex h-9 w-9 items-center justify-center self-end rounded-md border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-100"
-              >
-                <span className="text-lg leading-none">×</span>
               </button>
             </div>
           </div>
         </div>
 
-        <div className="max-h-[65vh] overflow-y-auto pr-2">
-          <div className="mb-6 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex-1 overflow-y-auto pr-1 pb-4 sm:pr-2">
+          <div className="mb-5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-3 sm:mb-6 sm:p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Scoring</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Set points per stat.</p>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex rounded-full bg-slate-100 dark:bg-slate-800/70 p-1 shadow-inner">
                   <button
                     onClick={() => setTab("batting")}
-                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    className={`rounded-full px-3 py-1 text-sm font-medium transition-colors sm:px-4 sm:py-1.5 ${
                       tab === "batting"
                         ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm"
                         : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
@@ -297,7 +297,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   </button>
                   <button
                     onClick={() => setTab("pitching")}
-                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    className={`rounded-full px-3 py-1 text-sm font-medium transition-colors sm:px-4 sm:py-1.5 ${
                       tab === "pitching"
                         ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm"
                         : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
@@ -341,7 +341,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2">
               {tab === "batting"
                 ? battingCategories.map(({ key, label }) => (
                     <div
@@ -357,7 +357,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         onChange={(e) =>
                           debouncedUpdateBatting(key, parseFloat(e.target.value) || 0)
                         }
-                        className="w-24 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                        className="w-20 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40 sm:w-24"
                       />
                     </div>
                   ))
@@ -375,15 +375,15 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         onChange={(e) =>
                           debouncedUpdatePitching(key, parseFloat(e.target.value) || 0)
                         }
-                        className="w-24 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                        className="w-20 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40 sm:w-24"
                       />
                     </div>
                   ))}
             </div>
           </div>
 
-          <div className="mb-6 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-            <div className="mb-4">
+          <div className="mb-5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-sm sm:mb-6 sm:p-4">
+            <div className="mb-3 sm:mb-4">
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">League & Draft</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">Roster sizes and draft order.</p>
             </div>
@@ -396,7 +396,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   </span>
                   <span className="text-xs text-slate-400 dark:text-slate-500">Per team</span>
                 </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2">
                   <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2">
                     <label className="text-sm text-slate-700 dark:text-slate-200">Bench</label>
                     <input
@@ -411,7 +411,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2">
                   {rosterSlots.map(({ key, label }) => (
                     <div
                       key={key}
@@ -512,8 +512,8 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
           </div>
         </div>
 
-        <div className="-mx-6 mt-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="-mx-3 mt-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-3 sm:-mx-6 sm:px-6 sm:py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs text-slate-500 dark:text-slate-400">
               Changes apply immediately to scoring and league settings.
             </span>
@@ -522,7 +522,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                 setLeagueSettings(localLeagueSettings);
                 onClose();
               }}
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 sm:w-auto"
             >
               Done
             </button>

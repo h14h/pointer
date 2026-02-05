@@ -138,8 +138,16 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
       </header>
       {isResetOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl">
-            <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          <div className="relative mx-0 h-full w-full max-w-none rounded-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl overflow-y-auto sm:mx-4 sm:h-auto sm:max-w-md sm:rounded-lg">
+            <button
+              type="button"
+              onClick={() => setIsResetOpen(false)}
+              aria-label="Close reset modal"
+              className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 text-slate-500 dark:text-slate-300 shadow-sm backdrop-blur transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 sm:right-4 sm:top-4"
+            >
+              <span className="text-lg leading-none">×</span>
+            </button>
+            <h2 className="mb-2 pr-10 text-lg font-semibold text-slate-900 dark:text-slate-100">
               Reset all draft picks?
             </h2>
             <p className="mb-6 text-sm text-slate-600 dark:text-slate-300">
@@ -167,8 +175,16 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
       )}
       {isClearOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl">
-            <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          <div className="relative mx-0 h-full w-full max-w-none rounded-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl overflow-y-auto sm:mx-4 sm:h-auto sm:max-w-md sm:rounded-lg">
+            <button
+              type="button"
+              onClick={() => setIsClearOpen(false)}
+              aria-label="Close delete projections modal"
+              className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 text-slate-500 dark:text-slate-300 shadow-sm backdrop-blur transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 sm:right-4 sm:top-4"
+            >
+              <span className="text-lg leading-none">×</span>
+            </button>
+            <h2 className="mb-2 pr-10 text-lg font-semibold text-slate-900 dark:text-slate-100">
               Delete all projections?
             </h2>
             <p className="mb-6 text-sm text-slate-600 dark:text-slate-300">
