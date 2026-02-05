@@ -22,16 +22,7 @@ import {
 } from "@tanstack/react-table";
 import { useStore } from "@/store";
 import { calculatePlayerPoints } from "@/lib/calculatePoints";
-import {
-	computeHitterEligibility,
-	computePitcherEligibility,
-	mergeTwoWayEligibility,
-	emptyPositionGames,
-	mergeWarnings,
-	POSITION_ORDER,
-	eligibilityFromProfilePosition,
-} from "@/lib/eligibility";
-import { fetchSeasonStatsForPlayers } from "@/lib/mlbStatsApi";
+import { POSITION_ORDER } from "@/lib/eligibility";
 import {
 	resolveQualityStarts,
 	resolveCompleteGames,
@@ -44,7 +35,6 @@ import type {
 	DraftState,
 	ScoringSettings,
 	ProjectionGroup,
-	Eligibility,
 	LeagueSettings,
 } from "@/types";
 
@@ -130,7 +120,6 @@ export function Leaderboard() {
 		toggleDraftedForTeam,
 		toggleKeeperForTeam,
 		mergeTwoWayRankings,
-		applyEligibilityForGroup,
 	} = useStore();
 	const currentGroupId =
 		activeProjectionGroupId ?? projectionGroups[0]?.id ?? null;
@@ -139,11 +128,6 @@ export function Leaderboard() {
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [playerView, setPlayerView] = useState<PlayerView>("all");
 	const [draftFilter, setDraftFilter] = useState<DraftFilter>("available");
-	const [isImporting, setIsImporting] = useState(false);
-	const [importProgress, setImportProgress] = useState(0);
-	const [importPlayer, setImportPlayer] = useState("");
-	const [importError, setImportError] = useState<string | null>(null);
-	const [retryStatus, setRetryStatus] = useState<string | null>(null);
 	const [isStatsOpen, setIsStatsOpen] = useState(false);
 	const [selectedBattingStats, setSelectedBattingStats] = useState<string[]>(
 		() => DEFAULT_BATTING_STATS,
@@ -210,212 +194,6 @@ export function Leaderboard() {
 			JSON.stringify(selectedPitchingStats),
 		);
 	}, [selectedPitchingStats]);
-
-	const handleImportEligibility = useCallback(async () => {
-		if (!currentGroupId) return;
-		const season = 2025;
-
-		setIsImporting(true);
-		setImportProgress(0);
-		setImportPlayer("");
-		setImportError(null);
-		setRetryStatus(null);
-
-		try {
-			const retryOptions = {
-				onRetry: ({
-					attempt,
-					delayMs,
-					status,
-				}: {
-					attempt: number;
-					delayMs: number;
-					status?: number;
-				}) => {
-					const statusLabel = status ? `status ${status}` : "network error";
-					setRetryStatus(
-						`Retry ${attempt} in ${(delayMs / 1000).toFixed(1)}s (${statusLabel})`,
-					);
-				},
-			};
-
-			const activeGroup =
-				projectionGroups.find((group) => group.id === currentGroupId) ??
-				projectionGroups[0] ??
-				null;
-
-			const batters = activeGroup?.batters ?? [];
-			const pitchers = activeGroup?.pitchers ?? [];
-			const twoWayPlayers = activeGroup?.twoWayPlayers ?? [];
-			const players = [...batters, ...pitchers, ...twoWayPlayers];
-
-			if (players.length === 0) {
-				setImportProgress(100);
-				applyEligibilityForGroup(currentGroupId, new Map(), season);
-				return;
-			}
-
-			const mlbIds = players
-				.map((player) => player.MLBAMID)
-				.filter((id) => typeof id === "string" && id.trim().length > 0);
-
-			const {
-				fieldingById: fieldingMap,
-				pitchingById: pitchingMap,
-				primaryPositionById,
-			} = await fetchSeasonStatsForPlayers(mlbIds, season, retryOptions);
-
-			const eligibilityById = new Map<string, Eligibility>();
-
-      for (let i = 0; i < players.length; i += 1) {
-        const player = players[i];
-        setImportPlayer(player.Name);
-        const warnings: string[] = [];
-
-				if (!player.MLBAMID) {
-					warnings.push("Missing MLBAMID");
-				}
-
-				if (player._type === "batter") {
-					const fielding = player.MLBAMID
-						? fieldingMap.get(player.MLBAMID)
-						: undefined;
-					const profilePosition = player.MLBAMID
-						? primaryPositionById.get(player.MLBAMID)
-						: undefined;
-					const hasFielding =
-						fielding && Object.values(fielding).some((value) => value > 0);
-
-					if (!hasFielding && profilePosition) {
-						warnings.push(`Profile fallback: ${profilePosition}`);
-						const eligibility = eligibilityFromProfilePosition(
-							profilePosition,
-							season,
-							warnings,
-						);
-						eligibilityById.set(player._id, eligibility);
-					} else {
-						if (!hasFielding) warnings.push("No fielding stats found");
-						const positionGames = fielding ?? emptyPositionGames();
-						const eligibility = computeHitterEligibility(
-							positionGames,
-							season,
-							warnings,
-						);
-						eligibilityById.set(player._id, eligibility);
-					}
-				} else if (player._type === "pitcher") {
-					const pitching = player.MLBAMID
-						? pitchingMap.get(player.MLBAMID)
-						: undefined;
-					const profilePosition = player.MLBAMID
-						? primaryPositionById.get(player.MLBAMID)
-						: undefined;
-
-					if (!pitching && profilePosition) {
-						warnings.push(`Profile fallback: ${profilePosition}`);
-						const eligibility = eligibilityFromProfilePosition(
-							profilePosition,
-							season,
-							warnings,
-						);
-						eligibilityById.set(player._id, eligibility);
-					} else {
-						if (!pitching) warnings.push("No pitching stats found");
-						const eligibility = computePitcherEligibility(
-							pitching ?? { G: 0, GS: 0 },
-							season,
-							warnings,
-						);
-						eligibilityById.set(player._id, eligibility);
-					}
-				} else {
-					const battingWarnings: string[] = [];
-					const pitchingWarnings: string[] = [];
-
-					if (!player.MLBAMID) {
-						battingWarnings.push("Missing MLBAMID");
-						pitchingWarnings.push("Missing MLBAMID");
-					}
-
-					const fielding = player.MLBAMID
-						? fieldingMap.get(player.MLBAMID)
-						: undefined;
-					const profilePosition = player.MLBAMID
-						? primaryPositionById.get(player.MLBAMID)
-						: undefined;
-					const hasFielding =
-						fielding && Object.values(fielding).some((value) => value > 0);
-
-					let battingEligibility: Eligibility;
-					if (!hasFielding && profilePosition) {
-						battingWarnings.push(`Profile fallback: ${profilePosition}`);
-						battingEligibility = eligibilityFromProfilePosition(
-							profilePosition,
-							season,
-							battingWarnings,
-						);
-					} else {
-						if (!hasFielding) battingWarnings.push("No fielding stats found");
-						battingEligibility = computeHitterEligibility(
-							fielding ?? emptyPositionGames(),
-							season,
-							battingWarnings,
-						);
-					}
-
-					const pitching = player.MLBAMID
-						? pitchingMap.get(player.MLBAMID)
-						: undefined;
-					let pitchingEligibility: Eligibility;
-					if (!pitching && profilePosition) {
-						pitchingWarnings.push(`Profile fallback: ${profilePosition}`);
-						pitchingEligibility = eligibilityFromProfilePosition(
-							profilePosition,
-							season,
-							pitchingWarnings,
-						);
-					} else {
-						if (!pitching) pitchingWarnings.push("No pitching stats found");
-						pitchingEligibility = computePitcherEligibility(
-							pitching ?? { G: 0, GS: 0 },
-							season,
-							pitchingWarnings,
-						);
-					}
-
-					const merged = mergeTwoWayEligibility(
-						battingEligibility,
-						pitchingEligibility,
-					);
-					merged.warnings = mergeWarnings(
-						battingEligibility.warnings,
-						pitchingEligibility.warnings,
-					);
-					eligibilityById.set(player._id, merged);
-				}
-
-        const pct = Math.round(((i + 1) / players.length) * 100);
-        setImportProgress(pct);
-
-				if (i % 25 === 0) {
-					await new Promise<void>((resolve) =>
-						requestAnimationFrame(() => resolve()),
-					);
-				}
-			}
-
-			applyEligibilityForGroup(currentGroupId, eligibilityById, season);
-		} catch (error) {
-			setImportError(
-				error instanceof Error ? error.message : "Failed to import eligibility",
-			);
-		} finally {
-			setIsImporting(false);
-			setRetryStatus(null);
-			setImportPlayer("");
-		}
-	}, [applyEligibilityForGroup, currentGroupId, projectionGroups]);
 
 	const toggleStat = useCallback(
 		(
@@ -506,16 +284,6 @@ export function Leaderboard() {
 						</div>
 					)}
 
-					{currentGroupId && (
-						<button
-							onClick={() => void handleImportEligibility()}
-							disabled={isImporting}
-							className="rounded-md border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 text-sm font-semibold text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 disabled:cursor-not-allowed disabled:opacity-60"
-						>
-							{isImporting ? "Importing Positions..." : "Import Positions"}
-						</button>
-					)}
-
 					{isDraftMode && (
 						<select
 							value={draftFilter}
@@ -545,64 +313,6 @@ export function Leaderboard() {
 					</button>
 				</div>
 			</div>
-
-			{(isImporting || importError) && (
-				<div className="mb-4 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm shadow-sm">
-					{isImporting && (
-						<>
-							{(() => {
-								const progressWidth = Math.min(
-									100,
-									Math.max(0, Number(importProgress) || 0),
-								);
-								return (
-									<>
-										<div className="mb-2 flex items-center justify-between">
-											<span className="font-medium text-slate-700 dark:text-slate-200">
-												Importing positions: {Math.round(progressWidth)}%
-											</span>
-											<span className="text-xs text-slate-500 dark:text-slate-400">
-												{importPlayer}
-											</span>
-										</div>
-										<div
-											className="h-2 w-full overflow-hidden rounded bg-slate-200 dark:bg-slate-800"
-											style={{
-												backgroundImage:
-													"linear-gradient(to right, #10b981, #10b981)",
-												backgroundSize: `${progressWidth}% 100%`,
-												backgroundRepeat: "no-repeat",
-											}}
-											role="progressbar"
-											aria-valuemin={0}
-											aria-valuemax={100}
-											aria-valuenow={Math.round(progressWidth)}
-										/>
-									</>
-								);
-							})()}
-							{retryStatus && (
-								<p className="mt-2 text-xs text-amber-800 dark:text-amber-200">
-									{retryStatus}
-								</p>
-							)}
-						</>
-					)}
-					{importError && !isImporting && (
-						<div className="flex items-center justify-between">
-							<span className="text-sm text-red-700 dark:text-red-200">
-								{importError}
-							</span>
-							<button
-								onClick={() => void handleImportEligibility()}
-								className="rounded-md bg-red-100 dark:bg-red-950/50 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-950/70"
-							>
-								Retry Import
-							</button>
-						</div>
-					)}
-				</div>
-			)}
 
 			{isStatsOpen && (
 				<div

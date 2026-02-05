@@ -7,12 +7,22 @@ import {
   type ParseResult,
   type IdConfig,
 } from "@/lib/csvParser";
+import {
+  computeHitterEligibility,
+  computePitcherEligibility,
+  emptyPositionGames,
+  eligibilityFromProfilePosition,
+  mergeTwoWayEligibility,
+  mergeWarnings,
+} from "@/lib/eligibility";
+import { fetchSeasonStatsForPlayers } from "@/lib/mlbStatsApi";
 import { useStore } from "@/store";
 import type {
   TwoWayPlayer,
   IdSource,
   ProjectionGroup,
   Player,
+  Eligibility,
 } from "@/types";
 
 interface CsvUploadProps {
@@ -50,7 +60,7 @@ function suggestGroupName(fileName: string | undefined, groupCount: number) {
 }
 
 export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
-  const { projectionGroups, addProjectionGroup } = useStore();
+  const { projectionGroups, addProjectionGroup, applyEligibilityForGroup } = useStore();
   const [dragActive, setDragActive] = useState(false);
   const [uploadType, setUploadType] = useState<UploadType>("auto");
   const [groupName, setGroupName] = useState("");
@@ -58,6 +68,15 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
   const [batterFile, setBatterFile] = useState<UploadFileState | null>(null);
   const [pitcherFile, setPitcherFile] = useState<UploadFileState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [importEligibilityEnabled, setImportEligibilityEnabled] = useState(false);
+  const [isImportingEligibility, setIsImportingEligibility] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importPlayer, setImportPlayer] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [retryStatus, setRetryStatus] = useState<string | null>(null);
+  const [importTargetGroup, setImportTargetGroup] = useState<ProjectionGroup | null>(
+    null
+  );
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -162,20 +181,234 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
     }
   }, [batterFile, pitcherFile, uploadType]);
 
+  const runEligibilityImport = useCallback(
+    async (group: ProjectionGroup) => {
+      const season = 2025;
+      const batters = group.batters ?? [];
+      const pitchers = group.pitchers ?? [];
+      const twoWayPlayers = group.twoWayPlayers ?? [];
+      const players = [...batters, ...pitchers, ...twoWayPlayers];
+
+      setIsImportingEligibility(true);
+      setImportProgress(0);
+      setImportPlayer("");
+      setImportError(null);
+      setRetryStatus(null);
+
+      try {
+        const retryOptions = {
+          onRetry: ({
+            attempt,
+            delayMs,
+            status,
+          }: {
+            attempt: number;
+            delayMs: number;
+            status?: number;
+          }) => {
+            const statusLabel = status ? `status ${status}` : "network error";
+            setRetryStatus(
+              `Retry ${attempt} in ${(delayMs / 1000).toFixed(1)}s (${statusLabel})`
+            );
+          },
+        };
+
+        if (players.length === 0) {
+          setImportProgress(100);
+          applyEligibilityForGroup(group.id, new Map(), season);
+          return true;
+        }
+
+        const mlbIds = players
+          .map((player) => player.MLBAMID)
+          .filter((id) => typeof id === "string" && id.trim().length > 0);
+
+        const {
+          fieldingById: fieldingMap,
+          pitchingById: pitchingMap,
+          primaryPositionById,
+        } = await fetchSeasonStatsForPlayers(mlbIds, season, retryOptions);
+
+        const eligibilityById = new Map<string, Eligibility>();
+
+        for (let i = 0; i < players.length; i += 1) {
+          const player = players[i];
+          setImportPlayer(player.Name);
+          const warnings: string[] = [];
+
+          if (!player.MLBAMID) {
+            warnings.push("Missing MLBAMID");
+          }
+
+          if (player._type === "batter") {
+            const fielding = player.MLBAMID
+              ? fieldingMap.get(player.MLBAMID)
+              : undefined;
+            const profilePosition = player.MLBAMID
+              ? primaryPositionById.get(player.MLBAMID)
+              : undefined;
+            const hasFielding =
+              fielding && Object.values(fielding).some((value) => value > 0);
+
+            if (!hasFielding && profilePosition) {
+              warnings.push(`Profile fallback: ${profilePosition}`);
+              const eligibility = eligibilityFromProfilePosition(
+                profilePosition,
+                season,
+                warnings
+              );
+              eligibilityById.set(player._id, eligibility);
+            } else {
+              if (!hasFielding) warnings.push("No fielding stats found");
+              const positionGames = fielding ?? emptyPositionGames();
+              const eligibility = computeHitterEligibility(
+                positionGames,
+                season,
+                warnings
+              );
+              eligibilityById.set(player._id, eligibility);
+            }
+          } else if (player._type === "pitcher") {
+            const pitching = player.MLBAMID
+              ? pitchingMap.get(player.MLBAMID)
+              : undefined;
+            const profilePosition = player.MLBAMID
+              ? primaryPositionById.get(player.MLBAMID)
+              : undefined;
+
+            if (!pitching && profilePosition) {
+              warnings.push(`Profile fallback: ${profilePosition}`);
+              const eligibility = eligibilityFromProfilePosition(
+                profilePosition,
+                season,
+                warnings
+              );
+              eligibilityById.set(player._id, eligibility);
+            } else {
+              if (!pitching) warnings.push("No pitching stats found");
+              const eligibility = computePitcherEligibility(
+                pitching ?? { G: 0, GS: 0 },
+                season,
+                warnings
+              );
+              eligibilityById.set(player._id, eligibility);
+            }
+          } else {
+            const battingWarnings: string[] = [];
+            const pitchingWarnings: string[] = [];
+
+            if (!player.MLBAMID) {
+              battingWarnings.push("Missing MLBAMID");
+              pitchingWarnings.push("Missing MLBAMID");
+            }
+
+            const fielding = player.MLBAMID
+              ? fieldingMap.get(player.MLBAMID)
+              : undefined;
+            const profilePosition = player.MLBAMID
+              ? primaryPositionById.get(player.MLBAMID)
+              : undefined;
+            const hasFielding =
+              fielding && Object.values(fielding).some((value) => value > 0);
+
+            let battingEligibility: Eligibility;
+            if (!hasFielding && profilePosition) {
+              battingWarnings.push(`Profile fallback: ${profilePosition}`);
+              battingEligibility = eligibilityFromProfilePosition(
+                profilePosition,
+                season,
+                battingWarnings
+              );
+            } else {
+              if (!hasFielding) battingWarnings.push("No fielding stats found");
+              battingEligibility = computeHitterEligibility(
+                fielding ?? emptyPositionGames(),
+                season,
+                battingWarnings
+              );
+            }
+
+            const pitching = player.MLBAMID
+              ? pitchingMap.get(player.MLBAMID)
+              : undefined;
+            let pitchingEligibility: Eligibility;
+            if (!pitching && profilePosition) {
+              pitchingWarnings.push(`Profile fallback: ${profilePosition}`);
+              pitchingEligibility = eligibilityFromProfilePosition(
+                profilePosition,
+                season,
+                pitchingWarnings
+              );
+            } else {
+              if (!pitching) pitchingWarnings.push("No pitching stats found");
+              pitchingEligibility = computePitcherEligibility(
+                pitching ?? { G: 0, GS: 0 },
+                season,
+                pitchingWarnings
+              );
+            }
+
+            const merged = mergeTwoWayEligibility(
+              battingEligibility,
+              pitchingEligibility
+            );
+            merged.warnings = mergeWarnings(
+              battingEligibility.warnings,
+              pitchingEligibility.warnings
+            );
+            eligibilityById.set(player._id, merged);
+          }
+
+          const pct = Math.round(((i + 1) / players.length) * 100);
+          setImportProgress(pct);
+
+          if (i % 25 === 0) {
+            await new Promise<void>((resolve) =>
+              requestAnimationFrame(() => resolve())
+            );
+          }
+        }
+
+        applyEligibilityForGroup(group.id, eligibilityById, season);
+        return true;
+      } catch (importErr) {
+        setImportError(
+          importErr instanceof Error
+            ? importErr.message
+            : "Failed to import eligibility"
+        );
+        return false;
+      } finally {
+        setIsImportingEligibility(false);
+        setRetryStatus(null);
+        setImportPlayer("");
+      }
+    },
+    [applyEligibilityForGroup]
+  );
+
   const resetState = () => {
     setBatterFile(null);
     setPitcherFile(null);
     setGroupName("");
     setGroupNameTouched(false);
     setError(null);
+    setImportEligibilityEnabled(false);
+    setIsImportingEligibility(false);
+    setImportProgress(0);
+    setImportPlayer("");
+    setImportError(null);
+    setRetryStatus(null);
+    setImportTargetGroup(null);
   };
 
   const handleCancel = () => {
+    if (isImportingEligibility) return;
     resetState();
     onClose();
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setError(null);
 
     const trimmedName = groupName.trim();
@@ -210,6 +443,21 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
     };
 
     addProjectionGroup(group);
+
+    if (importEligibilityEnabled) {
+      setImportTargetGroup(group);
+      const success = await runEligibilityImport(group);
+      if (!success) return;
+    }
+
+    resetState();
+    onClose();
+  };
+
+  const handleRetryImport = async () => {
+    if (!importTargetGroup) return;
+    const success = await runEligibilityImport(importTargetGroup);
+    if (!success) return;
     resetState();
     onClose();
   };
@@ -320,8 +568,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         <button
           type="button"
           onClick={handleCancel}
+          disabled={isImportingEligibility}
           aria-label="Close upload modal"
-          className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 text-slate-500 dark:text-slate-300 shadow-sm backdrop-blur transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 sm:right-6 sm:top-6"
+          className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 text-slate-500 dark:text-slate-300 shadow-sm backdrop-blur transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 disabled:cursor-not-allowed disabled:opacity-60 sm:right-6 sm:top-6"
         >
           <span className="text-lg leading-none">×</span>
         </button>
@@ -525,6 +774,34 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               />
             </div>
 
+            <div className="mb-4 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    Import Position Eligibility
+                  </p>
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                    Uses MLB games to assign positions after upload. Requires MLBAMID.
+                  </p>
+                </div>
+                <label className="relative inline-flex h-6 w-11 shrink-0 items-center">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={importEligibilityEnabled}
+                    onChange={(e) => setImportEligibilityEnabled(e.target.checked)}
+                    disabled={isImportingEligibility}
+                    aria-label="Import Position Eligibility"
+                  />
+                  <span className="h-6 w-11 rounded-full bg-slate-200 dark:bg-slate-700 transition peer-checked:bg-emerald-600 peer-disabled:opacity-60" />
+                  <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition peer-checked:translate-x-5 peer-disabled:opacity-80" />
+                </label>
+              </div>
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                May take a minute for larger files.
+              </p>
+            </div>
+
             {missingTypeWarning && (
               <div className="mb-4 rounded-md bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-800 dark:text-amber-200">
                 {missingTypeWarning}
@@ -534,6 +811,64 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
             {batterFile && renderPreview(batterFile)}
             {pitcherFile && renderPreview(pitcherFile)}
 
+            {(isImportingEligibility || importError) && (
+              <div className="mb-4 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm shadow-sm">
+                {isImportingEligibility && (
+                  <>
+                    {(() => {
+                      const progressWidth = Math.min(
+                        100,
+                        Math.max(0, Number(importProgress) || 0)
+                      );
+                      return (
+                        <>
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="font-medium text-slate-700 dark:text-slate-200">
+                              Importing eligibility: {Math.round(progressWidth)}%
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              {importPlayer}
+                            </span>
+                          </div>
+                          <div
+                            className="h-2 w-full overflow-hidden rounded bg-slate-200 dark:bg-slate-800"
+                            style={{
+                              backgroundImage:
+                                "linear-gradient(to right, #10b981, #10b981)",
+                              backgroundSize: `${progressWidth}% 100%`,
+                              backgroundRepeat: "no-repeat",
+                            }}
+                            role="progressbar"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round(progressWidth)}
+                          />
+                        </>
+                      );
+                    })()}
+                    {retryStatus && (
+                      <p className="mt-2 text-xs text-amber-800 dark:text-amber-200">
+                        {retryStatus}
+                      </p>
+                    )}
+                  </>
+                )}
+                {importError && !isImportingEligibility && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-red-700 dark:text-red-200">
+                      {importError}
+                    </span>
+                    <button
+                      onClick={() => void handleRetryImport()}
+                      className="rounded-md bg-red-100 dark:bg-red-950/50 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-950/70"
+                    >
+                      Retry Import
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => {
@@ -541,15 +876,21 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                   setPitcherFile(null);
                   setError(null);
                 }}
-                className="rounded-md px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                disabled={isImportingEligibility}
+                className="rounded-md px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Back
               </button>
               <button
                 onClick={handleConfirm}
-                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                disabled={isImportingEligibility}
+                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Import Group
+                {isImportingEligibility
+                  ? "Importing Group..."
+                  : importEligibilityEnabled
+                    ? "Import Group & Positions"
+                    : "Import Group"}
               </button>
             </div>
           </>
