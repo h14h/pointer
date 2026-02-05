@@ -6,7 +6,6 @@ import {
 	useCallback,
 	useDeferredValue,
 	useEffect,
-	useRef,
 	memo,
 	type Dispatch,
 	type SetStateAction,
@@ -51,6 +50,57 @@ import type {
 
 type PlayerView = "all" | "batters" | "pitchers";
 type DraftFilter = "all" | "available" | "drafted" | "keepers";
+type StatOption = { id: string; label: string };
+
+const BATTING_STAT_OPTIONS: StatOption[] = [
+	{ id: "H", label: "H" },
+	{ id: "1B", label: "1B" },
+	{ id: "2B", label: "2B" },
+	{ id: "3B", label: "3B" },
+	{ id: "HR", label: "HR" },
+	{ id: "TB", label: "TB" },
+	{ id: "R", label: "R" },
+	{ id: "RBI", label: "RBI" },
+	{ id: "BB", label: "BB" },
+	{ id: "HBP", label: "HBP" },
+	{ id: "SO", label: "SO" },
+	{ id: "SB", label: "SB" },
+	{ id: "CS", label: "CS" },
+	{ id: "SF", label: "SF" },
+	{ id: "GDP", label: "GIDP" },
+	{ id: "AVG", label: "AVG" },
+];
+
+const PITCHING_STAT_OPTIONS: StatOption[] = [
+	{ id: "IP", label: "IP" },
+	{ id: "SO_P", label: "K" },
+	{ id: "H_P", label: "H" },
+	{ id: "ER", label: "ER" },
+	{ id: "HR_P", label: "HR" },
+	{ id: "BB_P", label: "BB" },
+	{ id: "HBP_P", label: "HBP" },
+	{ id: "W", label: "W" },
+	{ id: "L", label: "L" },
+	{ id: "QS", label: "QS" },
+	{ id: "SV", label: "SV" },
+	{ id: "HLD", label: "HLD" },
+	{ id: "BS", label: "BS" },
+	{ id: "CG", label: "CG" },
+	{ id: "ShO", label: "ShO" },
+	{ id: "ERA", label: "ERA" },
+	{ id: "WHIP", label: "WHIP" },
+];
+
+const STORAGE_KEYS = {
+	batting: "leaderboard:batting-stats",
+	pitching: "leaderboard:pitching-stats",
+} as const;
+
+const DEFAULT_BATTING_STATS = ["R", "HR", "RBI", "SB", "AVG"];
+const DEFAULT_PITCHING_STATS = ["W", "SV", "SO_P", "ERA", "WHIP"];
+
+const formatCountingStat = (value: number | null) =>
+	value === null || Number.isNaN(value) ? "-" : Math.round(value);
 
 function formatEligibility(player: Player): string {
 	const eligibility = player.eligibility;
@@ -94,6 +144,72 @@ export function Leaderboard() {
 	const [importPlayer, setImportPlayer] = useState("");
 	const [importError, setImportError] = useState<string | null>(null);
 	const [retryStatus, setRetryStatus] = useState<string | null>(null);
+	const [isStatsOpen, setIsStatsOpen] = useState(false);
+	const [selectedBattingStats, setSelectedBattingStats] = useState<string[]>(
+		() => DEFAULT_BATTING_STATS,
+	);
+	const [selectedPitchingStats, setSelectedPitchingStats] = useState<string[]>(
+		() => DEFAULT_PITCHING_STATS,
+	);
+
+	const battingStatSet = useMemo(
+		() => new Set(selectedBattingStats),
+		[selectedBattingStats],
+	);
+	const pitchingStatSet = useMemo(
+		() => new Set(selectedPitchingStats),
+		[selectedPitchingStats],
+	);
+
+	useEffect(() => {
+		const parseStored = (key: string, fallback: string[]) => {
+			if (typeof window === "undefined") return fallback;
+			try {
+				const raw = window.localStorage.getItem(key);
+				if (!raw) return fallback;
+				const parsed = JSON.parse(raw);
+				return Array.isArray(parsed)
+					? parsed.filter((val) => typeof val === "string")
+					: fallback;
+			} catch {
+				return fallback;
+			}
+		};
+
+		const battingOptions = new Set(
+			BATTING_STAT_OPTIONS.map((stat) => stat.id),
+		);
+		const pitchingOptions = new Set(
+			PITCHING_STAT_OPTIONS.map((stat) => stat.id),
+		);
+
+		setSelectedBattingStats(
+			parseStored(STORAGE_KEYS.batting, DEFAULT_BATTING_STATS).filter((statId) =>
+				battingOptions.has(statId),
+			),
+		);
+		setSelectedPitchingStats(
+			parseStored(STORAGE_KEYS.pitching, DEFAULT_PITCHING_STATS).filter(
+				(statId) => pitchingOptions.has(statId),
+			),
+		);
+	}, []);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		window.localStorage.setItem(
+			STORAGE_KEYS.batting,
+			JSON.stringify(selectedBattingStats),
+		);
+	}, [selectedBattingStats]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		window.localStorage.setItem(
+			STORAGE_KEYS.pitching,
+			JSON.stringify(selectedPitchingStats),
+		);
+	}, [selectedPitchingStats]);
 
 	const handleImportEligibility = useCallback(async () => {
 		if (!currentGroupId) return;
@@ -300,6 +416,48 @@ export function Leaderboard() {
 			setImportPlayer("");
 		}
 	}, [applyEligibilityForGroup, currentGroupId, projectionGroups]);
+
+	const toggleStat = useCallback(
+		(
+			group: "batting" | "pitching",
+			statId: string,
+			checked: boolean,
+		) => {
+			if (group === "batting") {
+				setSelectedBattingStats((current) =>
+					checked
+						? Array.from(new Set([...current, statId]))
+						: current.filter((id) => id !== statId),
+				);
+				return;
+			}
+
+			setSelectedPitchingStats((current) =>
+				checked
+					? Array.from(new Set([...current, statId]))
+					: current.filter((id) => id !== statId),
+			);
+		},
+		[],
+	);
+
+	const applyAllStats = useCallback((group: "batting" | "pitching") => {
+		if (group === "batting") {
+			setSelectedBattingStats(BATTING_STAT_OPTIONS.map((stat) => stat.id));
+			return;
+		}
+
+		setSelectedPitchingStats(PITCHING_STAT_OPTIONS.map((stat) => stat.id));
+	}, []);
+
+	const clearAllStats = useCallback((group: "batting" | "pitching") => {
+		if (group === "batting") {
+			setSelectedBattingStats([]);
+			return;
+		}
+
+		setSelectedPitchingStats([]);
+	}, []);
 	return (
 		<div className="flex flex-col">
 			{/* Filters */}
@@ -354,7 +512,7 @@ export function Leaderboard() {
 							disabled={isImporting}
 							className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
 						>
-							{isImporting ? "Importing Eligibility..." : "Import Eligibility"}
+							{isImporting ? "Importing Positions..." : "Import Positions"}
 						</button>
 					)}
 
@@ -376,6 +534,15 @@ export function Leaderboard() {
 							Click to draft, right-click for keeper
 						</span>
 					)}
+
+					<button
+						onClick={() => setIsStatsOpen((open) => !open)}
+						className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+						aria-expanded={isStatsOpen}
+						aria-controls="stat-visibility-panel"
+					>
+						{isStatsOpen ? "Hide Stats" : "Customize Stats"}
+					</button>
 				</div>
 			</div>
 
@@ -392,7 +559,7 @@ export function Leaderboard() {
 									<>
 										<div className="mb-2 flex items-center justify-between">
 											<span className="font-medium text-slate-700">
-												Importing eligibility: {Math.round(progressWidth)}%
+												Importing positions: {Math.round(progressWidth)}%
 											</span>
 											<span className="text-xs text-slate-500">
 												{importPlayer}
@@ -437,6 +604,110 @@ export function Leaderboard() {
 				</div>
 			)}
 
+			{isStatsOpen && (
+				<div
+					id="stat-visibility-panel"
+					className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+				>
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<div>
+							<p className="text-sm font-semibold text-slate-800">
+								Visible Stats
+							</p>
+							<p className="text-xs text-slate-500">
+								Toggle columns without changing scoring.
+							</p>
+						</div>
+						<button
+							onClick={() => setIsStatsOpen(false)}
+							className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+						>
+							Close
+						</button>
+					</div>
+					<div className="mt-4 grid gap-4 lg:grid-cols-2">
+						<div className="rounded-md bg-slate-50 p-3">
+							<div className="flex items-center justify-between">
+								<span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+									Batting
+								</span>
+								<div className="flex items-center gap-2">
+									<button
+										onClick={() => applyAllStats("batting")}
+										className="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+									>
+										All
+									</button>
+									<button
+										onClick={() => clearAllStats("batting")}
+										className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+									>
+										None
+									</button>
+								</div>
+							</div>
+							<div className="mt-3 flex flex-wrap gap-2">
+								{BATTING_STAT_OPTIONS.map((stat) => (
+									<label
+										key={stat.id}
+										className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm"
+									>
+										<input
+											type="checkbox"
+											checked={battingStatSet.has(stat.id)}
+											onChange={(event) =>
+												toggleStat("batting", stat.id, event.target.checked)
+											}
+											className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600"
+										/>
+										<span>{stat.label}</span>
+									</label>
+								))}
+							</div>
+						</div>
+						<div className="rounded-md bg-slate-50 p-3">
+							<div className="flex items-center justify-between">
+								<span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+									Pitching
+								</span>
+								<div className="flex items-center gap-2">
+									<button
+										onClick={() => applyAllStats("pitching")}
+										className="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+									>
+										All
+									</button>
+									<button
+										onClick={() => clearAllStats("pitching")}
+										className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+									>
+										None
+									</button>
+								</div>
+							</div>
+							<div className="mt-3 flex flex-wrap gap-2">
+								{PITCHING_STAT_OPTIONS.map((stat) => (
+									<label
+										key={stat.id}
+										className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm"
+									>
+										<input
+											type="checkbox"
+											checked={pitchingStatSet.has(stat.id)}
+											onChange={(event) =>
+												toggleStat("pitching", stat.id, event.target.checked)
+											}
+											className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600"
+										/>
+										<span>{stat.label}</span>
+									</label>
+								))}
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
 
 
 			{/* Table */}
@@ -459,6 +730,8 @@ export function Leaderboard() {
 					globalFilter={globalFilter}
 					setGlobalFilter={setGlobalFilter}
 					draftFilter={draftFilter}
+					battingStatIds={selectedBattingStats}
+					pitchingStatIds={selectedPitchingStats}
 				/>
 			</div>
 		</div>
@@ -480,6 +753,8 @@ type LeaderboardTableProps = {
 	globalFilter: string;
 	setGlobalFilter: Dispatch<SetStateAction<string>>;
 	draftFilter: DraftFilter;
+	battingStatIds: string[];
+	pitchingStatIds: string[];
 };
 
 const LeaderboardTable = memo(function LeaderboardTable({
@@ -497,6 +772,8 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	globalFilter,
 	setGlobalFilter,
 	draftFilter,
+	battingStatIds,
+	pitchingStatIds,
 }: LeaderboardTableProps) {
 	const activeGroup =
 		projectionGroups.find((group) => group.id === activeGroupId) ??
@@ -513,7 +790,6 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		pageIndex: 0,
 		pageSize: 50,
 	});
-	const rowIndexByIdRef = useRef<Map<string, number>>(new Map());
 
 	const canMergeTwoWay =
 		!!activeGroup &&
@@ -654,22 +930,24 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		};
 		const baseColumns: ColumnDef<RankedPlayer>[] = [
 			{
-				id: "rank",
-				header: "#",
-				size: 50,
-				cell: ({ row }) => (
-					<span className="text-slate-700">
-						{(rowIndexByIdRef.current.get(row.id) ?? row.index) + 1}
-					</span>
-				),
-				enableSorting: false,
+				id: "ADP",
+				header: "ADP",
+				size: 70,
+				meta: { className: "text-right" },
+				accessorFn: (row) =>
+					(row.player as unknown as Record<string, number | null>).ADP,
+				cell: ({ getValue }) => {
+					const val = getValue() as number | null;
+					return val ? Math.round(val) : "-";
+				},
 			},
 			{
 				accessorKey: "player.Name",
 				header: "Name",
-				size: 180,
+				size: 120,
+				meta: { className: "max-w-[120px]" },
 				cell: ({ row }) => (
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2 min-w-0">
 						{isDraftMode && (
 							<input
 								type="checkbox"
@@ -682,11 +960,12 @@ const LeaderboardTable = memo(function LeaderboardTable({
 						<span
 							className={
 								row.original.isDrafted
-									? "text-slate-600 line-through"
+									? "text-slate-600 line-through truncate"
 									: row.original.isKeeper
-							? "font-semibold text-amber-800"
-							: ""
+							? "font-semibold text-amber-800 truncate"
+							: "truncate"
 					}
+					title={row.original.player.Name}
 				>
 					{row.original.player.Name}
 				</span>
@@ -706,12 +985,12 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			{
 				accessorKey: "player.Team",
 				header: "Team",
-				size: 60,
+				size: 70,
 			},
 			{
 				accessorKey: "player._type",
 				header: "Type",
-				size: 60,
+				size: 70,
 				cell: ({ row }) => (
 					<span
 						className={`rounded px-1.5 py-0.5 text-xs font-medium ${
@@ -732,8 +1011,8 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			},
 			{
 				id: "eligibility",
-				header: "Elig",
-				size: 140,
+				header: "Pos",
+				size: 150,
 				accessorFn: (row) => formatEligibility(row.player),
 				cell: ({ getValue }) => (
 					<span className="text-xs text-slate-700">
@@ -744,7 +1023,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			{
 				accessorKey: "projectedPoints",
 				header: "Points",
-				size: 80,
+				size: 95,
 				cell: ({ row }) => (
 					<span className="font-semibold text-emerald-700">
 						{row.original.projectedPoints.toFixed(1)}
@@ -753,61 +1032,240 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			},
 		];
 
+		const addBattingSeparator = playerView === "batters" || playerView === "all";
+		const addPitchingSeparator = playerView === "all";
+		const battingStatSet = new Set(battingStatIds);
+		const pitchingStatSet = new Set(pitchingStatIds);
+
+		const withLeadingSeparator = (
+			columnDefs: ColumnDef<RankedPlayer>[],
+			shouldAdd: boolean,
+		) => {
+			if (!shouldAdd || columnDefs.length === 0) return columnDefs;
+			const [first, ...rest] = columnDefs;
+			const existingClass =
+				(first.meta as { className?: string } | undefined)?.className ?? "";
+			const mergedClass = [existingClass, "border-l border-slate-200"]
+				.filter(Boolean)
+				.join(" ");
+			const firstWithBorder: ColumnDef<RankedPlayer> = {
+				...first,
+				meta: { ...((first.meta ?? {}) as object), className: mergedClass },
+			};
+			return [firstWithBorder, ...rest];
+		};
+
 		// Add type-specific stat columns
 		if (playerView === "batters" || playerView === "all") {
 			const batterCols: ColumnDef<RankedPlayer>[] = [
 				{
+					id: "H",
+					header: "H",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>).H
+							: row.player._type === "two-way"
+								? row.player._battingStats.H
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "1B",
+					header: "1B",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>)["1B"]
+							: row.player._type === "two-way"
+								? row.player._battingStats["1B"]
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "2B",
+					header: "2B",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>)["2B"]
+							: row.player._type === "two-way"
+								? row.player._battingStats["2B"]
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "3B",
+					header: "3B",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>)["3B"]
+							: row.player._type === "two-way"
+								? row.player._battingStats["3B"]
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "TB",
+					header: "TB",
+					size: 60,
+					accessorFn: (row) => {
+						const stats =
+							row.player._type === "batter"
+								? (row.player as unknown as Record<string, number>)
+								: row.player._type === "two-way"
+									? row.player._battingStats
+									: null;
+						if (!stats) return null;
+						return (
+							stats["1B"] +
+							stats["2B"] * 2 +
+							stats["3B"] * 3 +
+							stats.HR * 4
+						);
+					},
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
 					id: "HR",
 					header: "HR",
-					size: 50,
+					size: 60,
 					accessorFn: (row) =>
 						row.player._type === "batter"
 							? (row.player as unknown as Record<string, number>).HR
 							: row.player._type === "two-way"
 								? row.player._battingStats.HR
 								: null,
-					cell: ({ getValue }) => getValue() ?? "-",
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
 				},
 				{
 					id: "R",
 					header: "R",
-					size: 50,
+					size: 60,
 					accessorFn: (row) =>
 						row.player._type === "batter"
 							? (row.player as unknown as Record<string, number>).R
 							: row.player._type === "two-way"
 								? row.player._battingStats.R
 								: null,
-					cell: ({ getValue }) => getValue() ?? "-",
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
 				},
 				{
 					id: "RBI",
 					header: "RBI",
-					size: 50,
+					size: 60,
 					accessorFn: (row) =>
 						row.player._type === "batter"
 							? (row.player as unknown as Record<string, number>).RBI
 							: row.player._type === "two-way"
 								? row.player._battingStats.RBI
 								: null,
-					cell: ({ getValue }) => getValue() ?? "-",
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "BB",
+					header: "BB",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>).BB
+							: row.player._type === "two-way"
+								? row.player._battingStats.BB
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "HBP",
+					header: "HBP",
+					size: 70,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>).HBP
+							: row.player._type === "two-way"
+								? row.player._battingStats.HBP
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "SO",
+					header: "SO",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>).SO
+							: row.player._type === "two-way"
+								? row.player._battingStats.SO
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
 				},
 				{
 					id: "SB",
 					header: "SB",
-					size: 50,
+					size: 60,
 					accessorFn: (row) =>
 						row.player._type === "batter"
 							? (row.player as unknown as Record<string, number>).SB
 							: row.player._type === "two-way"
 								? row.player._battingStats.SB
 								: null,
-					cell: ({ getValue }) => getValue() ?? "-",
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "CS",
+					header: "CS",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>).CS
+							: row.player._type === "two-way"
+								? row.player._battingStats.CS
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "SF",
+					header: "SF",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>).SF
+							: row.player._type === "two-way"
+								? row.player._battingStats.SF
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "GDP",
+					header: "GIDP",
+					size: 70,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>).GDP
+							: row.player._type === "two-way"
+								? row.player._battingStats.GDP
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
 				},
 				{
 					id: "AVG",
 					header: "AVG",
-					size: 60,
+					size: 70,
 					accessorFn: (row) =>
 						row.player._type === "batter"
 							? (row.player as unknown as Record<string, number>).AVG
@@ -820,84 +1278,212 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					},
 				},
 			];
-			baseColumns.push(...batterCols);
+			const visibleBatting = batterCols.filter((col) =>
+				battingStatSet.has(col.id as string),
+			);
+			baseColumns.push(...withLeadingSeparator(visibleBatting, addBattingSeparator));
 		}
 
 		if (playerView === "pitchers" || playerView === "all") {
 			const pitcherCols: ColumnDef<RankedPlayer>[] = [
 				{
-					id: "W",
-					header: "W",
-					size: 50,
+					id: "IP",
+					header: "IP",
+					size: 60,
 					accessorFn: (row) =>
 						row.player._type === "pitcher"
-							? (row.player as unknown as Record<string, number>).W
+							? (row.player as unknown as Record<string, number>).IP
 							: row.player._type === "two-way"
-								? row.player._pitchingStats.W
+								? row.player._pitchingStats.IP
 								: null,
 					cell: ({ getValue }) => getValue() ?? "-",
 				},
 				{
-					id: "QS",
-					header: "QS",
-					size: 50,
-					accessorFn: (row) =>
-						row.player._type === "pitcher"
-							? resolveQualityStarts(row.player, useBaseballIp)
-							: row.player._type === "two-way"
-								? resolveQualityStarts(row.player._pitchingStats, useBaseballIp)
-								: null,
-					cell: ({ getValue }) => {
-						const val = getValue() as number | null;
-						return val === null ? "-" : val.toFixed(1);
-					},
-				},
-				{
-					id: "CG",
-					header: "CG",
-					size: 50,
-					accessorFn: (row) =>
-						row.player._type === "pitcher"
-							? resolveCompleteGames(row.player, useBaseballIp)
-							: row.player._type === "two-way"
-								? resolveCompleteGames(row.player._pitchingStats, useBaseballIp)
-								: null,
-					cell: ({ getValue }) => {
-						const val = getValue() as number | null;
-						return val === null ? "-" : val.toFixed(1);
-					},
-				},
-				{
-					id: "ShO",
-					header: "ShO",
-					size: 50,
-					accessorFn: (row) =>
-						row.player._type === "pitcher"
-							? resolveShutouts(row.player, useBaseballIp)
-							: row.player._type === "two-way"
-								? resolveShutouts(row.player._pitchingStats, useBaseballIp)
-								: null,
-					cell: ({ getValue }) => {
-						const val = getValue() as number | null;
-						return val === null ? "-" : val.toFixed(1);
-					},
-				},
-				{
 					id: "SO_P",
 					header: "K",
-					size: 50,
+					size: 60,
 					accessorFn: (row) =>
 						row.player._type === "pitcher"
 							? (row.player as unknown as Record<string, number>).SO
 							: row.player._type === "two-way"
 								? row.player._pitchingStats.SO
 								: null,
-					cell: ({ getValue }) => getValue() ?? "-",
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "H_P",
+					header: "H",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).H
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.H
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "ER",
+					header: "ER",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).ER
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.ER
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "HR_P",
+					header: "HR",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).HR
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.HR
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "BB_P",
+					header: "BB",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).BB
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.BB
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "HBP_P",
+					header: "HBP",
+					size: 70,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).HBP
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.HBP
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "W",
+					header: "W",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).W
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.W
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "L",
+					header: "L",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).L
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.L
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "QS",
+					header: "QS",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? resolveQualityStarts(row.player, useBaseballIp)
+							: row.player._type === "two-way"
+								? resolveQualityStarts(row.player._pitchingStats, useBaseballIp)
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "SV",
+					header: "SV",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).SV
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.SV
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "HLD",
+					header: "HLD",
+					size: 70,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).HLD
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.HLD
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "BS",
+					header: "BS",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? (row.player as unknown as Record<string, number>).BS
+							: row.player._type === "two-way"
+								? row.player._pitchingStats.BS
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "CG",
+					header: "CG",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? resolveCompleteGames(row.player, useBaseballIp)
+							: row.player._type === "two-way"
+								? resolveCompleteGames(row.player._pitchingStats, useBaseballIp)
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "ShO",
+					header: "ShO",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "pitcher"
+							? resolveShutouts(row.player, useBaseballIp)
+							: row.player._type === "two-way"
+								? resolveShutouts(row.player._pitchingStats, useBaseballIp)
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
 				},
 				{
 					id: "ERA",
 					header: "ERA",
-					size: 60,
+					size: 70,
 					accessorFn: (row) =>
 						row.player._type === "pitcher"
 							? (row.player as unknown as Record<string, number>).ERA
@@ -910,36 +1496,39 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					},
 				},
 				{
-					id: "IP",
-					header: "IP",
-					size: 50,
+					id: "WHIP",
+					header: "WHIP",
+					size: 70,
 					accessorFn: (row) =>
 						row.player._type === "pitcher"
-							? (row.player as unknown as Record<string, number>).IP
+							? (row.player as unknown as Record<string, number>).WHIP
 							: row.player._type === "two-way"
-								? row.player._pitchingStats.IP
+								? row.player._pitchingStats.WHIP
 								: null,
-					cell: ({ getValue }) => getValue() ?? "-",
+					cell: ({ getValue }) => {
+						const val = getValue() as number | null;
+						return val ? val.toFixed(2) : "-";
+					},
 				},
 			];
-			baseColumns.push(...pitcherCols);
+			const visiblePitching = pitcherCols.filter((col) =>
+				pitchingStatSet.has(col.id as string),
+			);
+			baseColumns.push(
+				...withLeadingSeparator(visiblePitching, addPitchingSeparator),
+			);
 		}
 
-		// ADP column
-		baseColumns.push({
-			id: "ADP",
-			header: "ADP",
-			size: 60,
-			accessorFn: (row) =>
-				(row.player as unknown as Record<string, number | null>).ADP,
-			cell: ({ getValue }) => {
-				const val = getValue() as number | null;
-				return val ? Math.round(val) : "-";
-			},
-		});
-
 		return baseColumns;
-	}, [playerView, isDraftMode, handleToggleDrafted, useBaseballIp, leagueSettings]);
+	}, [
+		playerView,
+		isDraftMode,
+		handleToggleDrafted,
+		useBaseballIp,
+		leagueSettings,
+		battingStatIds,
+		pitchingStatIds,
+	]);
 
 	const table = useReactTable({
 		data: filteredPlayers,
@@ -963,16 +1552,6 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			return name.includes(search) || team.includes(search);
 		},
 	});
-	const prePaginationRows = table.getPrePaginationRowModel().rows;
-	const rowIndexById = useMemo(() => {
-		const indexMap = new Map<string, number>();
-		prePaginationRows.forEach((row, index) => {
-			indexMap.set(row.id, index);
-		});
-		return indexMap;
-	}, [prePaginationRows]);
-	rowIndexByIdRef.current = rowIndexById;
-
 	useEffect(() => {
 		setPagination((current) =>
 			current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
@@ -1012,24 +1591,30 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			<div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
 				<table className="w-full text-sm text-slate-800">
 					<thead className="bg-slate-100">
-						{table.getHeaderGroups().map((headerGroup) => (
-							<tr key={headerGroup.id}>
-								{headerGroup.headers.map((header) => (
-									<th
-										key={header.id}
-										style={{ width: header.getSize() }}
-										className={`px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 ${
-											header.column.getCanSort()
-												? "cursor-pointer select-none hover:text-slate-900"
-												: ""
-										}`}
-										onClick={header.column.getToggleSortingHandler()}
-									>
-										<div className="flex items-center gap-1">
-											{flexRender(
-												header.column.columnDef.header,
-												header.getContext(),
-											)}
+								{table.getHeaderGroups().map((headerGroup) => (
+									<tr key={headerGroup.id}>
+										{headerGroup.headers.map((header) => (
+										<th
+											key={header.id}
+											style={{ width: header.getSize() }}
+											className={`px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 whitespace-nowrap ${
+												header.column.getCanSort()
+													? "cursor-pointer select-none hover:text-slate-900"
+													: ""
+											} ${
+													(
+														header.column.columnDef.meta as
+															| { className?: string }
+															| undefined
+													)?.className ?? ""
+												}`}
+											onClick={header.column.getToggleSortingHandler()}
+										>
+											<div className="flex items-center gap-1 whitespace-nowrap">
+												{flexRender(
+													header.column.columnDef.header,
+													header.getContext(),
+												)}
 											{{
 												asc: " ↑",
 												desc: " ↓",
@@ -1059,7 +1644,16 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								}`}
 							>
 								{row.getVisibleCells().map((cell) => (
-									<td key={cell.id} className="px-3 py-2">
+									<td
+										key={cell.id}
+										className={`px-3 py-2 ${
+											(
+												cell.column.columnDef.meta as
+													| { className?: string }
+													| undefined
+											)?.className ?? ""
+										}`}
+									>
 										{flexRender(cell.column.columnDef.cell, cell.getContext())}
 									</td>
 								))}
