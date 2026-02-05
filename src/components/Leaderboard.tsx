@@ -5,6 +5,8 @@ import {
 	useState,
 	useCallback,
 	useDeferredValue,
+	useEffect,
+	useRef,
 	memo,
 	type Dispatch,
 	type SetStateAction,
@@ -14,6 +16,7 @@ import {
 	getCoreRowModel,
 	getSortedRowModel,
 	getFilteredRowModel,
+	getPaginationRowModel,
 	flexRender,
 	type SortingState,
 	type ColumnDef,
@@ -506,6 +509,11 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "projectedPoints", desc: true },
 	]);
+	const [pagination, setPagination] = useState({
+		pageIndex: 0,
+		pageSize: 50,
+	});
+	const rowIndexByIdRef = useRef<Map<string, number>>(new Map());
 
 	const canMergeTwoWay =
 		!!activeGroup &&
@@ -650,7 +658,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				header: "#",
 				size: 50,
 				cell: ({ row }) => (
-					<span className="text-slate-700">{row.index + 1}</span>
+					<span className="text-slate-700">
+						{(rowIndexByIdRef.current.get(row.id) ?? row.index) + 1}
+					</span>
 				),
 				enableSorting: false,
 			},
@@ -937,12 +947,15 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		state: {
 			sorting,
 			globalFilter,
+			pagination,
 		},
 		onSortingChange: setSorting,
 		onGlobalFilterChange: setGlobalFilter,
+		onPaginationChange: setPagination,
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
 		globalFilterFn: (row, _, filterValue) => {
 			const name = row.original.player.Name.toLowerCase();
 			const team = row.original.player.Team.toLowerCase();
@@ -950,6 +963,21 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			return name.includes(search) || team.includes(search);
 		},
 	});
+	const prePaginationRows = table.getPrePaginationRowModel().rows;
+	const rowIndexById = useMemo(() => {
+		const indexMap = new Map<string, number>();
+		prePaginationRows.forEach((row, index) => {
+			indexMap.set(row.id, index);
+		});
+		return indexMap;
+	}, [prePaginationRows]);
+	rowIndexByIdRef.current = rowIndexById;
+
+	useEffect(() => {
+		setPagination((current) =>
+			current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
+		);
+	}, [globalFilter, draftFilter, playerView, activeGroupId]);
 
 	const handleRowClick = useCallback(
 		(player: RankedPlayer) => {
@@ -980,64 +1008,108 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	}
 
 	return (
-		<div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-			<table className="w-full text-sm text-slate-800">
-				<thead className="bg-slate-100">
-					{table.getHeaderGroups().map((headerGroup) => (
-						<tr key={headerGroup.id}>
-							{headerGroup.headers.map((header) => (
-								<th
-									key={header.id}
-									style={{ width: header.getSize() }}
-									className={`px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 ${
-										header.column.getCanSort()
-											? "cursor-pointer select-none hover:text-slate-900"
-											: ""
-									}`}
-									onClick={header.column.getToggleSortingHandler()}
-								>
-									<div className="flex items-center gap-1">
-										{flexRender(
-											header.column.columnDef.header,
-											header.getContext(),
-										)}
-										{{
-											asc: " ↑",
-											desc: " ↓",
-										}[header.column.getIsSorted() as string] ?? null}
-									</div>
-								</th>
-							))}
-						</tr>
-					))}
-				</thead>
-				<tbody>
-					{table.getRowModel().rows.map((row, index) => (
-						<tr
-							key={row.id}
-							onClick={() => handleRowClick(row.original)}
-							onContextMenu={(e) => handleRowContextMenu(e, row.original)}
-							className={`border-t border-slate-200 ${
-								isDraftMode ? "cursor-pointer" : ""
-							} ${
-								row.original.isDrafted
-									? "bg-slate-100"
-									: row.original.isKeeper
-										? "bg-amber-100/60"
-										: index % 2 === 0
-											? "bg-white hover:bg-slate-100"
-											: "bg-slate-50 hover:bg-slate-100"
-							}`}
+		<div className="space-y-3">
+			<div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+				<table className="w-full text-sm text-slate-800">
+					<thead className="bg-slate-100">
+						{table.getHeaderGroups().map((headerGroup) => (
+							<tr key={headerGroup.id}>
+								{headerGroup.headers.map((header) => (
+									<th
+										key={header.id}
+										style={{ width: header.getSize() }}
+										className={`px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 ${
+											header.column.getCanSort()
+												? "cursor-pointer select-none hover:text-slate-900"
+												: ""
+										}`}
+										onClick={header.column.getToggleSortingHandler()}
+									>
+										<div className="flex items-center gap-1">
+											{flexRender(
+												header.column.columnDef.header,
+												header.getContext(),
+											)}
+											{{
+												asc: " ↑",
+												desc: " ↓",
+											}[header.column.getIsSorted() as string] ?? null}
+										</div>
+									</th>
+								))}
+							</tr>
+						))}
+					</thead>
+					<tbody>
+						{table.getRowModel().rows.map((row, index) => (
+							<tr
+								key={row.id}
+								onClick={() => handleRowClick(row.original)}
+								onContextMenu={(e) => handleRowContextMenu(e, row.original)}
+								className={`border-t border-slate-200 ${
+									isDraftMode ? "cursor-pointer" : ""
+								} ${
+									row.original.isDrafted
+										? "bg-slate-100"
+										: row.original.isKeeper
+											? "bg-amber-100/60"
+											: index % 2 === 0
+												? "bg-white hover:bg-slate-100"
+												: "bg-slate-50 hover:bg-slate-100"
+								}`}
+							>
+								{row.getVisibleCells().map((cell) => (
+									<td key={cell.id} className="px-3 py-2">
+										{flexRender(cell.column.columnDef.cell, cell.getContext())}
+									</td>
+								))}
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+			<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+				<div className="flex items-center gap-2">
+					<button
+						onClick={() => table.previousPage()}
+						disabled={!table.getCanPreviousPage()}
+						className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						Prev
+					</button>
+					<button
+						onClick={() => table.nextPage()}
+						disabled={!table.getCanNextPage()}
+						className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						Next
+					</button>
+					<span className="text-slate-600">
+						Page {pagination.pageIndex + 1} of{" "}
+						{Math.max(1, table.getPageCount())}
+					</span>
+				</div>
+				<div className="flex items-center gap-3">
+					<span className="text-slate-500">
+						{table.getPrePaginationRowModel().rows.length} total
+					</span>
+					<label className="flex items-center gap-2">
+						<span className="text-slate-500">Rows</span>
+						<select
+							value={pagination.pageSize}
+							onChange={(e) => {
+								const nextSize = Number(e.target.value);
+								setPagination({ pageIndex: 0, pageSize: nextSize });
+							}}
+							className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 						>
-							{row.getVisibleCells().map((cell) => (
-								<td key={cell.id} className="px-3 py-2">
-									{flexRender(cell.column.columnDef.cell, cell.getContext())}
-								</td>
-							))}
-						</tr>
-					))}
-				</tbody>
-			</table>
+							<option value={25}>25</option>
+							<option value={50}>50</option>
+							<option value={100}>100</option>
+						</select>
+					</label>
+				</div>
+			</div>
 		</div>
 	);
 });
