@@ -78,18 +78,33 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
     activeGroup.pitcherIdSource !== null &&
     activeGroup.pitcherIdSource !== "generated";
   const mergeHint = "Merge two-way requires provided player IDs in both uploads.";
-  const rosterSlots: { key: RosterSlot; label: string }[] = [
-    { key: "C", label: "C" },
-    { key: "1B", label: "1B" },
-    { key: "2B", label: "2B" },
-    { key: "3B", label: "3B" },
-    { key: "SS", label: "SS" },
-    { key: "OF", label: "OF" },
-    { key: "UTIL", label: "UTIL" },
-    { key: "SP", label: "SP" },
-    { key: "RP", label: "RP" },
-    { key: "P", label: "P" },
-  ];
+  const rosterSlotLabels: Record<RosterSlot, string> = {
+    C: "C",
+    "1B": "1B",
+    "2B": "2B",
+    "3B": "3B",
+    SS: "SS",
+    LF: "LF",
+    CF: "CF",
+    RF: "RF",
+    DH: "DH",
+    CI: "CI",
+    MI: "MI",
+    IF: "IF",
+    OF: "OF",
+    UTIL: "UTIL",
+    SP: "SP",
+    RP: "RP",
+    P: "P",
+    IL: "IL",
+    NA: "NA",
+  };
+  const outfieldSlots: RosterSlot[] = ["LF", "CF", "RF"];
+  const infieldSlots: RosterSlot[] = ["3B", "SS", "2B", "1B"];
+  const extraSlots: RosterSlot[] = ["OF", "CI", "MI", "IF", "UTIL", "DH"];
+  const pitcherSlots: RosterSlot[] = ["SP", "RP", "P"];
+  const catcherSlots: RosterSlot[] = ["C"];
+  const reserveSlots: RosterSlot[] = ["IL", "NA"];
 
   const normalizeLocalLeagueSettings = (input: LeagueSettings): LeagueSettings => {
     const nextNames = [...input.teamNames];
@@ -234,7 +249,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm">
-      <div className="relative mx-0 h-full w-full max-w-none rounded-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xl overflow-hidden flex flex-col sm:mx-4 sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl sm:p-6">
+      <div className="relative mx-0 h-full w-full max-w-none rounded-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 pb-0 shadow-2xl overflow-hidden flex flex-col sm:mx-4 sm:h-auto sm:max-h-[85vh] sm:max-w-3xl sm:rounded-xl sm:px-6 sm:pt-6 sm:pb-0">
         <button
           type="button"
           onClick={onClose}
@@ -243,7 +258,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
         >
           <span className="text-lg leading-none">×</span>
         </button>
-        <div className="-mx-3 -mt-3 mb-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-3 sm:-mx-6 sm:-mt-6 sm:mb-6 sm:px-6 sm:py-4">
+        <div className="-mx-3 -mt-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-3 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="pr-12">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Scoring & League</h2>
@@ -276,7 +291,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-1 pb-4 sm:pr-2">
+        <div className="flex-1 overflow-y-auto pr-1 pb-0 sm:pr-2">
           <div className="mb-5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-3 sm:mb-6 sm:p-4">
             <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -396,9 +411,131 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   </span>
                   <span className="text-xs text-slate-400 dark:text-slate-500">Per team</span>
                 </div>
-                <div className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2">
-                  <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2">
-                    <label className="text-sm text-slate-700 dark:text-slate-200">Bench</label>
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 p-4 shadow-sm">
+                    <div className="grid gap-4">
+                      <div>
+                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Outfield
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                        {outfieldSlots.map((key) => (
+                          <label
+                            key={key}
+                            className="flex items-center gap-2 rounded-md border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 px-2 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm"
+                          >
+                            <input
+                              type="number"
+                              min={0}
+                              value={localLeagueSettings.roster.positions[key] ?? 0}
+                              onChange={(e) =>
+                                handleRosterChange(key, parseInt(e.target.value, 10) || 0)
+                              }
+                              className="h-9 w-9 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-center text-sm text-slate-900 dark:text-slate-100 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                            />
+                            <span>{rosterSlotLabels[key]}</span>
+                          </label>
+                        ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Infield
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {infieldSlots.map((key) => (
+                          <label
+                            key={key}
+                            className="flex items-center gap-2 rounded-md border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 px-2 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm"
+                          >
+                            <input
+                              type="number"
+                              min={0}
+                              value={localLeagueSettings.roster.positions[key] ?? 0}
+                              onChange={(e) =>
+                                handleRosterChange(key, parseInt(e.target.value, 10) || 0)
+                              }
+                              className="h-9 w-9 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-center text-sm text-slate-900 dark:text-slate-100 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                            />
+                            <span>{rosterSlotLabels[key]}</span>
+                          </label>
+                        ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Flex
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {extraSlots.map((key) => (
+                          <label
+                            key={key}
+                            className="flex items-center gap-2 rounded-md border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 px-2 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm"
+                          >
+                            <input
+                              type="number"
+                              min={0}
+                              value={localLeagueSettings.roster.positions[key] ?? 0}
+                              onChange={(e) =>
+                                handleRosterChange(key, parseInt(e.target.value, 10) || 0)
+                              }
+                              className="h-9 w-9 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-center text-sm text-slate-900 dark:text-slate-100 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                            />
+                            <span>{rosterSlotLabels[key]}</span>
+                          </label>
+                        ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid content-start gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-sm">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Pitchers
+                    </div>
+                    {pitcherSlots.map((key) => (
+                      <label
+                        key={key}
+                        className="flex items-center justify-between gap-3 rounded-md border border-slate-200/80 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+                      >
+                        <span>{rosterSlotLabels[key]}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={localLeagueSettings.roster.positions[key] ?? 0}
+                          onChange={(e) =>
+                            handleRosterChange(key, parseInt(e.target.value, 10) || 0)
+                          }
+                          className="w-16 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                        />
+                      </label>
+                    ))}
+                    <div className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Catchers
+                    </div>
+                    {catcherSlots.map((key) => (
+                      <label
+                        key={key}
+                        className="flex items-center justify-between gap-3 rounded-md border border-slate-200/80 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+                      >
+                        <span>{rosterSlotLabels[key]}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={localLeagueSettings.roster.positions[key] ?? 0}
+                          onChange={(e) =>
+                            handleRosterChange(key, parseInt(e.target.value, 10) || 0)
+                          }
+                          className="w-16 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <label className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <span>Bench</span>
                     <input
                       type="number"
                       min={0}
@@ -406,18 +543,15 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       onChange={(e) =>
                         handleBenchChange(parseInt(e.target.value, 10) || 0)
                       }
-                      className="w-20 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                      className="w-16 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
                     />
-                  </div>
-                </div>
-
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2">
-                  {rosterSlots.map(({ key, label }) => (
-                    <div
+                  </label>
+                  {reserveSlots.map((key) => (
+                    <label
                       key={key}
-                      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2"
+                      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
                     >
-                      <label className="text-sm text-slate-700 dark:text-slate-200">{label}</label>
+                      <span>{rosterSlotLabels[key]}</span>
                       <input
                         type="number"
                         min={0}
@@ -425,9 +559,9 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         onChange={(e) =>
                           handleRosterChange(key, parseInt(e.target.value, 10) || 0)
                         }
-                        className="w-20 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
+                        className="w-16 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
                       />
-                    </div>
+                    </label>
                   ))}
                 </div>
               </div>
@@ -512,7 +646,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
           </div>
         </div>
 
-        <div className="-mx-3 mt-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-3 sm:-mx-6 sm:px-6 sm:py-4">
+        <div className="-mx-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-3 sm:-mx-6 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs text-slate-500 dark:text-slate-400">
               Changes apply immediately to scoring and league settings.

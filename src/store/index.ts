@@ -62,13 +62,18 @@ const defaultRosterSettings: RosterSettings = {
     CF: 0,
     RF: 0,
     DH: 0,
+    CI: 0,
+    MI: 0,
+    IF: 0,
     OF: 3,
     UTIL: 1,
-    SP: 2,
-    RP: 2,
-    P: 0,
+    SP: 0,
+    RP: 0,
+    P: 7,
+    IL: 0,
+    NA: 0,
   },
-  bench: 5,
+  bench: 3,
 };
 
 const defaultLeagueSettings: LeagueSettings = {

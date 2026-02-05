@@ -112,7 +112,18 @@ export type IdSource = "MLBAMID" | "PlayerId" | "custom" | "generated";
 
 export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH";
 
-export type RosterSlot = Position | "OF" | "UTIL" | "SP" | "RP" | "P";
+export type RosterSlot =
+  | Position
+  | "OF"
+  | "UTIL"
+  | "SP"
+  | "RP"
+  | "P"
+  | "CI"
+  | "MI"
+  | "IF"
+  | "IL"
+  | "NA";
 
 export type Eligibility = {
   positionGames: Record<Position, number>;
