@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f3f4f6;
-  --foreground: #0b1220;
+  color-scheme: light dark;
+  --background: hsl(210 20% 98%);
+  --foreground: hsl(222 47% 11%);
+  --surface-1: hsl(0 0% 100%);
+  --surface-2: hsl(210 16% 93%);
+  --border: hsl(214 32% 91%);
 }
 
 @theme inline {
@@ -14,17 +18,29 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #e6e9ef;
-    --foreground: #0b1220;
+    --background: hsl(222 84% 5%);
+    --foreground: hsl(210 40% 96%);
+    --surface-1: hsl(222 47% 12%);
+    --surface-2: hsl(223 34% 16%);
+    --border: hsl(215 19% 24%);
   }
 }
 
 body {
   background:
-    radial-gradient(1200px 600px at 20% -20%, rgba(15, 23, 42, 0.05), transparent 60%),
+    radial-gradient(1200px 600px at 20% -20%, rgba(15, 23, 42, 0.08), transparent 60%),
     radial-gradient(1000px 500px at 90% 0%, rgba(16, 185, 129, 0.06), transparent 55%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background:
+      radial-gradient(1200px 600px at 15% -20%, rgba(56, 189, 248, 0.08), transparent 60%),
+      radial-gradient(1000px 500px at 85% 0%, rgba(16, 185, 129, 0.12), transparent 55%),
+      var(--background);
+  }
 }

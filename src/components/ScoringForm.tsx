@@ -233,23 +233,23 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-2xl max-h-[85vh] overflow-hidden">
-        <div className="-mx-6 -mt-6 mb-6 border-b border-slate-200 bg-slate-50 px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 dark:bg-slate-950/60 backdrop-blur-sm">
+      <div className="mx-4 w-full max-w-3xl rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl max-h-[85vh] overflow-hidden">
+        <div className="-mx-6 -mt-6 mb-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Scoring & League</h2>
-              <p className="text-sm text-slate-500">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Scoring & League</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Tune scoring weights, roster sizes, and draft order.
               </p>
             </div>
             <div className="flex items-end gap-2">
               <div className="grid gap-1">
-                <span className="text-xs font-medium text-slate-500">Preset</span>
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Preset</span>
                 <select
                   value={presetSelection}
                   onChange={(e) => setPresetSelection(e.target.value)}
-                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
                 >
                   {presetNames.map((key) => (
                     <option key={key} value={key}>
@@ -268,7 +268,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                 type="button"
                 onClick={onClose}
                 aria-label="Close scoring modal"
-                className="ml-1 inline-flex h-9 w-9 items-center justify-center self-end rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                className="ml-1 inline-flex h-9 w-9 items-center justify-center self-end rounded-md border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-100"
               >
                 <span className="text-lg leading-none">×</span>
               </button>
@@ -277,20 +277,20 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
         </div>
 
         <div className="max-h-[65vh] overflow-y-auto pr-2">
-          <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+          <div className="mb-6 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-slate-800">Scoring</h3>
-                <p className="text-xs text-slate-500">Set points per stat.</p>
+                <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Scoring</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Set points per stat.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex rounded-full bg-slate-100 p-1 shadow-inner">
+                <div className="flex rounded-full bg-slate-100 dark:bg-slate-800/70 p-1 shadow-inner">
                   <button
                     onClick={() => setTab("batting")}
                     className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                       tab === "batting"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
                     }`}
                   >
                     Batting
@@ -299,16 +299,16 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                     onClick={() => setTab("pitching")}
                     className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                       tab === "pitching"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
                     }`}
                   >
                     Pitching
                   </button>
                 </div>
                 <div
-                  className={`flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ${
-                    canMergeTwoWay ? "text-slate-600" : "text-slate-500"
+                  className={`flex items-center gap-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm ${
+                    canMergeTwoWay ? "text-slate-600 dark:text-slate-300" : "text-slate-500 dark:text-slate-400"
                   }`}
                   title={!canMergeTwoWay ? mergeHint : undefined}
                 >
@@ -325,12 +325,12 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                     }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       mergeTwoWayRankings && canMergeTwoWay
-                        ? "bg-emerald-500"
-                        : "bg-slate-300"
+                        ? "bg-emerald-50 dark:bg-emerald-950/40"
+                        : "bg-slate-300 dark:bg-slate-700"
                     } ${canMergeTwoWay ? "" : "opacity-50 cursor-not-allowed"}`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-slate-100 transition-transform ${
                         mergeTwoWayRankings && canMergeTwoWay
                           ? "translate-x-6"
                           : "translate-x-1"
@@ -346,9 +346,9 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                 ? battingCategories.map(({ key, label }) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm"
+                      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 shadow-sm"
                     >
-                      <label className="text-sm text-slate-700">{label}</label>
+                      <label className="text-sm text-slate-700 dark:text-slate-200">{label}</label>
                       <input
                         type="number"
                         step="0.5"
@@ -357,16 +357,16 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         onChange={(e) =>
                           debouncedUpdateBatting(key, parseFloat(e.target.value) || 0)
                         }
-                        className="w-24 rounded border border-slate-300 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                        className="w-24 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
                       />
                     </div>
                   ))
                 : pitchingCategories.map(({ key, label }) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm"
+                      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 shadow-sm"
                     >
-                      <label className="text-sm text-slate-700">{label}</label>
+                      <label className="text-sm text-slate-700 dark:text-slate-200">{label}</label>
                       <input
                         type="number"
                         step="0.5"
@@ -375,30 +375,30 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         onChange={(e) =>
                           debouncedUpdatePitching(key, parseFloat(e.target.value) || 0)
                         }
-                        className="w-24 rounded border border-slate-300 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                        className="w-24 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
                       />
                     </div>
                   ))}
             </div>
           </div>
 
-          <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-6 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
             <div className="mb-4">
-              <h3 className="text-sm font-semibold text-slate-800">League & Draft</h3>
-              <p className="text-xs text-slate-500">Roster sizes and draft order.</p>
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">League & Draft</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Roster sizes and draft order.</p>
             </div>
 
             <div className="grid gap-6">
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Roster
                   </span>
-                  <span className="text-xs text-slate-400">Per team</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">Per team</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                    <label className="text-sm text-slate-700">Bench</label>
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                    <label className="text-sm text-slate-700 dark:text-slate-200">Bench</label>
                     <input
                       type="number"
                       min={0}
@@ -406,7 +406,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       onChange={(e) =>
                         handleBenchChange(parseInt(e.target.value, 10) || 0)
                       }
-                      className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                      className="w-20 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
                     />
                   </div>
                 </div>
@@ -415,9 +415,9 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   {rosterSlots.map(({ key, label }) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
+                      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2"
                     >
-                      <label className="text-sm text-slate-700">{label}</label>
+                      <label className="text-sm text-slate-700 dark:text-slate-200">{label}</label>
                       <input
                         type="number"
                         min={0}
@@ -425,7 +425,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         onChange={(e) =>
                           handleRosterChange(key, parseInt(e.target.value, 10) || 0)
                         }
-                        className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                        className="w-20 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-right text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
                       />
                     </div>
                   ))}
@@ -434,17 +434,17 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
 
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Teams ({localLeagueSettings.teamNames.length})
                   </span>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">
                     Order here sets draft order
                   </span>
                 </div>
                 <div className="grid gap-2">
                   {localLeagueSettings.teamNames.map((name, index) => (
                     <div key={`team-${index}`} className="flex flex-wrap items-center gap-3">
-                      <span className="w-10 text-xs font-medium text-slate-500">
+                      <span className="w-10 text-xs font-medium text-slate-500 dark:text-slate-400">
                         T{index + 1}
                       </span>
                       <div
@@ -472,18 +472,18 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         }}
                         className={`flex flex-1 flex-wrap items-center gap-2 rounded-md border px-2 py-2 shadow-sm ${
                           dragOverTeamIndex === index
-                            ? "border-emerald-300 bg-emerald-50"
-                            : "border-slate-200 bg-white"
+                            ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
+                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
                         } ${draggingTeamIndex === index ? "opacity-60" : ""}`}
                       >
-                        <span className="cursor-grab select-none text-xs text-slate-400">
+                        <span className="cursor-grab select-none text-xs text-slate-400 dark:text-slate-500">
                           ⠿
                         </span>
                         <input
                           type="text"
                           value={name}
                           onChange={(e) => handleTeamNameChange(index, e.target.value)}
-                          className="min-w-[160px] flex-1 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                          className="min-w-[160px] flex-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/40"
                         />
                       </div>
                       <div className="ml-auto flex items-center gap-1">
@@ -491,7 +491,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                           type="button"
                           onClick={() => handleAddTeamBelow(index)}
                           disabled={localLeagueSettings.teamNames.length >= 20}
-                          className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Add Below
                         </button>
@@ -499,7 +499,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                           type="button"
                           onClick={() => handleRemoveTeamAt(index)}
                           disabled={localLeagueSettings.teamNames.length <= 2}
-                          className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-md border border-red-200 dark:border-red-900/60 px-2 py-1 text-xs text-red-700 dark:text-red-200 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Remove
                         </button>
@@ -512,9 +512,9 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
           </div>
         </div>
 
-        <div className="-mx-6 mt-2 border-t border-slate-200 bg-slate-50 px-6 py-4">
+        <div className="-mx-6 mt-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               Changes apply immediately to scoring and league settings.
             </span>
             <button
