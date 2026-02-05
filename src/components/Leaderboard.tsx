@@ -43,6 +43,7 @@ import type {
 	ScoringSettings,
 	ProjectionGroup,
 	Eligibility,
+	LeagueSettings,
 } from "@/types";
 
 type PlayerView = "all" | "batters" | "pitchers";
@@ -70,10 +71,11 @@ export function Leaderboard() {
 		activeProjectionGroupId,
 		setActiveProjectionGroup,
 		scoringSettings,
+		leagueSettings,
 		draftState,
 		isDraftMode,
-		toggleDrafted,
-		toggleKeeper,
+		toggleDraftedForTeam,
+		toggleKeeperForTeam,
 		mergeTwoWayRankings,
 		applyEligibilityForGroup,
 	} = useStore();
@@ -444,11 +446,13 @@ export function Leaderboard() {
 					projectionGroups={projectionGroups}
 					activeGroupId={deferredGroupId}
 					scoringSettings={scoringSettings}
+					leagueSettings={leagueSettings}
 					draftState={draftState}
 					isDraftMode={isDraftMode}
 					mergeTwoWayRankings={mergeTwoWayRankings}
-					toggleDrafted={toggleDrafted}
-					toggleKeeper={toggleKeeper}
+					toggleDraftedForTeam={toggleDraftedForTeam}
+					toggleKeeperForTeam={toggleKeeperForTeam}
+					activeTeamIndex={draftState.activeTeamIndex}
 					playerView={playerView}
 					globalFilter={globalFilter}
 					setGlobalFilter={setGlobalFilter}
@@ -463,11 +467,13 @@ type LeaderboardTableProps = {
 	projectionGroups: ProjectionGroup[];
 	activeGroupId: string | null;
 	scoringSettings: ScoringSettings;
+	leagueSettings: LeagueSettings;
 	draftState: DraftState;
 	isDraftMode: boolean;
 	mergeTwoWayRankings: boolean;
-	toggleDrafted: (playerId: string) => void;
-	toggleKeeper: (playerId: string) => void;
+	toggleDraftedForTeam: (playerId: string, teamIndex: number) => void;
+	toggleKeeperForTeam: (playerId: string, teamIndex: number) => void;
+	activeTeamIndex: number;
 	playerView: PlayerView;
 	globalFilter: string;
 	setGlobalFilter: Dispatch<SetStateAction<string>>;
@@ -478,11 +484,13 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	projectionGroups,
 	activeGroupId,
 	scoringSettings,
+	leagueSettings,
 	draftState,
 	isDraftMode,
 	mergeTwoWayRankings,
-	toggleDrafted,
-	toggleKeeper,
+	toggleDraftedForTeam,
+	toggleKeeperForTeam,
+	activeTeamIndex,
 	playerView,
 	globalFilter,
 	setGlobalFilter,
@@ -529,20 +537,10 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		return pitcherIps.every((ip) => isValidBaseballIp(ip));
 	}, [pitchers, twoWayPlayers]);
 
-	// Create Sets for O(1) lookups instead of O(n) array.includes()
-	const draftedIdsSet = useMemo(
-		() => new Set(draftState.draftedIds),
-		[draftState.draftedIds],
-	);
-	const keeperIdsSet = useMemo(
-		() => new Set(draftState.keeperIds),
-		[draftState.keeperIds],
-	);
-
 	// Memoize toggle handler to prevent column regeneration
 	const handleToggleDrafted = useCallback(
-		(playerId: string) => toggleDrafted(playerId),
-		[toggleDrafted],
+		(playerId: string) => toggleDraftedForTeam(playerId, activeTeamIndex),
+		[toggleDraftedForTeam, activeTeamIndex],
 	);
 
 	// Calculate points and create ranked players
@@ -599,16 +597,24 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				playerView,
 				useBaseballIp,
 			),
-			isDrafted: draftedIdsSet.has(player._id),
-			isKeeper: keeperIdsSet.has(player._id),
+			isDrafted: draftState.draftedByTeam[player._id] !== undefined,
+			isKeeper: draftState.keeperByTeam[player._id] !== undefined,
+			draftedTeamIndex:
+				draftState.draftedByTeam[player._id] !== undefined
+					? Number(draftState.draftedByTeam[player._id])
+					: undefined,
+			keeperTeamIndex:
+				draftState.keeperByTeam[player._id] !== undefined
+					? Number(draftState.keeperByTeam[player._id])
+					: undefined,
 		}));
 	}, [
 		batters,
 		pitchers,
 		twoWayPlayers,
 		scoringSettings,
-		draftedIdsSet,
-		keeperIdsSet,
+		draftState.draftedByTeam,
+		draftState.keeperByTeam,
 		playerView,
 		canMergeTwoWay,
 		mergeTwoWayRankings,
@@ -635,6 +641,10 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	}, [rankedPlayers, isDraftMode, draftFilter]);
 
 	const columns = useMemo<ColumnDef<RankedPlayer>[]>(() => {
+		const resolveTeamLabel = (teamIndex?: number) => {
+			if (teamIndex === undefined || Number.isNaN(teamIndex)) return null;
+			return leagueSettings.teamNames[teamIndex] ?? `Team ${teamIndex + 1}`;
+		};
 		const baseColumns: ColumnDef<RankedPlayer>[] = [
 			{
 				id: "rank",
@@ -671,9 +681,14 @@ const LeaderboardTable = memo(function LeaderboardTable({
 						>
 							{row.original.player.Name}
 						</span>
+						{row.original.isDrafted && (
+							<span className="rounded bg-emerald-100 px-1.5 text-xs text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+								{resolveTeamLabel(row.original.draftedTeamIndex)}
+							</span>
+						)}
 						{row.original.isKeeper && (
-							<span className="rounded bg-amber-100 px-1 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-								K
+							<span className="rounded bg-amber-100 px-1.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+								{resolveTeamLabel(row.original.keeperTeamIndex) ?? "K"}
 							</span>
 						)}
 					</div>
@@ -915,7 +930,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		});
 
 		return baseColumns;
-	}, [playerView, isDraftMode, handleToggleDrafted, useBaseballIp]);
+	}, [playerView, isDraftMode, handleToggleDrafted, useBaseballIp, leagueSettings]);
 
 	const table = useReactTable({
 		data: filteredPlayers,
@@ -948,7 +963,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	const handleRowContextMenu = (e: React.MouseEvent, player: RankedPlayer) => {
 		if (!isDraftMode) return;
 		e.preventDefault();
-		toggleKeeper(player.player._id);
+		toggleKeeperForTeam(player.player._id, activeTeamIndex);
 	};
 
 	if (

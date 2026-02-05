@@ -112,6 +112,8 @@ export type IdSource = "MLBAMID" | "PlayerId" | "custom" | "generated";
 
 export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH";
 
+export type RosterSlot = Position | "OF" | "UTIL" | "SP" | "RP" | "P";
+
 export type Eligibility = {
   positionGames: Record<Position, number>;
   eligiblePositions: Position[];
@@ -179,8 +181,20 @@ export interface ScoringSettings {
 
 // Draft state
 export interface DraftState {
-  draftedIds: string[];
-  keeperIds: string[];
+  draftedByTeam: Record<string, string>;
+  keeperByTeam: Record<string, string>;
+  activeTeamIndex: number;
+}
+
+export interface RosterSettings {
+  positions: Record<RosterSlot, number>;
+  bench: number;
+}
+
+export interface LeagueSettings {
+  leagueSize: number;
+  teamNames: string[];
+  roster: RosterSettings;
 }
 
 // Player with calculated points for display
@@ -189,6 +203,8 @@ export interface RankedPlayer {
   projectedPoints: number;
   isDrafted: boolean;
   isKeeper: boolean;
+  draftedTeamIndex?: number;
+  keeperTeamIndex?: number;
 }
 
 // App state
@@ -196,6 +212,7 @@ export interface AppState {
   projectionGroups: ProjectionGroup[];
   activeProjectionGroupId: string | null;
   scoringSettings: ScoringSettings;
+  leagueSettings: LeagueSettings;
   draftState: DraftState;
   isDraftMode: boolean;
 }

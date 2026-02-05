@@ -12,23 +12,31 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
   const {
     isDraftMode,
     setDraftMode,
-    projectionGroups,
-    activeProjectionGroupId,
+    leagueSettings,
     draftState,
+    setActiveTeamIndex,
+    advanceActiveTeam,
     resetDraft,
     clearAllData,
   } = useStore();
   const [isClearOpen, setIsClearOpen] = useState(false);
 
-  const activeGroup =
-    projectionGroups.find((group) => group.id === activeProjectionGroupId) ??
-    projectionGroups[0] ??
-    null;
-  const batters = activeGroup?.batters ?? [];
-  const pitchers = activeGroup?.pitchers ?? [];
-  const twoWayPlayers = activeGroup?.twoWayPlayers ?? [];
-  const draftedCount = draftState.draftedIds.length;
-  const keeperCount = draftState.keeperIds.length;
+  const draftedEntries = Object.entries(draftState.draftedByTeam);
+  const keeperEntries = Object.entries(draftState.keeperByTeam);
+  const draftedCount = draftedEntries.length;
+  const keeperCount = keeperEntries.length;
+  const activeTeamIndex = draftState.activeTeamIndex;
+  const activeTeamName =
+    leagueSettings.teamNames[activeTeamIndex] ?? `Team ${activeTeamIndex + 1}`;
+  const teamDraftedCount = draftedEntries.filter(
+    ([, teamIndex]) => Number(teamIndex) === activeTeamIndex
+  ).length;
+  const teamKeeperCount = keeperEntries.filter(
+    ([, teamIndex]) => Number(teamIndex) === activeTeamIndex
+  ).length;
+  const rosterTotal =
+    Object.values(leagueSettings.roster.positions).reduce((sum, value) => sum + value, 0) +
+    leagueSettings.roster.bench;
 
   return (
     <>
@@ -87,7 +95,28 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
 
             {isDraftMode && (
               <>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={activeTeamIndex}
+                    onChange={(e) => setActiveTeamIndex(parseInt(e.target.value, 10))}
+                    className="rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  >
+                    {leagueSettings.teamNames.map((name, index) => (
+                      <option key={`team-${index}`} value={index}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={advanceActiveTeam}
+                    className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                  >
+                    Next Team
+                  </button>
+                </div>
                 <span className="text-sm text-zinc-500">
+                  {activeTeamName}: {teamDraftedCount + teamKeeperCount}/{rosterTotal}
+                  {teamKeeperCount > 0 && ` (K ${teamKeeperCount})`} · League:{" "}
                   {draftedCount} drafted
                   {keeperCount > 0 && `, ${keeperCount} keepers`}
                 </span>

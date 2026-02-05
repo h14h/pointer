@@ -8,6 +8,9 @@ import type {
   ProjectionGroup,
   IdSource,
   Eligibility,
+  LeagueSettings,
+  RosterSettings,
+  RosterSlot,
 } from "@/types";
 
 // Default ESPN-style scoring
@@ -48,11 +51,65 @@ const defaultScoringSettings: ScoringSettings = {
   },
 };
 
+const defaultRosterSettings: RosterSettings = {
+  positions: {
+    C: 1,
+    "1B": 1,
+    "2B": 1,
+    "3B": 1,
+    SS: 1,
+    LF: 0,
+    CF: 0,
+    RF: 0,
+    DH: 0,
+    OF: 3,
+    UTIL: 1,
+    SP: 2,
+    RP: 2,
+    P: 0,
+  },
+  bench: 5,
+};
+
+const defaultLeagueSettings: LeagueSettings = {
+  leagueSize: 12,
+  teamNames: Array.from({ length: 12 }, (_, i) => `Team ${i + 1}`),
+  roster: defaultRosterSettings,
+};
+
+const normalizeLeagueSettings = (settings: LeagueSettings): LeagueSettings => {
+  const clampedSize = Math.min(20, Math.max(2, Math.round(settings.leagueSize || 0)));
+  const nextNames = [...(settings.teamNames ?? [])];
+  const roster = settings.roster ?? defaultRosterSettings;
+  for (let i = nextNames.length; i < clampedSize; i += 1) {
+    nextNames.push(`Team ${i + 1}`);
+  }
+  if (nextNames.length > clampedSize) {
+    nextNames.length = clampedSize;
+  }
+  const positions = Object.fromEntries(
+    Object.entries(defaultRosterSettings.positions).map(([slot, value]) => [
+      slot,
+      roster.positions[slot as RosterSlot] ?? value,
+    ])
+  ) as Record<RosterSlot, number>;
+
+  return {
+    leagueSize: clampedSize,
+    teamNames: nextNames,
+    roster: {
+      positions,
+      bench: Number.isFinite(roster.bench) ? roster.bench : defaultRosterSettings.bench,
+    },
+  };
+};
+
 interface Store {
   // Data
   projectionGroups: ProjectionGroup[];
   activeProjectionGroupId: string | null;
   scoringSettings: ScoringSettings;
+  leagueSettings: LeagueSettings;
   draftState: DraftState;
   isDraftMode: boolean;
   mergeTwoWayRankings: boolean;
@@ -65,8 +122,14 @@ interface Store {
   setScoringSettings: (settings: ScoringSettings) => void;
   updateBattingScoring: (key: keyof ScoringSettings["batting"], value: number) => void;
   updatePitchingScoring: (key: keyof ScoringSettings["pitching"], value: number) => void;
-  toggleDrafted: (playerId: string) => void;
-  toggleKeeper: (playerId: string) => void;
+  setLeagueSettings: (settings: LeagueSettings) => void;
+  setLeagueSize: (size: number) => void;
+  setTeamName: (index: number, name: string) => void;
+  setRosterSettings: (roster: RosterSettings) => void;
+  setActiveTeamIndex: (index: number) => void;
+  advanceActiveTeam: () => void;
+  toggleDraftedForTeam: (playerId: string, teamIndex: number) => void;
+  toggleKeeperForTeam: (playerId: string, teamIndex: number) => void;
   setDraftMode: (enabled: boolean) => void;
   setMergeTwoWayRankings: (enabled: boolean) => void;
   resetDraft: () => void;
@@ -85,9 +148,11 @@ export const useStore = create<Store>()(
       projectionGroups: [],
       activeProjectionGroupId: null,
       scoringSettings: defaultScoringSettings,
+      leagueSettings: defaultLeagueSettings,
       draftState: {
-        draftedIds: [],
-        keeperIds: [],
+        draftedByTeam: {},
+        keeperByTeam: {},
+        activeTeamIndex: 0,
       },
       isDraftMode: false,
       mergeTwoWayRankings: true,
@@ -137,28 +202,155 @@ export const useStore = create<Store>()(
           },
         })),
 
-      toggleDrafted: (playerId) =>
+      setLeagueSettings: (settings) =>
         set((state) => {
-          const isDrafted = state.draftState.draftedIds.includes(playerId);
+          const normalized = normalizeLeagueSettings(settings);
+          const maxTeamIndex = normalized.leagueSize - 1;
+          const draftedByTeam = Object.fromEntries(
+            Object.entries(state.draftState.draftedByTeam).filter(
+              ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
+            )
+          );
+          const keeperByTeam = Object.fromEntries(
+            Object.entries(state.draftState.keeperByTeam).filter(
+              ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
+            )
+          );
+          const activeTeamIndex = Math.min(
+            Math.max(0, state.draftState.activeTeamIndex),
+            maxTeamIndex
+          );
+
           return {
+            leagueSettings: normalized,
             draftState: {
               ...state.draftState,
-              draftedIds: isDrafted
-                ? state.draftState.draftedIds.filter((id) => id !== playerId)
-                : [...state.draftState.draftedIds, playerId],
+              draftedByTeam,
+              keeperByTeam,
+              activeTeamIndex,
             },
           };
         }),
 
-      toggleKeeper: (playerId) =>
+      setLeagueSize: (size) =>
         set((state) => {
-          const isKeeper = state.draftState.keeperIds.includes(playerId);
+          const normalized = normalizeLeagueSettings({
+            ...state.leagueSettings,
+            leagueSize: size,
+          });
+          const maxTeamIndex = normalized.leagueSize - 1;
+          const draftedByTeam = Object.fromEntries(
+            Object.entries(state.draftState.draftedByTeam).filter(
+              ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
+            )
+          );
+          const keeperByTeam = Object.fromEntries(
+            Object.entries(state.draftState.keeperByTeam).filter(
+              ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
+            )
+          );
+          const activeTeamIndex = Math.min(
+            Math.max(0, state.draftState.activeTeamIndex),
+            maxTeamIndex
+          );
+
+          return {
+            leagueSettings: normalized,
+            draftState: {
+              ...state.draftState,
+              draftedByTeam,
+              keeperByTeam,
+              activeTeamIndex,
+            },
+          };
+        }),
+
+      setTeamName: (index, name) =>
+        set((state) => {
+          const nextNames = [...state.leagueSettings.teamNames];
+          if (index < 0 || index >= nextNames.length) return state;
+          nextNames[index] = name.trim().length > 0 ? name.trim() : `Team ${index + 1}`;
+          return {
+            leagueSettings: {
+              ...state.leagueSettings,
+              teamNames: nextNames,
+            },
+          };
+        }),
+
+      setRosterSettings: (roster) =>
+        set((state) => ({
+          leagueSettings: normalizeLeagueSettings({
+            ...state.leagueSettings,
+            roster,
+          }),
+        })),
+
+      setActiveTeamIndex: (index) =>
+        set((state) => ({
+          draftState: {
+            ...state.draftState,
+            activeTeamIndex: Math.min(
+              Math.max(0, index),
+              state.leagueSettings.leagueSize - 1
+            ),
+          },
+        })),
+
+      advanceActiveTeam: () =>
+        set((state) => ({
+          draftState: {
+            ...state.draftState,
+            activeTeamIndex:
+              state.leagueSettings.leagueSize > 0
+                ? (state.draftState.activeTeamIndex + 1) %
+                  state.leagueSettings.leagueSize
+                : 0,
+          },
+        })),
+
+      toggleDraftedForTeam: (playerId, teamIndex) =>
+        set((state) => {
+          const teamKey = String(teamIndex);
+          const draftedByTeam = { ...state.draftState.draftedByTeam };
+          const keeperByTeam = { ...state.draftState.keeperByTeam };
+          const isDrafted = draftedByTeam[playerId] === teamKey;
           return {
             draftState: {
               ...state.draftState,
-              keeperIds: isKeeper
-                ? state.draftState.keeperIds.filter((id) => id !== playerId)
-                : [...state.draftState.keeperIds, playerId],
+              draftedByTeam: isDrafted
+                ? Object.fromEntries(
+                    Object.entries(draftedByTeam).filter(([id]) => id !== playerId)
+                  )
+                : { ...draftedByTeam, [playerId]: teamKey },
+              keeperByTeam: isDrafted
+                ? keeperByTeam
+                : Object.fromEntries(
+                    Object.entries(keeperByTeam).filter(([id]) => id !== playerId)
+                  ),
+            },
+          };
+        }),
+
+      toggleKeeperForTeam: (playerId, teamIndex) =>
+        set((state) => {
+          const teamKey = String(teamIndex);
+          const draftedByTeam = { ...state.draftState.draftedByTeam };
+          const keeperByTeam = { ...state.draftState.keeperByTeam };
+          const isKeeper = keeperByTeam[playerId] === teamKey;
+          return {
+            draftState: {
+              ...state.draftState,
+              keeperByTeam: isKeeper
+                ? Object.fromEntries(
+                    Object.entries(keeperByTeam).filter(([id]) => id !== playerId)
+                  )
+                : { ...keeperByTeam, [playerId]: teamKey },
+              draftedByTeam: isKeeper
+                ? draftedByTeam
+                : Object.fromEntries(
+                    Object.entries(draftedByTeam).filter(([id]) => id !== playerId)
+                  ),
             },
           };
         }),
@@ -169,8 +361,9 @@ export const useStore = create<Store>()(
       resetDraft: () =>
         set({
           draftState: {
-            draftedIds: [],
-            keeperIds: [],
+            draftedByTeam: {},
+            keeperByTeam: {},
+            activeTeamIndex: 0,
           },
         }),
 
@@ -179,8 +372,9 @@ export const useStore = create<Store>()(
           projectionGroups: [],
           activeProjectionGroupId: null,
           draftState: {
-            draftedIds: [],
-            keeperIds: [],
+            draftedByTeam: {},
+            keeperByTeam: {},
+            activeTeamIndex: 0,
           },
         }),
 
@@ -214,16 +408,21 @@ export const useStore = create<Store>()(
     }),
     {
       name: "pointer-storage",
-      version: 3,
+      version: 4,
       migrate: (persistedState, version) => {
-        if (version >= 3) return persistedState as Store;
-        const state = persistedState as Store & {
+        if (version >= 4) return persistedState as Store;
+        const state = persistedState as (Store & {
           batters?: Player[];
           pitchers?: Player[];
           twoWayPlayers?: TwoWayPlayer[];
           batterIdSource?: IdSource | null;
           pitcherIdSource?: IdSource | null;
-        };
+          leagueSettings?: LeagueSettings;
+          draftState?: DraftState & {
+            draftedIds?: string[];
+            keeperIds?: string[];
+          };
+        });
 
         const ensurePitchingScoring = (settings: ScoringSettings): ScoringSettings => ({
           ...settings,
@@ -234,18 +433,65 @@ export const useStore = create<Store>()(
           },
         });
 
-        if (version === 2) {
+        const ensureLeagueAndDraft = (inputState: Store): Store => {
+          const leagueSettings = inputState.leagueSettings
+            ? normalizeLeagueSettings(inputState.leagueSettings)
+            : defaultLeagueSettings;
+
+          const legacyDrafted = (state.draftState as DraftState | undefined)?.draftedByTeam;
+          const legacyKeepers = (state.draftState as DraftState | undefined)?.keeperByTeam;
+          const legacyDraftedIds = state.draftState?.draftedIds ?? [];
+          const legacyKeeperIds = state.draftState?.keeperIds ?? [];
+
+          let draftedByTeam = legacyDrafted ?? {};
+          let keeperByTeam = legacyKeepers ?? {};
+
+          if (legacyDraftedIds.length > 0 || legacyKeeperIds.length > 0) {
+            const teamKey = "0";
+            draftedByTeam = Object.fromEntries(legacyDraftedIds.map((id) => [id, teamKey]));
+            keeperByTeam = Object.fromEntries(legacyKeeperIds.map((id) => [id, teamKey]));
+          }
+
+          const maxTeamIndex = leagueSettings.leagueSize - 1;
+          draftedByTeam = Object.fromEntries(
+            Object.entries(draftedByTeam).filter(
+              ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
+            )
+          );
+          keeperByTeam = Object.fromEntries(
+            Object.entries(keeperByTeam).filter(
+              ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
+            )
+          );
+
           return {
+            ...inputState,
+            leagueSettings,
+            draftState: {
+              draftedByTeam,
+              keeperByTeam,
+              activeTeamIndex: Math.min(
+                Math.max(0, inputState.draftState?.activeTeamIndex ?? 0),
+                maxTeamIndex
+              ),
+            },
+          };
+        };
+
+        if (version === 2) {
+          const nextState = {
             ...state,
             scoringSettings: ensurePitchingScoring(state.scoringSettings),
           } as Store;
+          return ensureLeagueAndDraft(nextState);
         }
 
         if (state.projectionGroups && state.activeProjectionGroupId !== undefined) {
-          return {
+          const nextState = {
             ...state,
             scoringSettings: ensurePitchingScoring(state.scoringSettings),
           } as Store;
+          return ensureLeagueAndDraft(nextState);
         }
 
         const legacyBatters = state.batters ?? [];
@@ -255,11 +501,12 @@ export const useStore = create<Store>()(
           legacyBatters.length > 0 || legacyPitchers.length > 0 || legacyTwoWay.length > 0;
 
         if (!hasLegacy) {
-          return {
+          const nextState = {
             ...state,
             projectionGroups: [],
             activeProjectionGroupId: null,
           } as Store;
+          return ensureLeagueAndDraft(nextState);
         }
 
         const defaultGroup: ProjectionGroup = {
@@ -273,15 +520,16 @@ export const useStore = create<Store>()(
           pitcherIdSource: state.pitcherIdSource ?? null,
         };
 
-        return {
+        const nextState = {
           ...state,
           projectionGroups: [defaultGroup],
           activeProjectionGroupId: defaultGroup.id,
           scoringSettings: ensurePitchingScoring(state.scoringSettings),
         } as Store;
+        return ensureLeagueAndDraft(nextState);
       },
     }
   )
 );
 
-export { defaultScoringSettings };
+export { defaultScoringSettings, defaultLeagueSettings, defaultRosterSettings };
