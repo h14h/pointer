@@ -224,8 +224,8 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6 shadow-2xl max-h-[85vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-sm">
+      <div className="mx-4 w-full max-w-2xl rounded-lg border border-slate-200 bg-white p-6 shadow-2xl max-h-[85vh] overflow-hidden">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">
             Scoring & League
@@ -234,7 +234,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
             <select
               value={presetSelection}
               onChange={(e) => setPresetSelection(e.target.value)}
-              className="rounded-md border border-slate-400 bg-slate-50 px-2 py-1 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+              className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             >
               {presetNames.map((key) => (
                 <option key={key} value={key}>
@@ -244,7 +244,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
             </select>
             <button
               onClick={() => handlePreset(presetSelection)}
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+              className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
             >
               Apply Preset
             </button>
@@ -326,7 +326,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       onChange={(e) =>
                         debouncedUpdateBatting(key, parseFloat(e.target.value) || 0)
                       }
-                      className="w-20 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+                      className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                     />
                   </div>
                 ))
@@ -343,13 +343,13 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       onChange={(e) =>
                         debouncedUpdatePitching(key, parseFloat(e.target.value) || 0)
                       }
-                      className="w-20 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+                      className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                     />
                   </div>
                 ))}
           </div>
 
-          <div className="mb-6 rounded-lg border border-slate-200 bg-white/70 p-4 shadow-sm">
+          <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="mb-3 text-sm font-semibold text-slate-800">
               League & Draft
             </h3>
@@ -364,7 +364,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   min={0}
                   value={localLeagueSettings.roster.bench}
                   onChange={(e) => handleBenchChange(parseInt(e.target.value, 10) || 0)}
-                  className="w-20 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+                  className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 />
               </div>
             </div>
@@ -382,7 +382,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                     onChange={(e) =>
                       handleRosterChange(key, parseInt(e.target.value, 10) || 0)
                     }
-                    className="w-20 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+                    className="w-20 rounded border border-slate-300 bg-white px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                   />
                 </div>
               ))}
@@ -409,7 +409,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                     type="text"
                     value={name}
                     onChange={(e) => handleTeamNameChange(index, e.target.value)}
-                    className="flex-1 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+                    className="flex-1 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                   />
                   <div className="flex items-center gap-1">
                     <button
@@ -432,7 +432,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       type="button"
                       onClick={() => handleAddTeamBelow(index)}
                       disabled={localLeagueSettings.teamNames.length >= 20}
-                      className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Add Below
                     </button>

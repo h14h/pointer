@@ -300,20 +300,20 @@ export function Leaderboard() {
 	return (
 		<div className="flex flex-col">
 			{/* Filters */}
-			<div className="mb-4 rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur">
+			<div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
 				<div className="flex flex-wrap items-center gap-3">
 					<input
 						type="text"
 						placeholder="Search players..."
 						value={globalFilter}
 						onChange={(e) => setGlobalFilter(e.target.value)}
-						className="w-full min-w-[220px] flex-1 rounded-md border border-slate-400 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+						className="w-full min-w-[220px] flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 					/>
 
 					<select
 						value={playerView}
 						onChange={(e) => setPlayerView(e.target.value as PlayerView)}
-						className="rounded-md border border-slate-400 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+						className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 					>
 						<option value="all">All Players</option>
 						<option value="batters">Batters</option>
@@ -328,7 +328,7 @@ export function Leaderboard() {
 									const nextId = e.target.value;
 									setActiveProjectionGroup(nextId);
 								}}
-								className="rounded-md border border-slate-400 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+								className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 							>
 								{projectionGroups.map((group) => (
 									<option key={group.id} value={group.id}>
@@ -359,7 +359,7 @@ export function Leaderboard() {
 						<select
 							value={draftFilter}
 							onChange={(e) => setDraftFilter(e.target.value as DraftFilter)}
-							className="rounded-md border border-slate-400 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+							className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
 						>
 							<option value="available">Available</option>
 							<option value="all">All</option>
@@ -369,7 +369,7 @@ export function Leaderboard() {
 					)}
 
 					{isDraftMode && (
-						<span className="text-xs text-slate-500">
+						<span className="text-xs text-slate-600">
 							Click to draft, right-click for keeper
 						</span>
 					)}
@@ -377,7 +377,7 @@ export function Leaderboard() {
 			</div>
 
 			{(isImporting || importError) && (
-				<div className="mb-4 rounded-md border border-slate-200 bg-white/90 p-3 text-sm shadow-sm">
+				<div className="mb-4 rounded-md border border-slate-200 bg-white p-3 text-sm shadow-sm">
 					{isImporting && (
 						<>
 							{(() => {
@@ -650,7 +650,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				header: "#",
 				size: 50,
 				cell: ({ row }) => (
-					<span className="text-slate-500">{row.index + 1}</span>
+					<span className="text-slate-700">{row.index + 1}</span>
 				),
 				enableSorting: false,
 			},
@@ -672,21 +672,21 @@ const LeaderboardTable = memo(function LeaderboardTable({
 						<span
 							className={
 								row.original.isDrafted
-									? "text-slate-500 line-through"
+									? "text-slate-600 line-through"
 									: row.original.isKeeper
-							? "font-semibold text-amber-700"
+							? "font-semibold text-amber-800"
 							: ""
 					}
 				>
 					{row.original.player.Name}
 				</span>
 						{row.original.isDrafted && (
-							<span className="rounded bg-emerald-100 px-1.5 text-xs text-emerald-700">
+							<span className="rounded bg-emerald-100 px-1.5 text-xs text-emerald-800">
 								{resolveTeamLabel(row.original.draftedTeamIndex)}
 							</span>
 						)}
 						{row.original.isKeeper && (
-							<span className="rounded bg-amber-100 px-1.5 text-xs text-amber-700">
+							<span className="rounded bg-amber-100 px-1.5 text-xs text-amber-800">
 								{resolveTeamLabel(row.original.keeperTeamIndex) ?? "K"}
 							</span>
 						)}
@@ -706,10 +706,10 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					<span
 						className={`rounded px-1.5 py-0.5 text-xs font-medium ${
 							row.original.player._type === "batter"
-								? "bg-blue-100 text-blue-700"
+								? "bg-sky-100 text-sky-800"
 								: row.original.player._type === "pitcher"
-									? "bg-purple-100 text-purple-700"
-									: "bg-amber-100 text-amber-700"
+									? "bg-indigo-100 text-indigo-800"
+									: "bg-amber-100 text-amber-800"
 						}`}
 					>
 						{row.original.player._type === "batter"
@@ -726,7 +726,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				size: 140,
 				accessorFn: (row) => formatEligibility(row.player),
 				cell: ({ getValue }) => (
-					<span className="text-xs text-slate-600">
+					<span className="text-xs text-slate-700">
 						{getValue() as string}
 					</span>
 				),
@@ -981,7 +981,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 
 	return (
 		<div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-			<table className="w-full text-sm">
+			<table className="w-full text-sm text-slate-800">
 				<thead className="bg-slate-100">
 					{table.getHeaderGroups().map((headerGroup) => (
 						<tr key={headerGroup.id}>
@@ -989,7 +989,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								<th
 									key={header.id}
 									style={{ width: header.getSize() }}
-									className={`px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 ${
+									className={`px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 ${
 										header.column.getCanSort()
 											? "cursor-pointer select-none hover:text-slate-900"
 											: ""
@@ -1017,16 +1017,16 @@ const LeaderboardTable = memo(function LeaderboardTable({
 							key={row.id}
 							onClick={() => handleRowClick(row.original)}
 							onContextMenu={(e) => handleRowContextMenu(e, row.original)}
-							className={`border-t border-slate-100 ${
+							className={`border-t border-slate-200 ${
 								isDraftMode ? "cursor-pointer" : ""
 							} ${
 								row.original.isDrafted
-									? "bg-slate-50"
+									? "bg-slate-100"
 									: row.original.isKeeper
-										? "bg-amber-50"
+										? "bg-amber-100/60"
 										: index % 2 === 0
-											? "bg-white hover:bg-slate-50"
-											: "bg-slate-50/40 hover:bg-slate-50"
+											? "bg-white hover:bg-slate-100"
+											: "bg-slate-50 hover:bg-slate-100"
 							}`}
 						>
 							{row.getVisibleCells().map((cell) => (
