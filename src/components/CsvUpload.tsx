@@ -225,17 +225,17 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
     const { parseResult } = fileState;
 
     return (
-      <div className="mb-4 rounded-md bg-zinc-50 p-4 dark:bg-zinc-800">
-        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+      <div className="mb-4 rounded-md bg-slate-50 p-4">
+        <p className="text-sm text-slate-700">
           Detected: <span className="font-semibold">{parseResult.rowCount} {parseResult.type}s</span>
         </p>
 
         {parseResult.errors.length > 0 && (
           <div className="mt-2">
-            <p className="text-sm font-medium text-amber-600">
+            <p className="text-sm font-medium text-amber-800">
               {parseResult.errors.length} warning(s):
             </p>
-            <ul className="mt-1 max-h-20 overflow-y-auto text-xs text-amber-600">
+            <ul className="mt-1 max-h-20 overflow-y-auto text-xs text-amber-800">
               {parseResult.errors.slice(0, 5).map((err, i) => (
                 <li key={i}>{err}</li>
               ))}
@@ -247,12 +247,12 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         )}
 
         <div className="mt-3">
-          <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <p className="mb-2 text-sm font-medium text-slate-700">
             Preview (first 5):
           </p>
-          <div className="max-h-40 overflow-y-auto rounded border border-zinc-200 dark:border-zinc-700">
+          <div className="max-h-40 overflow-y-auto rounded border border-slate-200">
             <table className="w-full text-xs">
-              <thead className="bg-zinc-100 dark:bg-zinc-800">
+              <thead className="bg-slate-100">
                 <tr>
                   <th className="px-2 py-1 text-left">Name</th>
                   <th className="px-2 py-1 text-left">Team</th>
@@ -273,7 +273,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               </thead>
               <tbody>
                 {parseResult.players.slice(0, 5).map((p) => (
-                  <tr key={p._id} className="border-t border-zinc-100 dark:border-zinc-800">
+                  <tr key={p._id} className="border-t border-slate-100">
                     <td className="px-2 py-1">{p.Name}</td>
                     <td className="px-2 py-1">{p.Team}</td>
                     {p._type === "batter" ? (
@@ -313,13 +313,13 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="mx-4 w-full max-w-lg rounded-lg bg-white p-6 shadow-2xl">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">
           Upload Player Projections
         </h2>
 
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
+          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -327,13 +327,13 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         {!batterFile && !pitcherFile ? (
           <>
             <div className="mb-4">
-              <label className="mb-2 block text-sm text-zinc-600 dark:text-zinc-400">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
                 Player Type
               </label>
               <select
                 value={uploadType}
                 onChange={(e) => setUploadType(e.target.value as UploadType)}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-md border border-slate-400 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
               >
                 <option value="auto">Auto-detect</option>
                 <option value="batter">Batters</option>
@@ -350,15 +350,15 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               onDrop={handleDrop}
               className={`mb-4 flex h-40 flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
                 dragActive
-                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
-                  : "border-zinc-300 dark:border-zinc-700"
+                  ? "border-emerald-500 bg-emerald-50"
+                  : "border-slate-300 bg-slate-50"
               }`}
             >
-              <p className="mb-2 text-sm text-zinc-600 dark:text-zinc-400">
+              <p className="mb-2 text-sm text-slate-700">
                 Drag and drop CSV/TSV files here
               </p>
-              <p className="mb-3 text-xs text-zinc-500">or</p>
-              <label className="cursor-pointer rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700">
+              <p className="mb-3 text-xs text-slate-500">or</p>
+              <label className="cursor-pointer rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
                 Browse Files
                 <input
                   type="file"
@@ -374,7 +374,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
             <div className="flex justify-end">
               <button
                 onClick={handleCancel}
-                className="rounded-md px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-md px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
               >
                 Cancel
               </button>
@@ -382,21 +382,21 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
           </>
         ) : needsIdSelection ? (
           <>
-            <div className="mb-4 rounded-md bg-amber-50 p-4 dark:bg-amber-900/20">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+            <div className="mb-4 rounded-md bg-amber-50 p-4">
+              <p className="text-sm font-medium text-amber-900">
                 No MLBAMID or PlayerId column found
               </p>
-              <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+              <p className="mt-1 text-sm text-amber-800">
                 Select a column to use as the unique player identifier, or generate IDs automatically.
               </p>
             </div>
 
             {batterFile?.parseResult.needsIdSelection && (
               <div className="mb-4">
-                <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <p className="mb-2 text-sm font-medium text-slate-800">
                   Batter file: {batterFile.file.name}
                 </p>
-                <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   ID Source
                 </label>
                 <select
@@ -407,7 +407,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                       selectedIdSource: e.target.value as IdSource | "custom",
                     })
                   }
-                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-md border border-slate-400 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="generated">Generate IDs automatically</option>
                   <option value="custom">Use a column from the file</option>
@@ -415,7 +415,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
                 {batterFile.selectedIdSource === "custom" && (
                   <div className="mt-3">
-                    <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
                       Select Column
                     </label>
                     <select
@@ -423,7 +423,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                       onChange={(e) =>
                         setBatterFile({ ...batterFile, customIdColumn: e.target.value })
                       }
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-slate-400 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
                     >
                       {batterFile.parseResult.availableColumns.map((col) => (
                         <option key={col} value={col}>
@@ -438,10 +438,10 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
             {pitcherFile?.parseResult.needsIdSelection && (
               <div className="mb-4">
-                <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <p className="mb-2 text-sm font-medium text-slate-800">
                   Pitcher file: {pitcherFile.file.name}
                 </p>
-                <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   ID Source
                 </label>
                 <select
@@ -452,7 +452,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                       selectedIdSource: e.target.value as IdSource | "custom",
                     })
                   }
-                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-md border border-slate-400 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="generated">Generate IDs automatically</option>
                   <option value="custom">Use a column from the file</option>
@@ -460,7 +460,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
                 {pitcherFile.selectedIdSource === "custom" && (
                   <div className="mt-3">
-                    <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
                       Select Column
                     </label>
                     <select
@@ -468,7 +468,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                       onChange={(e) =>
                         setPitcherFile({ ...pitcherFile, customIdColumn: e.target.value })
                       }
-                      className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-slate-400 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
                     >
                       {pitcherFile.parseResult.availableColumns.map((col) => (
                         <option key={col} value={col}>
@@ -484,7 +484,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
             <div className="flex justify-end gap-2">
               <button
                 onClick={handleCancel}
-                className="rounded-md px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-md px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
               >
                 Cancel
               </button>
@@ -499,7 +499,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         ) : (
           <>
             <div className="mb-4">
-              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
                 Group Name
               </label>
               <input
@@ -509,13 +509,13 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                   setGroupName(e.target.value);
                   setGroupNameTouched(true);
                 }}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-md border border-slate-400 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
                 placeholder="e.g. Steamer 2025"
               />
             </div>
 
             {missingTypeWarning && (
-              <div className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+              <div className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
                 {missingTypeWarning}
               </div>
             )}
@@ -530,7 +530,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                   setPitcherFile(null);
                   setError(null);
                 }}
-                className="rounded-md px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-md px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
               >
                 Back
               </button>

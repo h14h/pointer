@@ -300,85 +300,84 @@ export function Leaderboard() {
 	return (
 		<div className="flex flex-col">
 			{/* Filters */}
-			<div className="mb-4 flex flex-wrap items-center gap-4">
-				<input
-					type="text"
-					placeholder="Search players..."
-					value={globalFilter}
-					onChange={(e) => setGlobalFilter(e.target.value)}
-					className="w-64 rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-				/>
+			<div className="mb-4 rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur">
+				<div className="flex flex-wrap items-center gap-3">
+					<input
+						type="text"
+						placeholder="Search players..."
+						value={globalFilter}
+						onChange={(e) => setGlobalFilter(e.target.value)}
+						className="w-full min-w-[220px] flex-1 rounded-md border border-slate-400 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+					/>
 
-				<select
-					value={playerView}
-					onChange={(e) => setPlayerView(e.target.value as PlayerView)}
-					className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-				>
-					<option value="all">All Players</option>
-					<option value="batters">Batters Only</option>
-					<option value="pitchers">Pitchers Only</option>
-				</select>
-
-				{projectionGroups.length > 1 && (
-					<div className="flex items-center gap-2">
-						<select
-							value={currentGroupId ?? ""}
-							onChange={(e) => {
-								const nextId = e.target.value;
-								setActiveProjectionGroup(nextId);
-							}}
-							className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-						>
-							{projectionGroups.map((group) => (
-								<option key={group.id} value={group.id}>
-									{group.name}
-								</option>
-							))}
-						</select>
-						{isSwitchingGroups && (
-							<span
-								className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-emerald-600"
-								aria-label="Loading projections"
-							/>
-						)}
-					</div>
-				)}
-
-				{currentGroupId && (
-					<button
-						onClick={() => void handleImportEligibility()}
-						disabled={isImporting}
-						className="rounded-md bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-900/30 dark:text-emerald-200 dark:hover:bg-emerald-900/40"
-					>
-						{isImporting
-							? "Importing Eligibility..."
-							: "Import Eligibility Data"}
-					</button>
-				)}
-
-
-				{isDraftMode && (
 					<select
-						value={draftFilter}
-						onChange={(e) => setDraftFilter(e.target.value as DraftFilter)}
-						className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+						value={playerView}
+						onChange={(e) => setPlayerView(e.target.value as PlayerView)}
+						className="rounded-md border border-slate-400 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
 					>
-						<option value="available">Available</option>
-						<option value="all">All</option>
-						<option value="drafted">Drafted</option>
-						<option value="keepers">Keepers</option>
+						<option value="all">All Players</option>
+						<option value="batters">Batters</option>
+						<option value="pitchers">Pitchers</option>
 					</select>
-				)}
 
-				{isDraftMode && (
-					<span className="text-xs text-zinc-400">
-						Click to draft, right-click for keeper
-					</span>
-				)}
+					{projectionGroups.length > 1 && (
+						<div className="flex items-center gap-2">
+							<select
+								value={currentGroupId ?? ""}
+								onChange={(e) => {
+									const nextId = e.target.value;
+									setActiveProjectionGroup(nextId);
+								}}
+								className="rounded-md border border-slate-400 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+							>
+								{projectionGroups.map((group) => (
+									<option key={group.id} value={group.id}>
+										{group.name}
+									</option>
+								))}
+							</select>
+							{isSwitchingGroups && (
+								<span
+									className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-600"
+									aria-label="Loading projections"
+								/>
+							)}
+						</div>
+					)}
+
+					{currentGroupId && (
+						<button
+							onClick={() => void handleImportEligibility()}
+							disabled={isImporting}
+							className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{isImporting ? "Importing Eligibility..." : "Import Eligibility"}
+						</button>
+					)}
+
+					{isDraftMode && (
+						<select
+							value={draftFilter}
+							onChange={(e) => setDraftFilter(e.target.value as DraftFilter)}
+							className="rounded-md border border-slate-400 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+						>
+							<option value="available">Available</option>
+							<option value="all">All</option>
+							<option value="drafted">Drafted</option>
+							<option value="keepers">Keepers</option>
+						</select>
+					)}
+
+					{isDraftMode && (
+						<span className="text-xs text-slate-500">
+							Click to draft, right-click for keeper
+						</span>
+					)}
+				</div>
 			</div>
 
 			{(isImporting || importError) && (
-				<div className="mb-4 rounded-md border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+				<div className="mb-4 rounded-md border border-slate-200 bg-white/90 p-3 text-sm shadow-sm">
 					{isImporting && (
 						<>
 							{(() => {
@@ -389,15 +388,15 @@ export function Leaderboard() {
 								return (
 									<>
 										<div className="mb-2 flex items-center justify-between">
-											<span className="font-medium text-zinc-700 dark:text-zinc-300">
+											<span className="font-medium text-slate-700">
 												Importing eligibility: {Math.round(progressWidth)}%
 											</span>
-											<span className="text-xs text-zinc-500">
+											<span className="text-xs text-slate-500">
 												{importPlayer}
 											</span>
 										</div>
 										<div
-											className="h-2 w-full overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800"
+											className="h-2 w-full overflow-hidden rounded bg-slate-200"
 											style={{
 												backgroundImage:
 													"linear-gradient(to right, #10b981, #10b981)",
@@ -413,7 +412,7 @@ export function Leaderboard() {
 								);
 							})()}
 							{retryStatus && (
-								<p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+								<p className="mt-2 text-xs text-amber-800">
 									{retryStatus}
 								</p>
 							)}
@@ -421,12 +420,12 @@ export function Leaderboard() {
 					)}
 					{importError && !isImporting && (
 						<div className="flex items-center justify-between">
-							<span className="text-sm text-red-600 dark:text-red-400">
+							<span className="text-sm text-red-700">
 								{importError}
 							</span>
 							<button
 								onClick={() => void handleImportEligibility()}
-								className="rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/40"
+								className="rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
 							>
 								Retry Import
 							</button>
@@ -440,7 +439,7 @@ export function Leaderboard() {
 			{/* Table */}
 			<div className="relative">
 				{isSwitchingGroups && (
-					<div className="pointer-events-none absolute inset-0 rounded-lg bg-black/10 dark:bg-black/20" />
+					<div className="pointer-events-none absolute inset-0 rounded-lg bg-black/10" />
 				)}
 				<LeaderboardTable
 					projectionGroups={projectionGroups}
@@ -651,7 +650,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				header: "#",
 				size: 50,
 				cell: ({ row }) => (
-					<span className="text-zinc-500">{row.index + 1}</span>
+					<span className="text-slate-500">{row.index + 1}</span>
 				),
 				enableSorting: false,
 			},
@@ -666,28 +665,28 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								type="checkbox"
 								checked={row.original.isDrafted || row.original.isKeeper}
 								onChange={() => handleToggleDrafted(row.original.player._id)}
-								className="h-4 w-4 rounded border-zinc-300"
+								className="h-4 w-4 rounded border-slate-300"
 								onClick={(e) => e.stopPropagation()}
 							/>
 						)}
 						<span
 							className={
 								row.original.isDrafted
-									? "text-zinc-400 line-through"
+									? "text-slate-500 line-through"
 									: row.original.isKeeper
-										? "font-semibold text-amber-600"
-										: ""
-							}
-						>
-							{row.original.player.Name}
-						</span>
+							? "font-semibold text-amber-700"
+							: ""
+					}
+				>
+					{row.original.player.Name}
+				</span>
 						{row.original.isDrafted && (
-							<span className="rounded bg-emerald-100 px-1.5 text-xs text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+							<span className="rounded bg-emerald-100 px-1.5 text-xs text-emerald-700">
 								{resolveTeamLabel(row.original.draftedTeamIndex)}
 							</span>
 						)}
 						{row.original.isKeeper && (
-							<span className="rounded bg-amber-100 px-1.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+							<span className="rounded bg-amber-100 px-1.5 text-xs text-amber-700">
 								{resolveTeamLabel(row.original.keeperTeamIndex) ?? "K"}
 							</span>
 						)}
@@ -707,10 +706,10 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					<span
 						className={`rounded px-1.5 py-0.5 text-xs font-medium ${
 							row.original.player._type === "batter"
-								? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+								? "bg-blue-100 text-blue-700"
 								: row.original.player._type === "pitcher"
-									? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-									: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+									? "bg-purple-100 text-purple-700"
+									: "bg-amber-100 text-amber-700"
 						}`}
 					>
 						{row.original.player._type === "batter"
@@ -727,7 +726,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				size: 140,
 				accessorFn: (row) => formatEligibility(row.player),
 				cell: ({ getValue }) => (
-					<span className="text-xs text-zinc-600 dark:text-zinc-400">
+					<span className="text-xs text-slate-600">
 						{getValue() as string}
 					</span>
 				),
@@ -737,7 +736,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				header: "Points",
 				size: 80,
 				cell: ({ row }) => (
-					<span className="font-semibold text-emerald-600 dark:text-emerald-400">
+					<span className="font-semibold text-emerald-700">
 						{row.original.projectedPoints.toFixed(1)}
 					</span>
 				),
@@ -973,7 +972,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			twoWayPlayers.length === 0)
 	) {
 		return (
-			<div className="flex h-96 flex-col items-center justify-center text-zinc-500">
+			<div className="flex h-96 flex-col items-center justify-center text-slate-500">
 				<p className="mb-2 text-lg">No players loaded</p>
 				<p className="text-sm">Upload a CSV file to get started</p>
 			</div>
@@ -981,18 +980,18 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	}
 
 	return (
-		<div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+		<div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
 			<table className="w-full text-sm">
-				<thead className="bg-zinc-50 dark:bg-zinc-800">
+				<thead className="bg-slate-100">
 					{table.getHeaderGroups().map((headerGroup) => (
 						<tr key={headerGroup.id}>
 							{headerGroup.headers.map((header) => (
 								<th
 									key={header.id}
 									style={{ width: header.getSize() }}
-									className={`px-3 py-2 text-left text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400 ${
+									className={`px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 ${
 										header.column.getCanSort()
-											? "cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-100"
+											? "cursor-pointer select-none hover:text-slate-900"
 											: ""
 									}`}
 									onClick={header.column.getToggleSortingHandler()}
@@ -1013,19 +1012,21 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					))}
 				</thead>
 				<tbody>
-					{table.getRowModel().rows.map((row) => (
+					{table.getRowModel().rows.map((row, index) => (
 						<tr
 							key={row.id}
 							onClick={() => handleRowClick(row.original)}
 							onContextMenu={(e) => handleRowContextMenu(e, row.original)}
-							className={`border-t border-zinc-100 dark:border-zinc-800 ${
+							className={`border-t border-slate-100 ${
 								isDraftMode ? "cursor-pointer" : ""
 							} ${
 								row.original.isDrafted
-									? "bg-zinc-50 dark:bg-zinc-800/50"
+									? "bg-slate-50"
 									: row.original.isKeeper
-										? "bg-amber-50 dark:bg-amber-900/10"
-										: "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+										? "bg-amber-50"
+										: index % 2 === 0
+											? "bg-white hover:bg-slate-50"
+											: "bg-slate-50/40 hover:bg-slate-50"
 							}`}
 						>
 							{row.getVisibleCells().map((cell) => (

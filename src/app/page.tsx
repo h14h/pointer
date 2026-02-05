@@ -11,13 +11,13 @@ export default function Home() {
   const [scoringOpen, setScoringOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-transparent">
       <Header
         onOpenUpload={() => setUploadOpen(true)}
         onOpenScoring={() => setScoringOpen(true)}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className="mx-auto max-w-6xl px-4 py-6">
         <Leaderboard />
       </main>
 

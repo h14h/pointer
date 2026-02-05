@@ -21,13 +21,14 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
   } = useStore();
   const [isClearOpen, setIsClearOpen] = useState(false);
 
+  const activeTeamIndex = draftState.activeTeamIndex;
+  const activeTeamName =
+    leagueSettings.teamNames[activeTeamIndex] ?? `Team ${activeTeamIndex + 1}`;
+
   const draftedEntries = Object.entries(draftState.draftedByTeam);
   const keeperEntries = Object.entries(draftState.keeperByTeam);
   const draftedCount = draftedEntries.length;
   const keeperCount = keeperEntries.length;
-  const activeTeamIndex = draftState.activeTeamIndex;
-  const activeTeamName =
-    leagueSettings.teamNames[activeTeamIndex] ?? `Team ${activeTeamIndex + 1}`;
   const teamDraftedCount = draftedEntries.filter(
     ([, teamIndex]) => Number(teamIndex) === activeTeamIndex
   ).length;
@@ -40,114 +41,117 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
 
   return (
     <>
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-              Pointer
-            </h1>
-          </div>
+      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur">
+        <div className="mx-auto max-w-6xl px-4 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-semibold text-slate-900">Pointer</h1>
+              <p className="text-sm text-slate-600">
+                Draft board for fantasy baseball projections
+              </p>
+            </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsClearOpen(true)}
-              className="rounded-md bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/40"
-            >
-              Delete Projections
-            </button>
-            <button
-              onClick={onOpenUpload}
-              className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-            >
-              Upload Projections
-            </button>
-
-            <button
-              onClick={onOpenScoring}
-              className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-            >
-              Scoring
-            </button>
-
-            <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700" />
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                Draft Mode
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
               <button
-                role="switch"
-                aria-checked={isDraftMode}
-                onClick={() => setDraftMode(!isDraftMode)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  isDraftMode
-                    ? "bg-emerald-500"
-                    : "bg-zinc-300 dark:bg-zinc-600"
-                }`}
+                onClick={onOpenUpload}
+                className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    isDraftMode ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
+                Upload
               </button>
-            </label>
-
-            {isDraftMode && (
-              <>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={activeTeamIndex}
-                    onChange={(e) => setActiveTeamIndex(parseInt(e.target.value, 10))}
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  >
-                    {leagueSettings.teamNames.map((name, index) => (
-                      <option key={`team-${index}`} value={index}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={advanceActiveTeam}
-                    className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                  >
-                    Next Team
-                  </button>
-                </div>
-                <span className="text-sm text-zinc-500">
-                  {activeTeamName}: {teamDraftedCount + teamKeeperCount}/{rosterTotal}
-                  {teamKeeperCount > 0 && ` (K ${teamKeeperCount})`} · League:{" "}
-                  {draftedCount} drafted
-                  {keeperCount > 0 && `, ${keeperCount} keepers`}
-                </span>
+              <button
+                onClick={onOpenScoring}
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Scoring
+              </button>
+              <button
+                onClick={() => setIsClearOpen(true)}
+                className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+              >
+                Clear Projections
+              </button>
+              <label className="ml-2 flex items-center gap-2 text-sm text-slate-600">
+                Draft Mode
                 <button
-                  onClick={() => {
-                    if (confirm("Reset all draft picks?")) {
-                      resetDraft();
-                    }
-                  }}
-                  className="rounded-md px-2 py-1 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  role="switch"
+                  aria-checked={isDraftMode}
+                  onClick={() => setDraftMode(!isDraftMode)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    isDraftMode ? "bg-emerald-500" : "bg-slate-300"
+                  }`}
                 >
-                  Reset
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      isDraftMode ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
                 </button>
-              </>
-            )}
+              </label>
+            </div>
           </div>
+
+          {isDraftMode && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700 shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Active Team
+                </span>
+                <select
+                  value={activeTeamIndex}
+                  onChange={(e) => setActiveTeamIndex(parseInt(e.target.value, 10))}
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900"
+                >
+                  {leagueSettings.teamNames.map((name, index) => (
+                    <option key={`team-${index}`} value={index}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={advanceActiveTeam}
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Next
+                </button>
+              </div>
+
+              <div className="text-slate-600">
+                {activeTeamName}: {teamDraftedCount + teamKeeperCount}/{rosterTotal}
+                {teamKeeperCount > 0 && ` (K ${teamKeeperCount})`}
+              </div>
+
+              <div className="text-slate-500">
+                League: {draftedCount} drafted
+                {keeperCount > 0 && `, ${keeperCount} keepers`}
+              </div>
+
+              <button
+                onClick={() => {
+                  if (confirm("Reset all draft picks?")) {
+                    resetDraft();
+                  }
+                }}
+                className="ml-auto rounded-md px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+              >
+                Reset Draft
+              </button>
+            </div>
+          )}
         </div>
       </header>
       {isClearOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-            <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="mb-2 text-lg font-semibold text-slate-900">
               Delete all projections?
             </h2>
-            <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mb-6 text-sm text-slate-600">
               This removes all projection groups and uploaded players. This cannot be undone.
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsClearOpen(false)}
-                className="rounded-md px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-md px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
               >
                 Cancel
               </button>
@@ -156,7 +160,7 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
                   clearAllData();
                   setIsClearOpen(false);
                 }}
-                className="rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/40"
+                className="rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200"
               >
                 Delete Projections
               </button>

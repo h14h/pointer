@@ -62,6 +62,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
     setMergeTwoWayRankings,
   } = useStore();
   const [tab, setTab] = useState<Tab>("batting");
+  const [presetSelection, setPresetSelection] = useState<string>(presetNames[0]);
   const [localLeagueSettings, setLocalLeagueSettings] =
     useState<LeagueSettings>(leagueSettings);
   const activeGroup =
@@ -212,48 +213,64 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
     setLocalLeagueSettings(leagueSettings);
   }, [isOpen, leagueSettings]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const match =
+      presetNames.find((key) => scoringPresets[key].name === scoringSettings.name) ??
+      presetNames[0];
+    setPresetSelection(match);
+  }, [isOpen, scoringSettings.name]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900 max-h-[85vh] overflow-hidden">
+      <div className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6 shadow-2xl max-h-[85vh] overflow-hidden">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            Scoring Settings
+          <h2 className="text-lg font-semibold text-slate-900">
+            Scoring & League
           </h2>
-          <div className="flex gap-2">
-            {presetNames.map((key) => (
-              <button
-                key={key}
-                onClick={() => handlePreset(key)}
-                className="rounded px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              >
-                {scoringPresets[key].name}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <select
+              value={presetSelection}
+              onChange={(e) => setPresetSelection(e.target.value)}
+              className="rounded-md border border-slate-400 bg-slate-50 px-2 py-1 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+            >
+              {presetNames.map((key) => (
+                <option key={key} value={key}>
+                  {scoringPresets[key].name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => handlePreset(presetSelection)}
+              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Apply Preset
+            </button>
           </div>
         </div>
 
         <div className="max-h-[65vh] overflow-y-auto pr-2">
           {/* Tabs */}
-          <div className="mb-4 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700">
-            <div className="flex">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-2">
+            <div className="flex rounded-full bg-slate-100 p-1 shadow-inner">
               <button
                 onClick={() => setTab("batting")}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                   tab === "batting"
-                    ? "border-b-2 border-emerald-500 text-emerald-600"
-                    : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Batting
               </button>
               <button
                 onClick={() => setTab("pitching")}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                   tab === "pitching"
-                    ? "border-b-2 border-emerald-500 text-emerald-600"
-                    : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Pitching
@@ -261,7 +278,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
             </div>
             <div
               className={`flex items-center gap-2 pr-2 text-sm ${
-                canMergeTwoWay ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-400"
+                canMergeTwoWay ? "text-slate-600" : "text-slate-500"
               }`}
               title={!canMergeTwoWay ? mergeHint : undefined}
             >
@@ -279,7 +296,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   mergeTwoWayRankings && canMergeTwoWay
                     ? "bg-emerald-500"
-                    : "bg-zinc-300 dark:bg-zinc-600"
+                    : "bg-slate-300"
                 } ${canMergeTwoWay ? "" : "opacity-50 cursor-not-allowed"}`}
               >
                 <span
@@ -294,11 +311,11 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
           </div>
 
           {/* Form */}
-          <div className="mb-6 grid grid-cols-2 gap-3">
+          <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
             {tab === "batting"
               ? battingCategories.map(({ key, label }) => (
                   <div key={key} className="flex items-center justify-between">
-                    <label className="text-sm text-zinc-700 dark:text-zinc-300">
+                    <label className="text-sm text-slate-700">
                       {label}
                     </label>
                     <input
@@ -309,13 +326,13 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       onChange={(e) =>
                         debouncedUpdateBatting(key, parseFloat(e.target.value) || 0)
                       }
-                      className="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-20 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
                     />
                   </div>
                 ))
               : pitchingCategories.map(({ key, label }) => (
                   <div key={key} className="flex items-center justify-between">
-                    <label className="text-sm text-zinc-700 dark:text-zinc-300">
+                    <label className="text-sm text-slate-700">
                       {label}
                     </label>
                     <input
@@ -326,20 +343,20 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       onChange={(e) =>
                         debouncedUpdatePitching(key, parseFloat(e.target.value) || 0)
                       }
-                      className="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-20 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
                     />
                   </div>
                 ))}
           </div>
 
-          <div className="mb-6 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-            <h3 className="mb-3 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+          <div className="mb-6 rounded-lg border border-slate-200 bg-white/70 p-4 shadow-sm">
+            <h3 className="mb-3 text-sm font-semibold text-slate-800">
               League & Draft
             </h3>
 
-            <div className="mb-4 grid grid-cols-2 gap-3">
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-zinc-700 dark:text-zinc-300">
+                <label className="text-sm text-slate-700">
                   Bench
                 </label>
                 <input
@@ -347,35 +364,35 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   min={0}
                   value={localLeagueSettings.roster.bench}
                   onChange={(e) => handleBenchChange(parseInt(e.target.value, 10) || 0)}
-                  className="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-20 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
                 />
               </div>
             </div>
 
-            <div className="mb-4 grid grid-cols-2 gap-3">
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               {rosterSlots.map(({ key, label }) => (
                 <div key={key} className="flex items-center justify-between">
-                  <label className="text-sm text-zinc-700 dark:text-zinc-300">
+                  <label className="text-sm text-slate-700">
                     {label}
                   </label>
                   <input
                     type="number"
                     min={0}
-                  value={localLeagueSettings.roster.positions[key] ?? 0}
-                  onChange={(e) =>
-                    handleRosterChange(key, parseInt(e.target.value, 10) || 0)
-                  }
-                  className="w-20 rounded border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
+                    value={localLeagueSettings.roster.positions[key] ?? 0}
+                    onChange={(e) =>
+                      handleRosterChange(key, parseInt(e.target.value, 10) || 0)
+                    }
+                    className="w-20 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-right text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+                  />
                 </div>
               ))}
             </div>
 
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-medium text-zinc-500">
+              <span className="text-xs font-medium text-slate-500">
                 Teams ({localLeagueSettings.teamNames.length})
               </span>
-              <span className="text-[11px] text-zinc-400">
+              <span className="text-[11px] text-slate-500">
                 Order here sets draft order
               </span>
             </div>
@@ -383,23 +400,23 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
               {localLeagueSettings.teamNames.map((name, index) => (
                 <div
                   key={`team-${index}`}
-                  className="flex flex-wrap items-center gap-2 rounded-md border border-zinc-200 px-2 py-2 dark:border-zinc-800"
+                  className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-2 shadow-sm"
                 >
-                  <span className="w-10 text-xs font-medium text-zinc-500">
+                  <span className="w-10 text-xs font-medium text-slate-500">
                     T{index + 1}
                   </span>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => handleTeamNameChange(index, e.target.value)}
-                    className="flex-1 rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    className="flex-1 rounded border border-slate-400 bg-slate-50 px-2 py-1 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
                   />
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => handleMoveTeam(index, -1)}
                       disabled={index === 0}
-                      className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Up
                     </button>
@@ -407,7 +424,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       type="button"
                       onClick={() => handleMoveTeam(index, 1)}
                       disabled={index === localLeagueSettings.teamNames.length - 1}
-                      className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Down
                     </button>
@@ -415,7 +432,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       type="button"
                       onClick={() => handleAddTeamBelow(index)}
                       disabled={localLeagueSettings.teamNames.length >= 20}
-                      className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                      className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Add Below
                     </button>
@@ -423,7 +440,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                       type="button"
                       onClick={() => handleRemoveTeamAt(index)}
                       disabled={localLeagueSettings.teamNames.length <= 2}
-                      className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900/40 dark:text-red-300 dark:hover:bg-red-900/20"
+                      className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Remove
                     </button>
