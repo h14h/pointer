@@ -7,6 +7,7 @@ import type {
   TwoWayPlayer,
   ProjectionGroup,
   IdSource,
+  Eligibility,
 } from "@/types";
 
 // Default ESPN-style scoring
@@ -70,6 +71,11 @@ interface Store {
   setMergeTwoWayRankings: (enabled: boolean) => void;
   resetDraft: () => void;
   clearAllData: () => void;
+  applyEligibilityForGroup: (
+    groupId: string,
+    eligibilityById: Map<string, Eligibility>,
+    season: number
+  ) => void;
 }
 
 export const useStore = create<Store>()(
@@ -176,6 +182,34 @@ export const useStore = create<Store>()(
             draftedIds: [],
             keeperIds: [],
           },
+        }),
+
+      applyEligibilityForGroup: (groupId, eligibilityById, season) =>
+        set((state) => {
+          const projectionGroups = state.projectionGroups.map((group) => {
+            if (group.id !== groupId) return group;
+
+            const applyEligibility = (player: Player): Player => {
+              const eligibility = eligibilityById.get(player._id);
+              if (!eligibility) return player;
+              return { ...player, eligibility };
+            };
+
+            return {
+              ...group,
+              batters: group.batters.map(applyEligibility),
+              pitchers: group.pitchers.map(applyEligibility),
+              twoWayPlayers: group.twoWayPlayers.map((player) => {
+                const eligibility = eligibilityById.get(player._id);
+                if (!eligibility) return player;
+                return { ...player, eligibility };
+              }),
+              eligibilityImportedAt: new Date().toISOString(),
+              eligibilitySeason: season,
+            };
+          });
+
+          return { projectionGroups };
         }),
     }),
     {

@@ -84,11 +84,13 @@ export interface PitcherStats {
 export type BatterPlayer = BatterStats & {
   _type: "batter";
   _id: string;
+  eligibility?: Eligibility;
 };
 
 export type PitcherPlayer = PitcherStats & {
   _type: "pitcher";
   _id: string;
+  eligibility?: Eligibility;
 };
 
 export type TwoWayPlayer = {
@@ -101,11 +103,24 @@ export type TwoWayPlayer = {
   ADP: number | null;
   _battingStats: Omit<BatterStats, "Name" | "Team" | "PlayerId" | "MLBAMID" | "ADP">;
   _pitchingStats: Omit<PitcherStats, "Name" | "Team" | "PlayerId" | "MLBAMID" | "ADP">;
+  eligibility?: Eligibility;
 };
 
 export type Player = BatterPlayer | PitcherPlayer | TwoWayPlayer;
 
 export type IdSource = "MLBAMID" | "PlayerId" | "custom" | "generated";
+
+export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH";
+
+export type Eligibility = {
+  positionGames: Record<Position, number>;
+  eligiblePositions: Position[];
+  isSP: boolean;
+  isRP: boolean;
+  sourceSeason: number;
+  updatedAt: string;
+  warnings?: string[];
+};
 
 export type ProjectionGroup = {
   id: string;
@@ -116,6 +131,8 @@ export type ProjectionGroup = {
   twoWayPlayers: TwoWayPlayer[];
   batterIdSource: IdSource | null;
   pitcherIdSource: IdSource | null;
+  eligibilityImportedAt?: string;
+  eligibilitySeason?: number;
 };
 
 // League scoring configuration
