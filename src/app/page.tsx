@@ -1,23 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Header } from "@/components/Header";
-import { CsvUpload } from "@/components/CsvUpload";
-import { ScoringForm } from "@/components/ScoringForm";
-import { Leaderboard } from "@/components/Leaderboard";
+import { Header } from "@/components/v4/Header";
+import { CsvUpload } from "@/components/v4/CsvUpload";
+import { ScoringForm } from "@/components/v4/ScoringForm";
+import { Leaderboard } from "@/components/v4/Leaderboard";
 
 export default function Home() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [scoringOpen, setScoringOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-white dark:bg-[#111111] font-serif">
       <Header
         onOpenUpload={() => setUploadOpen(true)}
         onOpenScoring={() => setScoringOpen(true)}
       />
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto max-w-5xl px-6 py-8">
         <Leaderboard />
       </main>
 
