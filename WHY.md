@@ -22,7 +22,7 @@ Each pick has a hard time limit. During that window, you need to mark the player
 
 These are listed in priority order. When two values conflict, the higher-priority value wins.
 
-1. **League-specific player valuation.** The core purpose. Help users confidently identify the best players for *their* league by combining projections with their league's specific settings and context. Every feature should serve this goal.
+1. **Informed, league-specific decision-making.** The core purpose. Help users make confident draft decisions for *their* league by combining projections with league-specific settings and the user's own judgment. The app should empower users to inject their decision-making into the process — from choosing which projections to trust, to how they weigh the inputs. Every feature should serve this goal.
 
 2. **Performance under pressure.** Draft day demands instant interactions. Sort, filter, search, and draft operations must feel immediate. Lag is the enemy.
 
