@@ -29,6 +29,25 @@ Some features span multiple domains. Start with the linked spec and follow its d
 - **Draft mode** — Spans state management, leaderboard, and header. Start with [docs/state.md](docs/state.md).
 - **Persistence & migrations** — Covered in [docs/state.md](docs/state.md).
 
+## Spec Conventions
+
+Specs are **briefing documents, not reference manuals**. They exist to tell you what the code *can't* tell you on its own.
+
+**Include:**
+- Domain knowledge (e.g., baseball IP notation, eligibility thresholds)
+- Design decisions and their rationale (e.g., why TwoWayPlayer lifts identifiers)
+- Invariants and constraints (e.g., drafted/keeper mutual exclusivity)
+- Non-obvious edge cases and guard clauses
+- Cross-domain relationships and dependency context
+
+**Do not include:**
+- Function signatures, parameter lists, or return types
+- Type property tables or interface definitions
+- State variable tables, event handler inventories, or props interfaces
+- Anything an agent can learn by reading the source file directly
+
+When updating a spec after a code change, ask: *"Would an agent need to know this to work effectively, or could it just read the code?"* If the answer is the latter, leave it out.
+
 ## Maintenance
 
 This document and its specs should always reflect the current codebase. When code changes, update the relevant spec. If a domain is added or removed, update this table.
