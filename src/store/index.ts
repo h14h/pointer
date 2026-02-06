@@ -432,9 +432,9 @@ export const useStore = create<Store>()(
         const ensurePitchingScoring = (settings: ScoringSettings): ScoringSettings => ({
           ...settings,
           pitching: {
-            CG: 0,
-            ShO: 0,
             ...settings.pitching,
+            CG: settings.pitching.CG ?? 0,
+            ShO: settings.pitching.ShO ?? 0,
           },
         });
 
