@@ -8,10 +8,11 @@
 - [Scoring](scoring.md) — `scoringPresets`, `presetNames`
 - [Types](types.md) — `ScoringSettings`, `RosterSlot`, `LeagueSettings`
 - [Utilities](utilities.md) — `useDebouncedCallback`
+- `src/components/NumericInput.tsx` — standardized numeric control for scoring/roster fields
 
 ## How It Works
 
-Modal for editing scoring weights, roster configuration, and team management. Opens with a local copy of league settings synced from the store. Scoring weight changes apply to the store immediately (debounced). League settings are finalized on Done.
+Modal for editing scoring weights, roster configuration, and team management. Opens with a local copy of league settings synced from the store. Numeric fields are standardized through `NumericInput` to keep layout, focus, and keyboard behavior consistent. Scoring weight changes apply to the store on commit (debounced). League settings are finalized on Done.
 
 ## Key Behaviors
 
@@ -19,7 +20,9 @@ Modal for editing scoring weights, roster configuration, and team management. Op
 
 **Local league settings copy.** The component maintains a local copy of `leagueSettings` synced from the store when the modal opens (via `useEffect` on `isOpen`). The Done button does a final `setLeagueSettings` call to ensure nothing is lost from the debounce window.
 
-**Input `key` prop for preset changes.** Scoring number inputs use a `key` prop that includes `scoringSettings.name` (e.g., `` key={`batting-HR-${scoringSettings.name}`} ``). This forces React to re-mount inputs with fresh `defaultValue` when a preset is applied — without this, inputs would show stale values because `defaultValue` only applies on mount.
+**Standardized numeric behavior.** Numeric controls render always-visible stepper arrows on the left side of the field, auto-select their full value on focus for direct overwrite typing, and keep steppers out of tab order. Users can move through fields using one `Tab` per numeric input.
+
+**Commit model for numeric fields.** Numeric fields keep a local draft while typing and commit to parent handlers on blur/Enter/step action. Scoring commits route through the existing 150ms debounced scoring updater; roster commits route through the existing 150ms debounced league updater.
 
 **Merge two-way toggle.** `canMergeTwoWay` requires the active projection group to have both batter and pitcher ID sources that are non-null and non-generated. When disabled, the toggle shows a tooltip explaining the requirement.
 
@@ -30,3 +33,4 @@ Modal for editing scoring weights, roster configuration, and team management. Op
 - Roster position values clamped to `max(0, round(value || 0))`
 - Preset dropdown stays in sync with external scoring changes via `useEffect` on `scoringSettings.name`
 - Modal returns `null` when `!isOpen`
+- Standardization in this pass is limited to numeric inputs; text/select controls are unchanged

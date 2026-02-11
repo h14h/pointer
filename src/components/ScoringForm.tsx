@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useStore } from "@/store";
 import { scoringPresets, presetNames } from "@/lib/presets";
 import { useDebouncedCallback } from "@/lib/useDebounce";
+import { NumericInput } from "@/components/NumericInput";
 import type { ScoringSettings, RosterSlot, LeagueSettings } from "@/types";
 
 interface ScoringFormProps {
@@ -356,41 +357,45 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2">
+            <div className="mx-auto grid w-full max-w-[52rem] grid-cols-1 gap-y-2 sm:gap-y-3 md:grid-cols-[minmax(0,20rem)_minmax(0,20rem)] md:justify-center md:gap-x-14 lg:gap-x-20">
               {tab === "batting"
                 ? battingCategories.map(({ key, label }) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between gap-3 border-b border-[#111111]/5 dark:border-[#333333]/40 py-2"
+                      className="grid grid-cols-[3.1rem_max-content] items-center gap-2 border-b border-[#111111]/5 py-2 dark:border-[#333333]/40 sm:gap-3"
                     >
-                      <label className="text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">{label}</label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        defaultValue={scoringSettings.batting[key]}
-                        key={`batting-${key}-${scoringSettings.name}`}
-                        onChange={(e) =>
-                          debouncedUpdateBatting(key, parseFloat(e.target.value) || 0)
-                        }
-                        className="w-20 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2 py-1 text-right text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none sm:w-24"
+                      <span className="text-[0.95rem] font-semibold tracking-wide text-[#111111]/78 dark:text-[#e5e5e5]/68 sm:text-base">
+                        {key}
+                      </span>
+                      <NumericInput
+                        units="points"
+                        aria-label={`${label} points`}
+                        increment={0.5}
+                        value={scoringSettings.batting[key]}
+                        onCommit={(nextValue) => debouncedUpdateBatting(key, nextValue)}
+                        className="gap-1.5"
+                        unitsClassName="text-[11px] font-bold uppercase tracking-[0.12em] text-[#111111]/42 dark:text-[#e5e5e5]/38"
+                        inputClassName="w-16 text-sm sm:w-20 sm:text-base"
                       />
                     </div>
                   ))
                 : pitchingCategories.map(({ key, label }) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between gap-3 border-b border-[#111111]/5 dark:border-[#333333]/40 py-2"
+                      className="grid grid-cols-[3.1rem_max-content] items-center gap-2 border-b border-[#111111]/5 py-2 dark:border-[#333333]/40 sm:gap-3"
                     >
-                      <label className="text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">{label}</label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        defaultValue={scoringSettings.pitching[key]}
-                        key={`pitching-${key}-${scoringSettings.name}`}
-                        onChange={(e) =>
-                          debouncedUpdatePitching(key, parseFloat(e.target.value) || 0)
-                        }
-                        className="w-20 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2 py-1 text-right text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none sm:w-24"
+                      <span className="text-[0.95rem] font-semibold tracking-wide text-[#111111]/78 dark:text-[#e5e5e5]/68 sm:text-base">
+                        {key}
+                      </span>
+                      <NumericInput
+                        units="points"
+                        aria-label={`${label} points`}
+                        increment={0.5}
+                        value={scoringSettings.pitching[key]}
+                        onCommit={(nextValue) => debouncedUpdatePitching(key, nextValue)}
+                        className="gap-1.5"
+                        unitsClassName="text-[11px] font-bold uppercase tracking-[0.12em] text-[#111111]/42 dark:text-[#e5e5e5]/38"
+                        inputClassName="w-16 text-sm sm:w-20 sm:text-base"
                       />
                     </div>
                   ))}
@@ -411,7 +416,7 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                   </span>
                   <span className="text-[10px] text-[#111111]/30 dark:text-[#e5e5e5]/20">Per team</span>
                 </div>
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
                   <div className="border border-[#111111]/10 dark:border-[#333333] rounded-sm p-4">
                     <div className="grid gap-4">
                       <div>
@@ -420,21 +425,21 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                         {outfieldSlots.map((key) => (
-                          <label
+                          <div
                             key={key}
-                            className="flex items-center gap-2 border-b border-[#111111]/10 dark:border-[#333333]/40 px-2 py-2 text-xs font-bold text-[#111111]/70 dark:text-[#e5e5e5]/60"
+                            className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40"
                           >
-                            <input
-                              type="number"
+                            <NumericInput
+                              aria-label={`Roster ${rosterSlotLabels[key]}`}
+                              units={rosterSlotLabels[key]}
+                              increment={1}
                               min={0}
                               value={localLeagueSettings.roster.positions[key] ?? 0}
-                              onChange={(e) =>
-                                handleRosterChange(key, parseInt(e.target.value, 10) || 0)
-                              }
-                              className="h-8 w-8 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] text-center text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
+                              onCommit={(nextValue) => handleRosterChange(key, nextValue)}
+                              className="w-full gap-1"
+                              inputClassName="w-10 text-sm sm:w-12 sm:text-base"
                             />
-                            <span>{rosterSlotLabels[key]}</span>
-                          </label>
+                          </div>
                         ))}
                         </div>
                       </div>
@@ -442,23 +447,23 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
                           Infield
                         </div>
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
                         {infieldSlots.map((key) => (
-                          <label
+                          <div
                             key={key}
-                            className="flex items-center gap-2 border-b border-[#111111]/10 dark:border-[#333333]/40 px-2 py-2 text-xs font-bold text-[#111111]/70 dark:text-[#e5e5e5]/60"
+                            className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40"
                           >
-                            <input
-                              type="number"
+                            <NumericInput
+                              aria-label={`Roster ${rosterSlotLabels[key]}`}
+                              units={rosterSlotLabels[key]}
+                              increment={1}
                               min={0}
                               value={localLeagueSettings.roster.positions[key] ?? 0}
-                              onChange={(e) =>
-                                handleRosterChange(key, parseInt(e.target.value, 10) || 0)
-                              }
-                              className="h-8 w-8 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] text-center text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
+                              onCommit={(nextValue) => handleRosterChange(key, nextValue)}
+                              className="w-full gap-1"
+                              inputClassName="w-10 text-sm sm:w-12 sm:text-base"
                             />
-                            <span>{rosterSlotLabels[key]}</span>
-                          </label>
+                          </div>
                         ))}
                         </div>
                       </div>
@@ -468,101 +473,106 @@ export function ScoringForm({ isOpen, onClose }: ScoringFormProps) {
                         </div>
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {extraSlots.map((key) => (
-                          <label
+                          <div
                             key={key}
-                            className="flex items-center gap-2 border-b border-[#111111]/10 dark:border-[#333333]/40 px-2 py-2 text-xs font-bold text-[#111111]/70 dark:text-[#e5e5e5]/60"
+                            className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40"
                           >
-                            <input
-                              type="number"
+                            <NumericInput
+                              aria-label={`Roster ${rosterSlotLabels[key]}`}
+                              units={rosterSlotLabels[key]}
+                              increment={1}
                               min={0}
                               value={localLeagueSettings.roster.positions[key] ?? 0}
-                              onChange={(e) =>
-                                handleRosterChange(key, parseInt(e.target.value, 10) || 0)
-                              }
-                              className="h-8 w-8 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] text-center text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
+                              onCommit={(nextValue) => handleRosterChange(key, nextValue)}
+                              className="w-full gap-1"
+                              inputClassName="w-10 text-sm sm:w-12 sm:text-base"
                             />
-                            <span>{rosterSlotLabels[key]}</span>
-                          </label>
+                          </div>
                         ))}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid content-start gap-3 border border-[#111111]/10 dark:border-[#333333] rounded-sm p-3">
+                  <div className="grid w-fit min-w-[160px] content-start gap-3 justify-self-end border border-[#111111]/10 dark:border-[#333333] rounded-sm p-3">
                     <div className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
                       Pitchers
                     </div>
                     {pitcherSlots.map((key) => (
-                      <label
+                      <div
                         key={key}
-                        className="flex items-center justify-between gap-3 border-b border-[#111111]/10 dark:border-[#333333]/40 px-3 py-2 text-sm font-bold text-[#111111]/70 dark:text-[#e5e5e5]/60"
+                        className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40"
                       >
-                        <span>{rosterSlotLabels[key]}</span>
-                        <input
-                          type="number"
+                        <NumericInput
+                          aria-label={`Roster ${rosterSlotLabels[key]}`}
+                          units={rosterSlotLabels[key]}
+                          increment={1}
                           min={0}
                           value={localLeagueSettings.roster.positions[key] ?? 0}
-                          onChange={(e) =>
-                            handleRosterChange(key, parseInt(e.target.value, 10) || 0)
-                          }
-                          className="w-16 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2 py-1 text-right text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
+                          onCommit={(nextValue) => handleRosterChange(key, nextValue)}
+                          className="gap-1"
+                          inputClassName="w-10 text-sm sm:w-12 sm:text-base"
                         />
-                      </label>
+                      </div>
                     ))}
                     <div className="pt-1 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
                       Catchers
                     </div>
                     {catcherSlots.map((key) => (
-                      <label
+                      <div
                         key={key}
-                        className="flex items-center justify-between gap-3 border-b border-[#111111]/10 dark:border-[#333333]/40 px-3 py-2 text-sm font-bold text-[#111111]/70 dark:text-[#e5e5e5]/60"
+                        className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40"
                       >
-                        <span>{rosterSlotLabels[key]}</span>
-                        <input
-                          type="number"
+                        <NumericInput
+                          aria-label={`Roster ${rosterSlotLabels[key]}`}
+                          units={rosterSlotLabels[key]}
+                          increment={1}
                           min={0}
                           value={localLeagueSettings.roster.positions[key] ?? 0}
-                          onChange={(e) =>
-                            handleRosterChange(key, parseInt(e.target.value, 10) || 0)
-                          }
-                          className="w-16 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2 py-1 text-right text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
+                          onCommit={(nextValue) => handleRosterChange(key, nextValue)}
+                          className="gap-1"
+                          inputClassName="w-10 text-sm sm:w-12 sm:text-base"
                         />
-                      </label>
+                      </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <label className="flex items-center justify-between gap-3 border-b border-[#111111]/10 dark:border-[#333333]/40 px-3 py-2 text-sm font-bold text-[#111111]/70 dark:text-[#e5e5e5]/60">
-                    <span>Bench</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={localLeagueSettings.roster.bench}
-                      onChange={(e) =>
-                        handleBenchChange(parseInt(e.target.value, 10) || 0)
-                      }
-                      className="w-16 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2 py-1 text-right text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-                    />
-                  </label>
-                  {reserveSlots.map((key) => (
-                    <label
-                      key={key}
-                      className="flex items-center justify-between gap-3 border-b border-[#111111]/10 dark:border-[#333333]/40 px-3 py-2 text-sm font-bold text-[#111111]/70 dark:text-[#e5e5e5]/60"
-                    >
-                      <span>{rosterSlotLabels[key]}</span>
-                      <input
-                        type="number"
+                <div className="mt-5 rounded-sm border border-[#111111]/10 p-3 dark:border-[#333333]">
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
+                    Reserves
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="border-b border-[#111111]/10 px-3 py-2 dark:border-[#333333]/40">
+                      <NumericInput
+                        aria-label="Bench"
+                        units="Bench"
+                        increment={1}
                         min={0}
-                        value={localLeagueSettings.roster.positions[key] ?? 0}
-                        onChange={(e) =>
-                          handleRosterChange(key, parseInt(e.target.value, 10) || 0)
-                        }
-                        className="w-16 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2 py-1 text-right text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
+                        value={localLeagueSettings.roster.bench}
+                        onCommit={(nextValue) => handleBenchChange(nextValue)}
+                        className="w-full"
+                        inputClassName="w-10 text-sm sm:w-12 sm:text-base"
                       />
-                    </label>
-                  ))}
+                    </div>
+                    {reserveSlots.map((key) => (
+                      <div
+                        key={key}
+                        className="border-b border-[#111111]/10 px-3 py-2 dark:border-[#333333]/40"
+                      >
+                        <NumericInput
+                          aria-label={`Roster ${rosterSlotLabels[key]}`}
+                          units={rosterSlotLabels[key]}
+                          increment={1}
+                          min={0}
+                          value={localLeagueSettings.roster.positions[key] ?? 0}
+                          onCommit={(nextValue) => handleRosterChange(key, nextValue)}
+                          className="w-full"
+                          inputClassName="w-10 text-sm sm:w-12 sm:text-base"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
