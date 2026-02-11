@@ -66,4 +66,22 @@ describe("calculatePitcherPoints IP handling", () => {
     const points = calculatePitcherPoints({ ...basePitcher, IP: 10.1 }, scoring, false);
     expect(points).toBe(30.3);
   });
+
+  it("does not auto-estimate QS/CG/ShO when those stats are 0", () => {
+    const outcomeOnlyScoring: ScoringSettings["pitching"] = {
+      ...scoring,
+      IP: 0,
+      QS: 3,
+      CG: 5,
+      ShO: 8,
+    };
+
+    const points = calculatePitcherPoints(
+      { ...basePitcher, GS: 30, G: 30, IP: 200, ERA: 3.2, QS: 0, CG: 0, ShO: 0 },
+      outcomeOnlyScoring,
+      false
+    );
+
+    expect(points).toBe(0);
+  });
 });

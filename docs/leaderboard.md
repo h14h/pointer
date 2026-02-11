@@ -7,7 +7,6 @@
 - [State](state.md) — all major state slices
 - [Scoring](scoring.md) — `calculatePlayerPoints`
 - [Eligibility](eligibility.md) — `POSITION_ORDER`
-- [Pitching Outcomes](pitching-outcomes.md) — resolve functions for QS/CG/ShO display
 - [Utilities](utilities.md) — `isValidBaseballIp`
 - TanStack React Table (external) — table engine
 
@@ -48,7 +47,7 @@ Users can toggle individual batting (16 options) and pitching (17 options) stat 
 
 **Computed stats in display:**
 - TB (total bases) = `1B + 2B×2 + 3B×3 + HR×4` — computed inline, not from CSV
-- QS/CG/ShO — resolved via pitching outcome functions (actual if available, estimated otherwise)
+- QS/CG/ShO — displayed exactly as imported (or import-estimated)
 - AVG: `.toFixed(3)` with leading zero stripped; ERA/WHIP: `.toFixed(2)`; null → dash
 
 ## Performance

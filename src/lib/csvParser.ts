@@ -47,6 +47,23 @@ export interface IdConfig {
   customColumn?: string;
 }
 
+export type PitchingOutcomeStat = "QS" | "CG" | "ShO";
+
+export type PitchingOutcomeMissingSummary = Record<
+  PitchingOutcomeStat,
+  {
+    totalPlayers: number;
+    missingPlayerIds: string[];
+  }
+>;
+
+function isMissingNumericValue(value: string | undefined): boolean {
+  if (value === undefined) return true;
+  const trimmed = value.trim();
+  if (trimmed === "") return true;
+  return isNaN(parseFloat(trimmed));
+}
+
 function resolvePlayerId(
   row: Record<string, string>,
   index: number,
@@ -165,6 +182,7 @@ export interface ParseResult {
   idSource: IdSource;
   availableColumns: string[];
   needsIdSelection: boolean;
+  missingPitchingOutcomes: PitchingOutcomeMissingSummary | null;
 }
 
 function detectIdSource(headers: string[]): { source: IdSource; needsSelection: boolean } {
@@ -215,10 +233,16 @@ export function parsePlayerCSV(
       idSource: "generated",
       availableColumns: headers,
       needsIdSelection: true,
+      missingPitchingOutcomes: null,
     };
   }
 
   const finalIdConfig: IdConfig = idConfig || { source: detectedSource };
+  const missingPitchingOutcomesById: Record<PitchingOutcomeStat, string[]> = {
+    QS: [],
+    CG: [],
+    ShO: [],
+  };
 
   const players: Player[] = result.data
     .map((row, index) => {
@@ -226,7 +250,19 @@ export function parsePlayerCSV(
         if (type === "batter") {
           return parseBatterRow(row, index, finalIdConfig);
         } else {
-          return parsePitcherRow(row, index, finalIdConfig);
+          const pitcher = parsePitcherRow(row, index, finalIdConfig);
+          if (pitcher.Name !== "") {
+            if (isMissingNumericValue(row.QS)) {
+              missingPitchingOutcomesById.QS.push(pitcher._id);
+            }
+            if (isMissingNumericValue(row.CG)) {
+              missingPitchingOutcomesById.CG.push(pitcher._id);
+            }
+            if (isMissingNumericValue(row.ShO)) {
+              missingPitchingOutcomesById.ShO.push(pitcher._id);
+            }
+          }
+          return pitcher;
         }
       } catch (e) {
         errors.push(`Row ${index}: Failed to parse - ${e}`);
@@ -234,6 +270,24 @@ export function parsePlayerCSV(
       }
     })
     .filter((p): p is Player => p !== null && p.Name !== "");
+
+  const missingPitchingOutcomes: PitchingOutcomeMissingSummary | null =
+    type === "pitcher"
+      ? {
+          QS: {
+            totalPlayers: players.length,
+            missingPlayerIds: Array.from(new Set(missingPitchingOutcomesById.QS)),
+          },
+          CG: {
+            totalPlayers: players.length,
+            missingPlayerIds: Array.from(new Set(missingPitchingOutcomesById.CG)),
+          },
+          ShO: {
+            totalPlayers: players.length,
+            missingPlayerIds: Array.from(new Set(missingPitchingOutcomesById.ShO)),
+          },
+        }
+      : null;
 
   return {
     players,
@@ -243,6 +297,7 @@ export function parsePlayerCSV(
     idSource: finalIdConfig.source,
     availableColumns: headers,
     needsIdSelection: false,
+    missingPitchingOutcomes,
   };
 }
 

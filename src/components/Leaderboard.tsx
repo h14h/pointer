@@ -23,11 +23,6 @@ import {
 import { useStore } from "@/store";
 import { calculatePlayerPoints } from "@/lib/calculatePoints";
 import { POSITION_ORDER } from "@/lib/eligibility";
-import {
-	resolveQualityStarts,
-	resolveCompleteGames,
-	resolveShutouts,
-} from "@/lib/pitchingOutcomes";
 import { isValidBaseballIp } from "@/lib/ipMath";
 import type {
 	Player,
@@ -1118,9 +1113,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					size: 60,
 					accessorFn: (row) =>
 						row.player._type === "pitcher"
-							? resolveQualityStarts(row.player, useBaseballIp)
+							? (row.player as unknown as Record<string, number>).QS
 							: row.player._type === "two-way"
-								? resolveQualityStarts(row.player._pitchingStats, useBaseballIp)
+								? row.player._pitchingStats.QS
 								: null,
 					cell: ({ getValue }) =>
 						formatCountingStat(getValue() as number | null),
@@ -1170,9 +1165,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					size: 60,
 					accessorFn: (row) =>
 						row.player._type === "pitcher"
-							? resolveCompleteGames(row.player, useBaseballIp)
+							? (row.player as unknown as Record<string, number>).CG
 							: row.player._type === "two-way"
-								? resolveCompleteGames(row.player._pitchingStats, useBaseballIp)
+								? row.player._pitchingStats.CG
 								: null,
 					cell: ({ getValue }) =>
 						formatCountingStat(getValue() as number | null),
@@ -1183,9 +1178,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					size: 60,
 					accessorFn: (row) =>
 						row.player._type === "pitcher"
-							? resolveShutouts(row.player, useBaseballIp)
+							? (row.player as unknown as Record<string, number>).ShO
 							: row.player._type === "two-way"
-								? resolveShutouts(row.player._pitchingStats, useBaseballIp)
+								? row.player._pitchingStats.ShO
 								: null,
 					cell: ({ getValue }) =>
 						formatCountingStat(getValue() as number | null),
@@ -1230,15 +1225,14 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		}
 
 		return baseColumns;
-	}, [
-		playerView,
-		isDraftMode,
-		handleToggleDrafted,
-		useBaseballIp,
-		leagueSettings,
-		battingStatIds,
-		pitchingStatIds,
-	]);
+		}, [
+			playerView,
+			isDraftMode,
+			handleToggleDrafted,
+			leagueSettings,
+			battingStatIds,
+			pitchingStatIds,
+		]);
 
 	const table = useReactTable({
 		data: filteredPlayers,

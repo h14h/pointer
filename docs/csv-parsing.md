@@ -24,6 +24,8 @@
 
 **Per-row error isolation.** Each row is parsed in a try/catch. One malformed row does not abort the file — its error is collected and reported to the user.
 
+**Pitching-outcome coverage metadata.** Pitcher parses include `missingPitchingOutcomes` metadata for `QS`, `CG`, and `ShO`, keyed by player ID. Upload UI uses this to offer opt-in estimation only for rows that were actually missing.
+
 ## Two-Way Player Merging
 
 `mergePlayers` matches players across batter and pitcher files by `_id`. When a match is found, it creates a `TwoWayPlayer` with identifiers lifted to the top level and stats nested. **This only works when both files use real ID columns** (MLBAMID or PlayerId). Generated IDs (`"batter-0"`, `"pitcher-0"`) will never match.

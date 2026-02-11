@@ -21,6 +21,8 @@ Only shown when `needsIdSelection` is true — meaning the parser found no MLBAM
 ### Stage 3: Preview & Import
 Shows parsed player counts, up to 5 parse warnings, and a preview table of the first 5 players. The user names the group (auto-suggested from the first filename, fallback `"Methodology {N+1}"`) and optionally enables eligibility import.
 
+For pitcher uploads, this stage also surfaces missing `QS`, `CG`, and `ShO` coverage (blank/invalid values) and provides one toggle per stat to estimate only those missing entries before group creation.
+
 ## Eligibility Import
 
 When enabled, the import runs after the projection group is added to the store:
@@ -42,5 +44,6 @@ When enabled, the import runs after the projection group is added to the store:
 - Multiple batter or pitcher files in one upload → error
 - Empty group name on confirm → error
 - Only one file type uploaded → amber warning about partial group
+- QS/CG/ShO estimation is opt-in per stat and only applies to rows detected as missing
 - Cancel/Back/Import buttons disabled during import; close button also disabled
 - Import handles empty player lists (sets progress to 100% immediately)

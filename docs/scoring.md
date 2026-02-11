@@ -6,7 +6,6 @@
 
 ## Dependencies
 - [Types](types.md) — Player variants, `ScoringSettings`
-- [Pitching Outcomes](pitching-outcomes.md) — `resolveQualityStarts`, `resolveCompleteGames`, `resolveShutouts`
 - [Utilities](utilities.md) — `normalizeIp`
 
 ## Dependents
@@ -20,7 +19,7 @@ Each counting stat is multiplied by its configured weight and the results are su
 
 **H stat gating.** Hits (`H`) are only included if `settings.H !== 0`. Most leagues score by hit type (1B, 2B, 3B, HR) rather than total hits, so H defaults to 0 in all presets. Including both H and hit-type weights would double-count.
 
-**QS/CG/ShO resolution.** Pitcher point calculations call `resolveQualityStarts`, `resolveCompleteGames`, and `resolveShutouts` rather than reading the raw stat values directly. These functions use the actual stat if it exists (> 0) and estimate otherwise. See [Pitching Outcomes](pitching-outcomes.md).
+**QS/CG/ShO are treated as literal imported values.** Scoring does not run runtime estimation. Missing outcomes remain 0 unless they were estimated earlier during CSV import.
 
 **IP normalization.** When `useBaseballIp` is true, IP is converted from baseball notation (5.1 = 5⅓) to decimal before multiplying by the IP weight. See [Utilities](utilities.md).
 

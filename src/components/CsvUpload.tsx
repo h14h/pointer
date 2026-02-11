@@ -6,6 +6,7 @@ import {
   mergePlayers,
   type ParseResult,
   type IdConfig,
+  type PitchingOutcomeStat,
 } from "@/lib/csvParser";
 import {
   computeHitterEligibility,
@@ -15,7 +16,13 @@ import {
   mergeTwoWayEligibility,
   mergeWarnings,
 } from "@/lib/eligibility";
+import { isValidBaseballIp } from "@/lib/ipMath";
 import { fetchSeasonStatsForPlayers } from "@/lib/mlbStatsApi";
+import {
+  applyPitchingOutcomeEstimates,
+  DEFAULT_PITCHING_OUTCOME_ESTIMATE_SELECTION,
+  type PitchingOutcomeEstimateSelection,
+} from "@/lib/pitchingOutcomeImport";
 import { useStore } from "@/store";
 import type {
   TwoWayPlayer,
@@ -23,6 +30,7 @@ import type {
   ProjectionGroup,
   Player,
   Eligibility,
+  PitcherPlayer,
 } from "@/types";
 
 interface CsvUploadProps {
@@ -59,6 +67,14 @@ function suggestGroupName(fileName: string | undefined, groupCount: number) {
   return `Methodology ${groupCount + 1}`;
 }
 
+const PITCHING_OUTCOME_ORDER: PitchingOutcomeStat[] = ["QS", "CG", "ShO"];
+
+const PITCHING_OUTCOME_LABELS: Record<PitchingOutcomeStat, string> = {
+  QS: "Quality Starts (QS)",
+  CG: "Complete Games (CG)",
+  ShO: "Shutouts (ShO)",
+};
+
 export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
   const { projectionGroups, addProjectionGroup, applyEligibilityForGroup } = useStore();
   const [dragActive, setDragActive] = useState(false);
@@ -74,6 +90,10 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
   const [importPlayer, setImportPlayer] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
   const [retryStatus, setRetryStatus] = useState<string | null>(null);
+  const [pitchingOutcomeSelection, setPitchingOutcomeSelection] =
+    useState<PitchingOutcomeEstimateSelection>({
+      ...DEFAULT_PITCHING_OUTCOME_ESTIMATE_SELECTION,
+    });
   const [importTargetGroup, setImportTargetGroup] = useState<ProjectionGroup | null>(
     null
   );
@@ -126,6 +146,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
         setBatterFile(nextBatter);
         setPitcherFile(nextPitcher);
+        setPitchingOutcomeSelection({
+          ...DEFAULT_PITCHING_OUTCOME_ESTIMATE_SELECTION,
+        });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to read files");
       }
@@ -399,6 +422,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
     setImportPlayer("");
     setImportError(null);
     setRetryStatus(null);
+    setPitchingOutcomeSelection({
+      ...DEFAULT_PITCHING_OUTCOME_ESTIMATE_SELECTION,
+    });
     setImportTargetGroup(null);
   };
 
@@ -423,7 +449,15 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
     }
 
     const batters = (batterFile?.parseResult.players ?? []) as Player[];
-    const pitchers = (pitcherFile?.parseResult.players ?? []) as Player[];
+    const parsedPitchers = (pitcherFile?.parseResult.players ?? []) as PitcherPlayer[];
+    const useBaseballIpForPitcherEstimates =
+      parsedPitchers.length > 0 && parsedPitchers.every((pitcher) => isValidBaseballIp(pitcher.IP));
+    const pitchers = applyPitchingOutcomeEstimates(
+      parsedPitchers,
+      pitcherFile?.parseResult.missingPitchingOutcomes ?? null,
+      pitchingOutcomeSelection,
+      useBaseballIpForPitcherEstimates
+    ) as Player[];
 
     let twoWayPlayers: TwoWayPlayer[] = [];
     if (batters.length > 0 && pitchers.length > 0) {
@@ -468,6 +502,24 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
     (batterFile && !pitcherFile) || (!batterFile && pitcherFile)
       ? "This group is missing one file type and will be partial."
       : null;
+
+  const pitcherMissingOutcomes = pitcherFile?.parseResult.missingPitchingOutcomes ?? null;
+  const missingPitchingOutcomeStats = pitcherMissingOutcomes
+    ? PITCHING_OUTCOME_ORDER.flatMap((stat) => {
+        const missingCount = pitcherMissingOutcomes[stat].missingPlayerIds.length;
+        if (missingCount === 0) return [];
+        return [
+          {
+            stat,
+            missingCount,
+            totalPlayers: pitcherMissingOutcomes[stat].totalPlayers,
+          },
+        ];
+      })
+    : [];
+  const hasSelectedPitchingOutcomeEstimates = PITCHING_OUTCOME_ORDER.some(
+    (stat) => pitchingOutcomeSelection[stat]
+  );
 
   const renderPreview = (fileState: UploadFileState) => {
     const { parseResult } = fileState;
@@ -814,6 +866,65 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               </p>
             </div>
 
+            {missingPitchingOutcomeStats.length > 0 && (
+              <div className="mb-5 border-t border-[#111111]/10 dark:border-[#333333] pt-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+                      Estimate Missing Pitching Outcomes
+                    </p>
+                    <p className="mt-1 text-xs text-[#111111]/50 dark:text-[#e5e5e5]/40">
+                      Missing values stay at zero unless selected below.
+                    </p>
+                  </div>
+                  <span className="rounded-sm border border-[#111111]/20 dark:border-[#333333] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40">
+                    Optional
+                  </span>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {missingPitchingOutcomeStats.map(
+                    ({ stat, missingCount, totalPlayers }) => (
+                      <label
+                        key={stat}
+                        className={`flex items-center justify-between gap-3 rounded-sm border p-3 transition-colors ${
+                          pitchingOutcomeSelection[stat]
+                            ? "border-[#dc2626]/40 bg-[#dc2626]/5 dark:border-[#ef4444]/40 dark:bg-[#ef4444]/10"
+                            : "border-[#111111]/15 bg-[#f8f8f8] dark:border-[#333333] dark:bg-[#1a1a1a]"
+                        } ${isImportingEligibility ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={pitchingOutcomeSelection[stat]}
+                            onChange={(e) =>
+                              setPitchingOutcomeSelection((current) => ({
+                                ...current,
+                                [stat]: e.target.checked,
+                              }))
+                            }
+                            disabled={isImportingEligibility}
+                            className="mt-0.5 h-4 w-4 rounded-sm border-[#111111]/30 text-[#dc2626] focus:ring-[#dc2626] dark:border-[#e5e5e5]/40 dark:bg-[#111111] dark:text-[#ef4444] dark:focus:ring-[#ef4444]"
+                          />
+                          <div>
+                            <p className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+                              {PITCHING_OUTCOME_LABELS[stat]}
+                            </p>
+                            <p className="mt-1 text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+                              Missing for {missingCount} of {totalPlayers} pitchers
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/45 dark:text-[#e5e5e5]/35">
+                          {pitchingOutcomeSelection[stat] ? "Estimate" : "Keep 0"}
+                        </span>
+                      </label>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
             {missingTypeWarning && (
               <div className="mb-4 border-l-4 border-l-[#111111]/30 dark:border-l-[#e5e5e5]/20 bg-[#f5f5f5] dark:bg-[#1a1a1a] p-3 text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
                 {missingTypeWarning}
@@ -887,6 +998,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                   setBatterFile(null);
                   setPitcherFile(null);
                   setError(null);
+                  setPitchingOutcomeSelection({
+                    ...DEFAULT_PITCHING_OUTCOME_ESTIMATE_SELECTION,
+                  });
                 }}
                 disabled={isImportingEligibility}
                 className="text-xs font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40 hover:text-[#111111] dark:hover:text-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-60"
@@ -900,9 +1014,13 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               >
                 {isImportingEligibility
                   ? "Importing Group..."
-                  : importEligibilityEnabled
-                    ? "Import Group & Positions"
-                    : "Import Group"}
+                  : importEligibilityEnabled && hasSelectedPitchingOutcomeEstimates
+                    ? "Import Group, Stats & Positions"
+                    : importEligibilityEnabled
+                      ? "Import Group & Positions"
+                      : hasSelectedPitchingOutcomeEstimates
+                        ? "Import Group & Stats"
+                        : "Import Group"}
               </button>
             </div>
           </>

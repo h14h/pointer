@@ -1,9 +1,4 @@
 import type { Player, ScoringSettings, BatterStats, PitcherStats, TwoWayPlayer } from "@/types";
-import {
-  resolveQualityStarts,
-  resolveCompleteGames,
-  resolveShutouts,
-} from "@/lib/pitchingOutcomes";
 import { normalizeIp } from "@/lib/ipMath";
 
 export function calculateBatterPoints(
@@ -49,9 +44,9 @@ export function calculatePitcherPoints(
   }
   points += (player.W || 0) * settings.W;
   points += (player.L || 0) * settings.L;
-  points += resolveQualityStarts(player, useBaseballIp) * settings.QS;
-  points += resolveCompleteGames(player, useBaseballIp) * settings.CG;
-  points += resolveShutouts(player, useBaseballIp) * settings.ShO;
+  points += (player.QS || 0) * settings.QS;
+  points += (player.CG || 0) * settings.CG;
+  points += (player.ShO || 0) * settings.ShO;
   points += (player.SV || 0) * settings.SV;
   points += (player.BS || 0) * settings.BS;
   points += (player.HLD || 0) * settings.HLD;
@@ -107,9 +102,9 @@ function calculateTwoWayPitchingPoints(
   }
   points += (stats.W || 0) * settings.W;
   points += (stats.L || 0) * settings.L;
-  points += resolveQualityStarts(stats, useBaseballIp) * settings.QS;
-  points += resolveCompleteGames(stats, useBaseballIp) * settings.CG;
-  points += resolveShutouts(stats, useBaseballIp) * settings.ShO;
+  points += (stats.QS || 0) * settings.QS;
+  points += (stats.CG || 0) * settings.CG;
+  points += (stats.ShO || 0) * settings.ShO;
   points += (stats.SV || 0) * settings.SV;
   points += (stats.BS || 0) * settings.BS;
   points += (stats.HLD || 0) * settings.HLD;
