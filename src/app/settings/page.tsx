@@ -20,25 +20,28 @@ function SettingsPageContent() {
     <div className="min-h-screen bg-white dark:bg-[#111111]">
       <Header onOpenUpload={() => setUploadOpen(true)} />
 
-      <main className="mx-auto max-w-5xl px-6 py-8 font-sans">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-[#111111]/10 pb-5 dark:border-[#333333]">
-          <div>
+      <main className="mx-auto max-w-5xl px-4 py-6 font-sans sm:px-6 sm:py-8">
+        <div className="mb-8">
+          <div className="flex flex-wrap items-baseline justify-between gap-4">
             <h1
               className="text-2xl font-bold text-[#111111] dark:text-[#e5e5e5]"
               style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               Settings
             </h1>
-            <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
-              Scoring, roster, and draft configuration with immediate updates.
-            </p>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-md border border-[#111111]/20 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/70 transition-colors hover:border-[#111111]/30 hover:text-[#111111] dark:border-[#e5e5e5]/20 dark:text-[#e5e5e5]/60 dark:hover:border-[#e5e5e5]/30 dark:hover:text-[#e5e5e5]"
+            >
+              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
+                <path fillRule="evenodd" d="M7.78 4.22a.75.75 0 0 1 0 1.06L5.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L3.22 8.53a.75.75 0 0 1 0-1.06l3.5-3.5a.75.75 0 0 1 1.06 0ZM12.78 4.22a.75.75 0 0 1 0 1.06L10.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06l-3.5-3.5a.75.75 0 0 1 0-1.06l3.5-3.5a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
+              </svg>
+              Back to Board
+            </Link>
           </div>
-          <Link
-            href="/"
-            className="rounded-sm border border-[#111111]/20 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/70 hover:bg-[#f5f5f5] hover:text-[#111111] dark:border-[#333333] dark:text-[#e5e5e5]/60 dark:hover:bg-[#1a1a1a] dark:hover:text-[#e5e5e5]"
-          >
-            Back to Board
-          </Link>
+          <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
+            Scoring, roster, and draft configuration.
+          </p>
         </div>
 
         <SettingsLayout activeSection={activeSection}>

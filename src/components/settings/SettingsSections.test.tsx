@@ -164,11 +164,11 @@ describe("settings sections", () => {
     const user = userEvent.setup();
     render(<DraftSection />);
 
-    await user.click(screen.getAllByRole("button", { name: "Add Below" })[0]);
+    await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
     const addTeamLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
     expect(addTeamLeagueSettings.teamNames.length).toBe(13);
 
-    await user.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    await user.click(screen.getAllByRole("button", { name: /Remove/i })[0]);
     const removeTeamLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
     expect(removeTeamLeagueSettings.teamNames.length).toBe(11);
 

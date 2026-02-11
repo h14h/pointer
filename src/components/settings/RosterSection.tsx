@@ -13,6 +13,51 @@ import {
 } from "@/components/settings/constants";
 import type { RosterSlot } from "@/types";
 
+function SlotRow({
+  slot,
+  value,
+  onCommit,
+}: {
+  slot: RosterSlot;
+  value: number;
+  onCommit: (slot: RosterSlot, value: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[#111111]/[0.10] py-2.5 last:border-0 dark:border-[#e5e5e5]/[0.08]">
+      <span className="text-sm font-semibold text-[#111111]/65 dark:text-[#e5e5e5]/55">
+        {rosterSlotLabels[slot]}
+      </span>
+      <NumericInput
+        aria-label={`Roster ${rosterSlotLabels[slot]}`}
+        increment={1}
+        min={0}
+        value={value}
+        onCommit={(nextValue) => onCommit(slot, nextValue)}
+        inputClassName="w-10 text-sm"
+      />
+    </div>
+  );
+}
+
+function SlotGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
+        {label}
+      </div>
+      <div className="rounded-lg bg-[#111111]/[0.02] px-3 dark:bg-[#e5e5e5]/[0.03]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function RosterSection() {
   const { leagueSettings, setLeagueSettings } = useStore();
 
@@ -41,198 +86,115 @@ export function RosterSection() {
     setLeagueSettings(next);
   };
 
+  const totalSlots =
+    Object.values(leagueSettings.roster.positions).reduce((sum, v) => sum + v, 0) +
+    leagueSettings.roster.bench;
+
   return (
     <div className="font-sans">
-      <div className="mb-6 border-b border-[#111111]/10 pb-5 dark:border-[#333333]">
-        <h2
-          className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
-          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-        >
-          Roster
-        </h2>
-        <p className="mt-1 text-sm text-[#111111]/55 dark:text-[#e5e5e5]/45">
-          Set per-team starting slots and reserve capacity.
-        </p>
-      </div>
-
-      <div className="mb-3 flex items-center justify-between">
-        <span
-          className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40"
-          style={{ fontVariant: "small-caps" }}
-        >
-          Roster
-        </span>
-        <span className="text-[10px] text-[#111111]/30 dark:text-[#e5e5e5]/20">Per team</span>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="rounded-sm border border-[#111111]/10 p-4 dark:border-[#333333]">
-          <div className="grid gap-4">
-            <div>
-              <div
-                className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40"
-                style={{ fontVariant: "small-caps" }}
-              >
-                Outfield
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {outfieldSlots.map((key) => (
-                  <div
-                    key={key}
-                    className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40"
-                  >
-                    <NumericInput
-                      aria-label={`Roster ${rosterSlotLabels[key]}`}
-                      units={rosterSlotLabels[key]}
-                      increment={1}
-                      min={0}
-                      value={leagueSettings.roster.positions[key] ?? 0}
-                      onCommit={(nextValue) => commitRosterSlot(key, nextValue)}
-                      className="w-full gap-1"
-                      inputClassName="w-10 text-sm sm:w-12 sm:text-base"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div
-                className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40"
-                style={{ fontVariant: "small-caps" }}
-              >
-                Infield
-              </div>
-              <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
-                {infieldSlots.map((key) => (
-                  <div
-                    key={key}
-                    className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40"
-                  >
-                    <NumericInput
-                      aria-label={`Roster ${rosterSlotLabels[key]}`}
-                      units={rosterSlotLabels[key]}
-                      increment={1}
-                      min={0}
-                      value={leagueSettings.roster.positions[key] ?? 0}
-                      onCommit={(nextValue) => commitRosterSlot(key, nextValue)}
-                      className="w-full gap-1"
-                      inputClassName="w-10 text-sm sm:w-12 sm:text-base"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div
-                className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40"
-                style={{ fontVariant: "small-caps" }}
-              >
-                Flex
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {extraSlots.map((key) => (
-                  <div
-                    key={key}
-                    className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40"
-                  >
-                    <NumericInput
-                      aria-label={`Roster ${rosterSlotLabels[key]}`}
-                      units={rosterSlotLabels[key]}
-                      increment={1}
-                      min={0}
-                      value={leagueSettings.roster.positions[key] ?? 0}
-                      onCommit={(nextValue) => commitRosterSlot(key, nextValue)}
-                      className="w-full gap-1"
-                      inputClassName="w-10 text-sm sm:w-12 sm:text-base"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid w-fit min-w-[160px] content-start gap-3 justify-self-end rounded-sm border border-[#111111]/10 p-3 dark:border-[#333333]">
-          <div
-            className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40"
-            style={{ fontVariant: "small-caps" }}
+      {/* Section header */}
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2
+            className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
+            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
-            Pitchers
-          </div>
-          {pitcherSlots.map((key) => (
-            <div key={key} className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40">
-              <NumericInput
-                aria-label={`Roster ${rosterSlotLabels[key]}`}
-                units={rosterSlotLabels[key]}
-                increment={1}
-                min={0}
-                value={leagueSettings.roster.positions[key] ?? 0}
-                onCommit={(nextValue) => commitRosterSlot(key, nextValue)}
-                className="gap-1"
-                inputClassName="w-10 text-sm sm:w-12 sm:text-base"
-              />
-            </div>
-          ))}
-
-          <div
-            className="pt-1 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40"
-            style={{ fontVariant: "small-caps" }}
-          >
-            Catchers
-          </div>
-          {catcherSlots.map((key) => (
-            <div key={key} className="border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/40">
-              <NumericInput
-                aria-label={`Roster ${rosterSlotLabels[key]}`}
-                units={rosterSlotLabels[key]}
-                increment={1}
-                min={0}
-                value={leagueSettings.roster.positions[key] ?? 0}
-                onCommit={(nextValue) => commitRosterSlot(key, nextValue)}
-                className="gap-1"
-                inputClassName="w-10 text-sm sm:w-12 sm:text-base"
-              />
-            </div>
-          ))}
+            Roster
+          </h2>
+          <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
+            Set per-team starting slots and reserve capacity.
+          </p>
+        </div>
+        <div className="rounded-md bg-[#111111]/[0.04] px-3 py-1.5 text-xs font-bold tabular-nums text-[#111111]/60 dark:bg-[#e5e5e5]/[0.06] dark:text-[#e5e5e5]/50">
+          {totalSlots} slots per team
         </div>
       </div>
 
-      <div className="mt-5 rounded-sm border border-[#111111]/10 p-3 dark:border-[#333333]">
-        <div
-          className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40"
-          style={{ fontVariant: "small-caps" }}
-        >
-          Reserves
+      {/* Two-column layout: stacks on mobile, side-by-side from sm up */}
+      <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+        {/* Left column: position players */}
+        <div className="grid content-start gap-6">
+          <SlotGroup label="Outfield">
+            {outfieldSlots.map((key) => (
+              <SlotRow
+                key={key}
+                slot={key}
+                value={leagueSettings.roster.positions[key] ?? 0}
+                onCommit={commitRosterSlot}
+              />
+            ))}
+          </SlotGroup>
+
+          <SlotGroup label="Infield">
+            {infieldSlots.map((key) => (
+              <SlotRow
+                key={key}
+                slot={key}
+                value={leagueSettings.roster.positions[key] ?? 0}
+                onCommit={commitRosterSlot}
+              />
+            ))}
+          </SlotGroup>
+
+          <SlotGroup label="Flex">
+            {extraSlots.map((key) => (
+              <SlotRow
+                key={key}
+                slot={key}
+                value={leagueSettings.roster.positions[key] ?? 0}
+                onCommit={commitRosterSlot}
+              />
+            ))}
+          </SlotGroup>
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <div className="border-b border-[#111111]/10 px-3 py-2 dark:border-[#333333]/40">
-            <NumericInput
-              aria-label="Bench"
-              units="Bench"
-              increment={1}
-              min={0}
-              value={leagueSettings.roster.bench}
-              onCommit={commitBench}
-              className="w-full"
-              inputClassName="w-10 text-sm sm:w-12 sm:text-base"
-            />
-          </div>
-          {reserveSlots.map((key) => (
-            <div key={key} className="border-b border-[#111111]/10 px-3 py-2 dark:border-[#333333]/40">
+
+        {/* Right column: battery + reserves */}
+        <div className="grid content-start gap-6">
+          <SlotGroup label="Pitchers">
+            {pitcherSlots.map((key) => (
+              <SlotRow
+                key={key}
+                slot={key}
+                value={leagueSettings.roster.positions[key] ?? 0}
+                onCommit={commitRosterSlot}
+              />
+            ))}
+          </SlotGroup>
+
+          <SlotGroup label="Catchers">
+            {catcherSlots.map((key) => (
+              <SlotRow
+                key={key}
+                slot={key}
+                value={leagueSettings.roster.positions[key] ?? 0}
+                onCommit={commitRosterSlot}
+              />
+            ))}
+          </SlotGroup>
+
+          <SlotGroup label="Reserves">
+            <div className="flex items-center justify-between gap-3 border-b border-[#111111]/[0.10] py-2.5 dark:border-[#e5e5e5]/[0.08]">
+              <span className="text-sm font-semibold text-[#111111]/65 dark:text-[#e5e5e5]/55">
+                Bench
+              </span>
               <NumericInput
-                aria-label={`Roster ${rosterSlotLabels[key]}`}
-                units={rosterSlotLabels[key]}
+                aria-label="Bench"
                 increment={1}
                 min={0}
-                value={leagueSettings.roster.positions[key] ?? 0}
-                onCommit={(nextValue) => commitRosterSlot(key, nextValue)}
-                className="w-full"
-                inputClassName="w-10 text-sm sm:w-12 sm:text-base"
+                value={leagueSettings.roster.bench}
+                onCommit={commitBench}
+                inputClassName="w-10 text-sm"
               />
             </div>
-          ))}
+            {reserveSlots.map((key) => (
+              <SlotRow
+                key={key}
+                slot={key}
+                value={leagueSettings.roster.positions[key] ?? 0}
+                onCommit={commitRosterSlot}
+              />
+            ))}
+          </SlotGroup>
         </div>
       </div>
     </div>

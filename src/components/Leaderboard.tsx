@@ -1292,33 +1292,33 @@ const LeaderboardTable = memo(function LeaderboardTable({
 
 	return (
 		<div className="space-y-4">
-			<div className="overflow-x-auto">
+			<div className="overflow-x-auto overflow-y-clip">
 				<table className="w-full text-sm text-[#111111] dark:text-[#e5e5e5]">
 					<thead>
-								{table.getHeaderGroups().map((headerGroup) => (
-									<tr key={headerGroup.id} className="border-b-2 border-[#111111] dark:border-[#e5e5e5]">
-										{headerGroup.headers.map((header) => (
-										<th
-											key={header.id}
-											style={{ width: header.getSize() }}
-											className={`px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 whitespace-nowrap ${
-												header.column.getCanSort()
-													? "cursor-pointer select-none hover:text-[#111111] dark:hover:text-[#e5e5e5]"
-													: ""
-											} ${
-													(
-														header.column.columnDef.meta as
-															| { className?: string }
-															| undefined
-													)?.className ?? ""
-												}`}
-											onClick={header.column.getToggleSortingHandler()}
-										>
-											<div className="flex items-center gap-1 whitespace-nowrap">
-												{flexRender(
-													header.column.columnDef.header,
-													header.getContext(),
-												)}
+						{table.getHeaderGroups().map((headerGroup) => (
+							<tr key={headerGroup.id}>
+								{headerGroup.headers.map((header) => (
+									<th
+										key={header.id}
+										style={{ width: header.getSize() }}
+										className={`sticky top-0 z-10 border-b border-b-[#111111]/40 dark:border-b-[#e5e5e5]/25 border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#111111] px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 whitespace-nowrap after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-1 after:bg-gradient-to-b after:from-black/[0.04] after:to-transparent dark:after:from-white/[0.06] relative ${
+											header.column.getCanSort()
+												? "cursor-pointer select-none hover:text-[#111111] dark:hover:text-[#e5e5e5]"
+												: ""
+										} ${
+											(
+												header.column.columnDef.meta as
+													| { className?: string }
+													| undefined
+											)?.className ?? ""
+										}`}
+										onClick={header.column.getToggleSortingHandler()}
+									>
+										<div className="flex items-center gap-1 whitespace-nowrap">
+											{flexRender(
+												header.column.columnDef.header,
+												header.getContext(),
+											)}
 											{{
 												asc: " \u2191",
 												desc: " \u2193",

@@ -12,7 +12,7 @@ export default function Home() {
     <div className="min-h-screen bg-white dark:bg-[#111111] font-serif">
       <Header onOpenUpload={() => setUploadOpen(true)} />
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-5xl py-8">
         <Leaderboard />
       </main>
 

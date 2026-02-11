@@ -58,7 +58,7 @@ export function Header({ onOpenUpload }: HeaderProps) {
 
   return (
     <>
-      <header className="border-b border-[#111111] dark:border-[#333333] bg-white dark:bg-[#111111]">
+      <header className="border-b border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#111111]">
         <div className="mx-auto max-w-5xl px-6 py-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>

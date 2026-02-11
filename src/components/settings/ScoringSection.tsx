@@ -59,66 +59,70 @@ export function ScoringSection() {
     activeGroup.pitcherIdSource !== null &&
     activeGroup.pitcherIdSource !== "generated";
 
+  const categories = tab === "batting" ? battingCategories : pitchingCategories;
+  const scoringValues = tab === "batting" ? scoringSettings.batting : scoringSettings.pitching;
+  const debouncedUpdate = tab === "batting" ? debouncedUpdateBatting : debouncedUpdatePitching;
+
   return (
     <div className="font-sans">
-      <div className="mb-6 flex flex-col gap-4 border-b border-[#111111]/10 pb-5 dark:border-[#333333] sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2
-            className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Scoring
-          </h2>
-          <p className="mt-1 text-sm text-[#111111]/55 dark:text-[#e5e5e5]/45">
-            Adjust point weights and control two-way player merge behavior.
-          </p>
-        </div>
-
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
-          <div className="grid gap-1 sm:min-w-[190px]">
-            <label
-              htmlFor="scoring-preset"
-              className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40"
-              style={{ fontVariant: "small-caps" }}
-            >
-              Preset
-            </label>
-            <select
-              key={activePresetKey}
-              id="scoring-preset"
-              defaultValue={activePresetKey}
-              ref={presetSelectionRef}
-              className="rounded-sm border border-[#111111]/20 bg-white px-2 py-1.5 text-sm text-[#111111] focus:border-[#dc2626] focus:outline-none dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5] dark:focus:border-[#ef4444]"
-            >
-              {presetNames.map((key) => (
-                <option key={key} value={key}>
-                  {scoringPresets[key].name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              const presetKey = presetSelectionRef.current?.value ?? activePresetKey;
-              setScoringSettings(scoringPresets[presetKey]);
-            }}
-            className="rounded-sm bg-[#dc2626] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#b91c1c] dark:bg-[#ef4444] dark:hover:bg-[#dc2626]"
-          >
-            Apply Preset
-          </button>
-        </div>
+      {/* Section header */}
+      <div className="mb-8">
+        <h2
+          className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
+          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+        >
+          Scoring
+        </h2>
+        <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
+          Adjust point weights and control two-way player merge behavior.
+        </p>
       </div>
 
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex overflow-hidden rounded-sm border border-[#111111]/20 dark:border-[#333333]">
+      {/* Preset controls */}
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="grid flex-1 gap-1.5 sm:max-w-[220px]">
+          <label
+            htmlFor="scoring-preset"
+            className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42"
+          >
+            Preset
+          </label>
+          <select
+            key={activePresetKey}
+            id="scoring-preset"
+            defaultValue={activePresetKey}
+            ref={presetSelectionRef}
+            className="h-9 rounded-md border border-[#111111]/15 bg-white px-2.5 text-sm text-[#111111] transition-colors focus:border-[#dc2626] focus:outline-none dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5] dark:focus:border-[#ef4444]"
+          >
+            {presetNames.map((key) => (
+              <option key={key} value={key}>
+                {scoringPresets[key].name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const presetKey = presetSelectionRef.current?.value ?? activePresetKey;
+            setScoringSettings(scoringPresets[presetKey]);
+          }}
+          className="h-9 rounded-md bg-[#dc2626] px-4 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#b91c1c] dark:bg-[#ef4444] dark:hover:bg-[#dc2626]"
+        >
+          Apply Preset
+        </button>
+      </div>
+
+      {/* Tab bar + merge toggle */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex rounded-lg bg-[#111111]/[0.04] p-1 dark:bg-[#e5e5e5]/[0.06]">
           <button
             type="button"
             onClick={() => setTab("batting")}
-            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors ${
+            className={`rounded-md px-5 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
               tab === "batting"
-                ? "bg-[#111111] text-white dark:bg-[#e5e5e5] dark:text-[#111111]"
-                : "text-[#111111]/60 hover:bg-[#f5f5f5] dark:text-[#e5e5e5]/50 dark:hover:bg-[#1a1a1a]"
+                ? "bg-white text-[#111111] shadow-sm dark:bg-[#1a1a1a] dark:text-[#e5e5e5]"
+                : "text-[#111111]/60 hover:text-[#111111]/80 dark:text-[#e5e5e5]/50 dark:hover:text-[#e5e5e5]/70"
             }`}
           >
             Batting
@@ -126,10 +130,10 @@ export function ScoringSection() {
           <button
             type="button"
             onClick={() => setTab("pitching")}
-            className={`border-l border-[#111111]/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors dark:border-[#333333] ${
+            className={`rounded-md px-5 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
               tab === "pitching"
-                ? "bg-[#111111] text-white dark:bg-[#e5e5e5] dark:text-[#111111]"
-                : "text-[#111111]/60 hover:bg-[#f5f5f5] dark:text-[#e5e5e5]/50 dark:hover:bg-[#1a1a1a]"
+                ? "bg-white text-[#111111] shadow-sm dark:bg-[#1a1a1a] dark:text-[#e5e5e5]"
+                : "text-[#111111]/60 hover:text-[#111111]/80 dark:text-[#e5e5e5]/50 dark:hover:text-[#e5e5e5]/70"
             }`}
           >
             Pitching
@@ -137,14 +141,14 @@ export function ScoringSection() {
         </div>
 
         <div
-          className={`flex items-center gap-2 text-sm ${
+          className={`flex items-center gap-2.5 ${
             canMergeTwoWay
-              ? "text-[#111111]/70 dark:text-[#e5e5e5]/60"
-              : "text-[#111111]/30 dark:text-[#e5e5e5]/20"
+              ? "text-[#111111]/65 dark:text-[#e5e5e5]/55"
+              : "text-[#111111]/45 dark:text-[#e5e5e5]/38"
           }`}
           title={!canMergeTwoWay ? "Merge two-way requires provided player IDs in both uploads." : undefined}
         >
-          <span className="text-xs">Merge two-way</span>
+          <span className="text-xs font-medium">Merge two-way</span>
           <button
             type="button"
             role="switch"
@@ -156,65 +160,45 @@ export function ScoringSection() {
                 setMergeTwoWayRankings(!mergeTwoWayRankings);
               }
             }}
-            className={`relative inline-flex h-5 w-10 items-center rounded-sm border transition-colors ${
+            className={`relative inline-flex h-[22px] w-10 items-center rounded-full transition-colors ${
               mergeTwoWayRankings && canMergeTwoWay
-                ? "border-[#dc2626] bg-[#dc2626] dark:border-[#ef4444] dark:bg-[#ef4444]"
-                : "border-[#111111]/30 bg-transparent dark:border-[#333333]"
-            } ${canMergeTwoWay ? "" : "cursor-not-allowed opacity-30"}`}
+                ? "bg-[#dc2626] dark:bg-[#ef4444]"
+                : "bg-[#111111]/15 dark:bg-[#e5e5e5]/15"
+            } ${canMergeTwoWay ? "cursor-pointer" : "cursor-not-allowed opacity-40"}`}
           >
             <span
-              className={`inline-block h-3 w-3 transform rounded-sm transition-transform ${
+              className={`inline-block h-[16px] w-[16px] rounded-full bg-white shadow-sm transition-transform ${
                 mergeTwoWayRankings && canMergeTwoWay
-                  ? "translate-x-6 bg-white"
-                  : "translate-x-1 bg-[#111111]/40 dark:bg-[#e5e5e5]/40"
+                  ? "translate-x-[21px]"
+                  : "translate-x-[3px]"
               }`}
             />
           </button>
         </div>
       </div>
 
-      <div className="mx-auto grid w-full max-w-[52rem] grid-cols-1 gap-y-2 sm:gap-y-3 md:grid-cols-[minmax(0,20rem)_minmax(0,20rem)] md:justify-center md:gap-x-14 lg:gap-x-20">
-        {tab === "batting"
-          ? battingCategories.map(({ key, label }) => (
-              <div
-                key={key}
-                className="grid grid-cols-[3.1rem_max-content] items-center gap-2 border-b border-[#111111]/5 py-2 dark:border-[#333333]/40 sm:gap-3"
-              >
-                <span className="text-[0.95rem] font-semibold tracking-wide text-[#111111]/78 dark:text-[#e5e5e5]/68 sm:text-base">
-                  {key}
-                </span>
-                <NumericInput
-                  units="points"
-                  aria-label={`${label} points`}
-                  increment={0.5}
-                  value={scoringSettings.batting[key]}
-                  onCommit={(nextValue) => debouncedUpdateBatting(key, nextValue)}
-                  className="gap-1.5"
-                  unitsClassName="text-[11px] font-bold uppercase tracking-[0.12em] text-[#111111]/42 dark:text-[#e5e5e5]/38"
-                  inputClassName="w-16 text-sm sm:w-20 sm:text-base"
-                />
-              </div>
-            ))
-          : pitchingCategories.map(({ key, label }) => (
-              <div
-                key={key}
-                className="grid grid-cols-[3.1rem_max-content] items-center gap-2 border-b border-[#111111]/5 py-2 dark:border-[#333333]/40 sm:gap-3"
-              >
-                <span className="text-[0.95rem] font-semibold tracking-wide text-[#111111]/78 dark:text-[#e5e5e5]/68 sm:text-base">
-                  {key}
-                </span>
-                <NumericInput
-                  units="points"
-                  aria-label={`${label} points`}
-                  increment={0.5}
-                  value={scoringSettings.pitching[key]}
-                  onCommit={(nextValue) => debouncedUpdatePitching(key, nextValue)}
-                  className="gap-1.5"
-                  unitsClassName="text-[11px] font-bold uppercase tracking-[0.12em] text-[#111111]/42 dark:text-[#e5e5e5]/38"
-                  inputClassName="w-16 text-sm sm:w-20 sm:text-base"
-                />
-              </div>
-            ))}
+      {/* Scoring grid */}
+      <div className="grid w-full grid-cols-1 gap-x-10 gap-y-0 sm:grid-cols-2 lg:gap-x-16">
+        {categories.map(({ key, label }) => (
+          <div
+            key={key}
+            className="flex items-center justify-between gap-3 border-b border-[#111111]/[0.10] py-3 dark:border-[#e5e5e5]/[0.08]"
+          >
+            <span className="text-[0.9rem] font-semibold tabular-nums tracking-wide text-[#111111]/70 dark:text-[#e5e5e5]/60">
+              {key}
+            </span>
+            <NumericInput
+              units="pts"
+              aria-label={`${label} points`}
+              increment={0.5}
+              value={(scoringValues as Record<string, number>)[key]}
+              onCommit={(nextValue) => debouncedUpdate(key as never, nextValue)}
+              className="gap-1.5"
+              unitsClassName="text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]/45 dark:text-[#e5e5e5]/38"
+              inputClassName="w-14 text-sm sm:w-16 sm:text-base"
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
