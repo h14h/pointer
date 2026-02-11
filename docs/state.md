@@ -8,7 +8,7 @@
 - Zustand (external) — state management with `persist` middleware
 
 ## Dependents
-All UI components: [Leaderboard](leaderboard.md), [CSV Upload Workflow](csv-upload-workflow.md), [Scoring Form](scoring-form.md), [Header](header.md)
+All UI components: [Leaderboard](leaderboard.md), [CSV Upload Workflow](csv-upload-workflow.md), [Settings Page](settings-page.md), [Header](header.md)
 
 ## Persistence
 

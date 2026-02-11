@@ -5,10 +5,11 @@
 
 ## Dependencies
 - [State](state.md) — draft state, league settings, draft mode toggle
+- Next navigation (`next/link`, `next/navigation`) — settings route link and active-state styling
 
 ## What It Does
 
-Top navigation bar with upload and scoring modal triggers (passed as props), draft mode toggle, and a Clear Projections button.
+Top navigation bar with upload trigger (passed as prop), settings cog route link (`/settings?section=scoring`), draft mode toggle, and a Clear Projections button.
 
 When draft mode is on, a second row appears with active team selector, Next button (wraps via modulo in the store), draft status display, and a Reset Draft button.
 

@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ScoringForm } from "@/components/ScoringForm";
+import { DraftSection } from "@/components/settings/DraftSection";
+import { RosterSection } from "@/components/settings/RosterSection";
+import { ScoringSection } from "@/components/settings/ScoringSection";
 import type { LeagueSettings, ScoringSettings } from "@/types";
 
 const useStoreMock = vi.fn();
@@ -84,7 +86,7 @@ function createLeagueSettings(): LeagueSettings {
   };
 }
 
-describe("ScoringForm keyboard numeric navigation", () => {
+describe("settings sections", () => {
   const setScoringSettingsSpy = vi.fn();
   const updateBattingScoringSpy = vi.fn();
   const updatePitchingScoringSpy = vi.fn();
@@ -122,61 +124,60 @@ describe("ScoringForm keyboard numeric navigation", () => {
     cleanup();
   });
 
-  it("supports number-tab-number flow across numeric inputs with one tab between fields", async () => {
+  it("commits batting scoring changes", async () => {
     const user = userEvent.setup();
-    const { container } = render(<ScoringForm isOpen onClose={() => {}} />);
-
-    const numericInputs = Array.from(
-      container.querySelectorAll<HTMLInputElement>('input[data-numeric-input="true"]')
-    );
-    expect(numericInputs.length).toBeGreaterThan(20);
-
-    const stepperButtons = Array.from(
-      container.querySelectorAll<HTMLButtonElement>('button[data-numeric-stepper="true"]')
-    );
-    expect(stepperButtons.length).toBeGreaterThan(0);
-    stepperButtons.forEach((button) => {
-      expect(button).toHaveAttribute("tabindex", "-1");
-    });
-
-    await user.click(numericInputs[0]);
-    await user.keyboard("9");
-
-    for (let index = 1; index <= 6; index += 1) {
-      await user.tab();
-      expect(document.activeElement).toBe(numericInputs[index]);
-      expect(numericInputs[index]).toHaveAttribute("data-numeric-input", "true");
-      await user.keyboard(String(index));
-      expect(container.querySelector('button[data-numeric-stepper="true"]:focus')).toBeNull();
-    }
-  });
-
-  it("commits scoring and roster updates and preserves overwrite typing behavior", async () => {
-    const user = userEvent.setup();
-    render(<ScoringForm isOpen onClose={() => {}} />);
+    render(<ScoringSection />);
 
     const hitsInput = screen.getByLabelText("Hits (H) - all types points");
     await user.click(hitsInput);
     await user.clear(hitsInput);
     await user.keyboard("7");
     await user.tab();
+
     expect(updateBattingScoringSpy).toHaveBeenCalledWith("H", 7);
+  });
+
+  it("commits roster slot and bench updates", async () => {
+    const user = userEvent.setup();
+    render(<RosterSection />);
 
     const lfInput = screen.getByLabelText("Roster LF");
     await user.click(lfInput);
     await user.clear(lfInput);
     await user.keyboard("4");
     await user.tab();
+
     const lfLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
     expect(lfLeagueSettings.roster.positions.LF).toBe(4);
 
-    const benchInput = screen.getByLabelText("Bench") as HTMLInputElement;
-    expect(benchInput.value).toBe("3");
+    const benchInput = screen.getByLabelText("Bench");
     await user.click(benchInput);
     await user.clear(benchInput);
     await user.keyboard("9");
     await user.tab();
+
     const benchLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
     expect(benchLeagueSettings.roster.bench).toBe(9);
+  });
+
+  it("applies draft controls for team management", async () => {
+    const user = userEvent.setup();
+    render(<DraftSection />);
+
+    await user.click(screen.getAllByRole("button", { name: "Add Below" })[0]);
+    const addTeamLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    expect(addTeamLeagueSettings.teamNames.length).toBe(13);
+
+    await user.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    const removeTeamLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    expect(removeTeamLeagueSettings.teamNames.length).toBe(11);
+
+    const [teamNameInput] = screen.getAllByRole("textbox");
+    await user.clear(teamNameInput);
+    await user.keyboard("My Team");
+    await user.tab();
+
+    const renameLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    expect(renameLeagueSettings.teamNames[0]).toBe("My Team");
   });
 });

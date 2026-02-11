@@ -11,7 +11,7 @@
 ## Dependents
 - [Leaderboard](leaderboard.md) — uses `calculatePlayerPoints` for ranking
 - [State](state.md) — default scoring settings use ESPN preset values
-- [Scoring Form](scoring-form.md) — uses `scoringPresets` and `presetNames` for the preset dropdown
+- [Settings Page](settings-page.md) — scoring section uses `scoringPresets` and `presetNames` for preset application
 
 ## How Scoring Works
 

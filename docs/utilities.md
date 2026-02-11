@@ -20,7 +20,7 @@ Only `.0`, `.1`, and `.2` are valid fractional parts. This convention means you 
 ## Dependents
 - [Scoring](scoring.md) and [Pitching Outcomes](pitching-outcomes.md) use `normalizeIp` for IP conversion
 - [Leaderboard](leaderboard.md) uses `isValidBaseballIp` to decide whether to use baseball IP math for an entire projection group
-- [Scoring Form](scoring-form.md) uses `useDebouncedCallback` for input debouncing
+- [Settings Page](settings-page.md) uses `useDebouncedCallback` for scoring input debouncing
 
 ## Edge Cases
 - The debounce hook does not clean up on unmount — the callback fires into a stale closure harmlessly.

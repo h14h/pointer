@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useStore } from "@/store";
 
 interface HeaderProps {
   onOpenUpload: () => void;
-  onOpenScoring: () => void;
 }
 
-export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
+export function Header({ onOpenUpload }: HeaderProps) {
   const {
     isDraftMode,
     setDraftMode,
@@ -19,6 +20,8 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
     resetDraft,
     clearAllData,
   } = useStore();
+  const pathname = usePathname();
+  const isSettingsPage = pathname === "/settings";
   const [isClearOpen, setIsClearOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
 
@@ -75,12 +78,6 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
                 Upload
               </button>
               <button
-                onClick={onOpenScoring}
-                className="rounded-sm border border-[#111111] dark:border-[#333333] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111] dark:text-[#e5e5e5] hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a] transition-colors"
-              >
-                Scoring
-              </button>
-              <button
                 onClick={() => setIsClearOpen(true)}
                 className="rounded-sm px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#dc2626] dark:text-[#ef4444] hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
               >
@@ -108,6 +105,23 @@ export function Header({ onOpenUpload, onOpenScoring }: HeaderProps) {
                   />
                 </button>
               </label>
+              <Link
+                href="/settings?section=scoring"
+                aria-label="Settings"
+                title="Settings"
+                className={`ml-1 inline-flex h-8 w-8 items-center justify-center rounded-sm border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#dc2626] dark:focus-visible:outline-[#ef4444] ${
+                  isSettingsPage
+                    ? "border-[#dc2626] bg-[#dc2626] text-white dark:border-[#ef4444] dark:bg-[#ef4444] dark:text-[#111111]"
+                    : "border-[#111111]/30 text-[#111111]/70 hover:bg-[#f5f5f5] hover:text-[#111111] dark:border-[#333333] dark:text-[#e5e5e5]/60 dark:hover:bg-[#1a1a1a] dark:hover:text-[#e5e5e5]"
+                }`}
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4">
+                  <path
+                    fill="currentColor"
+                    d="M11.84 2.1a2.1 2.1 0 0 0-3.68 0l-.39.75a1 1 0 0 1-1.12.52l-.82-.2a2.1 2.1 0 0 0-2.6 2.6l.2.82a1 1 0 0 1-.52 1.12l-.75.39a2.1 2.1 0 0 0 0 3.68l.75.39a1 1 0 0 1 .52 1.12l-.2.82a2.1 2.1 0 0 0 2.6 2.6l.82-.2a1 1 0 0 1 1.12.52l.39.75a2.1 2.1 0 0 0 3.68 0l.39-.75a1 1 0 0 1 1.12-.52l.82.2a2.1 2.1 0 0 0 2.6-2.6l-.2-.82a1 1 0 0 1 .52-1.12l.75-.39a2.1 2.1 0 0 0 0-3.68l-.75-.39a1 1 0 0 1-.52-1.12l.2-.82a2.1 2.1 0 0 0-2.6-2.6l-.82.2a1 1 0 0 1-1.12-.52zm-1.84 10.9a3 3 0 1 1 0-6 3 3 0 0 1 0 6"
+                  />
+                </svg>
+              </Link>
             </div>
           </div>
 
