@@ -109,6 +109,14 @@ function formatEligibility(player: Player): string {
 	return parts.length > 0 ? parts.join(" / ") : "-";
 }
 
+function abbreviateName(name: string): string {
+	const parts = name.trim().split(/\s+/);
+	if (parts.length === 1) return parts[0].toUpperCase();
+	const firstName = parts[0];
+	const remaining = parts.slice(1).join(" ");
+	return `${firstName[0].toUpperCase()}. ${remaining}`;
+}
+
 function PositionFilter({
 	selectedPositions,
 	onChange,
@@ -788,7 +796,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					}
 					title={row.original.player.Name}
 				>
-					{row.original.player.Name.toUpperCase()}
+					{abbreviateName(row.original.player.Name)}
 				</span>
 						{row.original.isDrafted && (
 							<span className="border border-[#111111]/20 dark:border-[#333333] px-1.5 text-[10px] font-bold uppercase tracking-wider text-[#111111]/60 dark:text-[#e5e5e5]/50 rounded-sm">
