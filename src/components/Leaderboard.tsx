@@ -34,6 +34,8 @@ import type {
 } from "@/types";
 
 type PlayerView = "all" | "batters" | "pitchers";
+
+const POSITION_FILTER_OPTIONS: string[] = [...POSITION_ORDER, "SP", "RP"];
 type DraftFilter = "all" | "available" | "drafted" | "keepers";
 type StatOption = { id: string; label: string };
 
@@ -107,6 +109,87 @@ function formatEligibility(player: Player): string {
 	return parts.length > 0 ? parts.join(" / ") : "-";
 }
 
+function PositionFilter({
+	selectedPositions,
+	onChange,
+}: {
+	selectedPositions: Set<string>;
+	onChange: Dispatch<SetStateAction<Set<string>>>;
+}) {
+	const [isOpen, setIsOpen] = useState(false);
+
+	const togglePosition = (pos: string, checked: boolean) => {
+		onChange((current) => {
+			const next = new Set(current);
+			if (checked) {
+				next.add(pos);
+			} else {
+				next.delete(pos);
+			}
+			return next;
+		});
+	};
+
+	return (
+		<div className="relative inline-flex items-center">
+			<button
+				type="button"
+				onClick={() => setIsOpen((open) => !open)}
+				className={`rounded-sm border px-3 py-1.5 text-sm flex items-center gap-2 ${
+					selectedPositions.size > 0
+						? "border-[#dc2626] dark:border-[#ef4444] text-[#dc2626] dark:text-[#ef4444]"
+						: "border-[#111111]/20 dark:border-[#333333] text-[#111111] dark:text-[#e5e5e5]"
+				} bg-white dark:bg-[#1a1a1a] hover:border-[#111111]/40 dark:hover:border-[#e5e5e5]/30 transition-colors`}
+			>
+				<span className="font-medium">Position</span>
+				{selectedPositions.size > 0 && (
+					<span className="h-5 w-5 rounded-full bg-[#dc2626] dark:bg-[#ef4444] text-white text-xs flex items-center justify-center font-bold">
+						{selectedPositions.size}
+					</span>
+				)}
+			</button>
+
+			{isOpen && (
+				<>
+					<button type="button" className="fixed inset-0 z-10 cursor-default" onClick={() => setIsOpen(false)} />
+					<div className="absolute top-full left-0 mt-1 z-20 border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] rounded-sm shadow-lg min-w-[200px]">
+						<div className="p-3">
+							<div className="flex items-center justify-between mb-3">
+								<span className="text-xs font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40">
+									Filter by Position
+								</span>
+								<button
+									type="button"
+									onClick={() => onChange(new Set())}
+									className="text-xs font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30 hover:text-[#111111] dark:hover:text-[#e5e5e5]"
+								>
+									Clear
+								</button>
+							</div>
+							<div className="flex flex-wrap gap-2">
+								{POSITION_FILTER_OPTIONS.map((pos) => (
+									<label
+										key={pos}
+										className="flex items-center gap-1.5 border border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2.5 py-1.5 text-xs font-medium text-[#111111] dark:text-[#e5e5e5] rounded-sm cursor-pointer hover:border-[#111111]/30 dark:hover:border-[#e5e5e5]/30"
+									>
+										<input
+											type="checkbox"
+											checked={selectedPositions.has(pos)}
+											onChange={(e) => togglePosition(pos, e.target.checked)}
+											className="h-3.5 w-3.5 rounded-sm border-[#111111]/30 dark:border-[#333333] text-[#dc2626] dark:text-[#ef4444] accent-[#dc2626] dark:accent-[#ef4444]"
+										/>
+										<span>{pos}</span>
+									</label>
+								))}
+							</div>
+						</div>
+					</div>
+				</>
+			)}
+		</div>
+	);
+}
+
 export function Leaderboard() {
 	const {
 		projectionGroups,
@@ -131,6 +214,7 @@ export function Leaderboard() {
 	const [playerView, setPlayerView] = useState<PlayerView>("all");
 	const [draftFilter, setDraftFilter] = useState<DraftFilter>("available");
 	const [isStatsOpen, setIsStatsOpen] = useState(false);
+	const [selectedPositions, setSelectedPositions] = useState<Set<string>>(new Set());
 
 	const parseStored = (key: string, fallback: string[]) => {
 		if (typeof window === "undefined") return fallback;
@@ -293,6 +377,11 @@ export function Leaderboard() {
 						</select>
 					)}
 
+					<PositionFilter
+						selectedPositions={selectedPositions}
+						onChange={setSelectedPositions}
+					/>
+
 					{isDraftMode && (
 						<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30">
 							Click to draft, right-click for keeper
@@ -438,6 +527,7 @@ export function Leaderboard() {
 					draftFilter={draftFilter}
 					battingStatIds={selectedBattingStats}
 					pitchingStatIds={selectedPitchingStats}
+					selectedPositions={selectedPositions}
 				/>
 			</div>
 		</div>
@@ -461,6 +551,7 @@ type LeaderboardTableProps = {
 	draftFilter: DraftFilter;
 	battingStatIds: string[];
 	pitchingStatIds: string[];
+	selectedPositions: Set<string>;
 };
 
 const LeaderboardTable = memo(function LeaderboardTable({
@@ -480,6 +571,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	draftFilter,
 	battingStatIds,
 	pitchingStatIds,
+	selectedPositions,
 }: LeaderboardTableProps) {
 	const activeGroup =
 		projectionGroups.find((group) => group.id === activeGroupId) ??
@@ -616,9 +708,26 @@ const LeaderboardTable = memo(function LeaderboardTable({
 
 	// Filter by draft status in draft mode
 	const filteredPlayers = useMemo(() => {
-		if (!isDraftMode || draftFilter === "all") return rankedPlayers;
+		let result = rankedPlayers;
 
-		return rankedPlayers.filter((p) => {
+		if (selectedPositions.size > 0) {
+			result = result.filter((p) => {
+				const eligible = p.player.eligibility?.eligiblePositions ?? [];
+				const isSP = p.player.eligibility?.isSP ?? false;
+				const isRP = p.player.eligibility?.isRP ?? false;
+
+				for (const pos of selectedPositions) {
+					if (pos === "SP" && isSP) return true;
+					if (pos === "RP" && isRP) return true;
+					if ((eligible as string[]).includes(pos)) return true;
+				}
+				return false;
+			});
+		}
+
+		if (!isDraftMode || draftFilter === "all") return result;
+
+		return result.filter((p) => {
 			switch (draftFilter) {
 				case "available":
 					return !p.isDrafted && !p.isKeeper;
@@ -630,7 +739,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					return true;
 			}
 		});
-	}, [rankedPlayers, isDraftMode, draftFilter]);
+	}, [rankedPlayers, isDraftMode, draftFilter, selectedPositions]);
 
 	const columns = useMemo<ColumnDef<RankedPlayer>[]>(() => {
 		const resolveTeamLabel = (teamIndex?: number) => {
@@ -1279,7 +1388,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		setPagination((current) =>
 			current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
 		);
-	}, [globalFilter, draftFilter, playerView, activeGroupId]);
+	}, [globalFilter, draftFilter, playerView, activeGroupId, selectedPositions]);
 
 	const handleRowClick = useCallback(
 		(player: RankedPlayer) => {
