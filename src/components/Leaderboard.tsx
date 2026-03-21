@@ -85,7 +85,11 @@ const DEFAULT_BATTING_STATS = ["R", "HR", "RBI", "SB", "AVG"];
 const DEFAULT_PITCHING_STATS = ["W", "SV", "SO_P", "ERA", "WHIP"];
 
 const formatCountingStat = (value: number | null) =>
-	value === null || Number.isNaN(value) ? "-" : Math.round(value);
+	value === null || Number.isNaN(value) ? (
+		"-"
+	) : (
+		<span className="font-mono">{Math.round(value)}</span>
+	);
 
 function formatEligibility(player: Player): string {
 	const eligibility = player.eligibility;
@@ -638,12 +642,12 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				id: "ADP",
 				header: "ADP",
 				size: 70,
-				meta: { className: "text-right" },
+				meta: { className: "text-right font-mono" },
 				accessorFn: (row) =>
 					(row.player as unknown as Record<string, number | null>).ADP,
 				cell: ({ getValue }) => {
 					const val = getValue() as number | null;
-					return val ? Math.round(val) : "-";
+					return val != null ? val.toFixed(1) : "-";
 				},
 			},
 			{
@@ -730,8 +734,8 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				header: "Points",
 				size: 95,
 				cell: ({ row }) => (
-					<span className="font-bold text-[#dc2626] dark:text-[#ef4444]">
-						{row.original.projectedPoints.toFixed(1)}
+					<span className="font-bold font-mono text-[#dc2626] dark:text-[#ef4444]">
+						{Math.round(row.original.projectedPoints)}
 					</span>
 				),
 			},
@@ -979,7 +983,11 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								: null,
 					cell: ({ getValue }) => {
 						const val = getValue() as number | null;
-						return val ? val.toFixed(3).replace(/^0/, "") : "-";
+						return val ? (
+							<span className="font-mono">{val.toFixed(3).replace(/^0/, "")}</span>
+						) : (
+							"-"
+						);
 					},
 				},
 			];
@@ -1001,7 +1009,10 @@ const LeaderboardTable = memo(function LeaderboardTable({
 							: row.player._type === "two-way"
 								? row.player._pitchingStats.IP
 								: null,
-					cell: ({ getValue }) => getValue() ?? "-",
+					cell: ({ getValue }) => {
+						const val = getValue() as number | null;
+						return <span className="font-mono">{val ?? "-"}</span>;
+					},
 				},
 				{
 					id: "SO_P",
@@ -1197,7 +1208,11 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								: null,
 					cell: ({ getValue }) => {
 						const val = getValue() as number | null;
-						return val ? val.toFixed(2) : "-";
+						return val ? (
+							<span className="font-mono">{val.toFixed(2)}</span>
+						) : (
+							"-"
+						);
 					},
 				},
 				{
@@ -1212,7 +1227,11 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								: null,
 					cell: ({ getValue }) => {
 						const val = getValue() as number | null;
-						return val ? val.toFixed(2) : "-";
+						return val ? (
+							<span className="font-mono">{val.toFixed(2)}</span>
+						) : (
+							"-"
+						);
 					},
 				},
 			];
