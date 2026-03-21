@@ -6,6 +6,7 @@ import { Suspense, useState } from "react";
 import { CsvUpload } from "@/components/CsvUpload";
 import { Header } from "@/components/Header";
 import { DraftSection } from "@/components/settings/DraftSection";
+import { LeaguesSection } from "@/components/settings/LeaguesSection";
 import { RosterSection } from "@/components/settings/RosterSection";
 import { ScoringSection } from "@/components/settings/ScoringSection";
 import { SettingsLayout } from "@/components/settings/SettingsLayout";
@@ -40,7 +41,7 @@ function SettingsPageContent() {
             </Link>
           </div>
           <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
-            Scoring, roster, and draft configuration.
+            Scoring, roster, draft, and league configuration.
           </p>
         </div>
 
@@ -48,6 +49,7 @@ function SettingsPageContent() {
           {activeSection === "scoring" && <ScoringSection />}
           {activeSection === "roster" && <RosterSection />}
           {activeSection === "draft" && <DraftSection />}
+          {activeSection === "leagues" && <LeaguesSection />}
         </SettingsLayout>
       </main>
 

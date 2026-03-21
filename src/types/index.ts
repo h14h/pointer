@@ -208,6 +208,15 @@ export interface LeagueSettings {
   roster: RosterSettings;
 }
 
+export interface League {
+  id: string;
+  name: string;
+  scoringSettings: ScoringSettings;
+  leagueSettings: LeagueSettings;
+  draftState: DraftState;
+  updatedAt: number;
+}
+
 // Player with calculated points for display
 export interface RankedPlayer {
   player: Player;
@@ -220,10 +229,9 @@ export interface RankedPlayer {
 
 // App state
 export interface AppState {
+  leagues: League[];
+  activeLeagueId: string | null;
   projectionGroups: ProjectionGroup[];
   activeProjectionGroupId: string | null;
-  scoringSettings: ScoringSettings;
-  leagueSettings: LeagueSettings;
-  draftState: DraftState;
   isDraftMode: boolean;
 }

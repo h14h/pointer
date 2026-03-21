@@ -13,7 +13,8 @@ import type { ScoringSettings } from "@/types";
 
 export function ScoringSection() {
   const {
-    scoringSettings,
+    leagues,
+    activeLeagueId,
     setScoringSettings,
     updateBattingScoring,
     updatePitchingScoring,
@@ -22,6 +23,8 @@ export function ScoringSection() {
     mergeTwoWayRankings,
     setMergeTwoWayRankings,
   } = useStore();
+  const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
+  const scoringSettings = activeLeague?.scoringSettings;
   const presetSelectionRef = useRef<HTMLSelectElement>(null);
   const activePresetKey =
     presetNames.find((key) => scoringPresets[key].name === scoringSettings.name) ??

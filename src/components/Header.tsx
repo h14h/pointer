@@ -13,17 +13,22 @@ export function Header({ onOpenUpload }: HeaderProps) {
   const {
     isDraftMode,
     setDraftMode,
-    leagueSettings,
-    draftState,
+    leagues,
+    activeLeagueId,
+    setActiveLeague,
     setActiveTeamIndex,
     advanceActiveTeam,
     resetDraft,
     clearAllData,
   } = useStore();
+  const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
+  const leagueSettings = activeLeague?.leagueSettings;
+  const draftStateForLeague = activeLeague?.draftState;
   const pathname = usePathname();
   const isSettingsPage = pathname === "/settings";
   const [isClearOpen, setIsClearOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
+  const [isLeagueOpen, setIsLeagueOpen] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -38,12 +43,12 @@ export function Header({ onOpenUpload }: HeaderProps) {
     }
   }, [isResetOpen, isClearOpen]);
 
-  const activeTeamIndex = draftState.activeTeamIndex;
+  const activeTeamIndex = draftStateForLeague?.activeTeamIndex ?? 0;
   const activeTeamName =
-    leagueSettings.teamNames[activeTeamIndex] ?? `Team ${activeTeamIndex + 1}`;
+    leagueSettings?.teamNames[activeTeamIndex] ?? `Team ${activeTeamIndex + 1}`;
 
-  const draftedEntries = Object.entries(draftState.draftedByTeam);
-  const keeperEntries = Object.entries(draftState.keeperByTeam);
+  const draftedEntries = Object.entries(draftStateForLeague?.draftedByTeam ?? {});
+  const keeperEntries = Object.entries(draftStateForLeague?.keeperByTeam ?? {});
   const draftedCount = draftedEntries.length;
   const keeperCount = keeperEntries.length;
   const teamDraftedCount = draftedEntries.filter(
@@ -83,7 +88,67 @@ export function Header({ onOpenUpload }: HeaderProps) {
               >
                 Clear Projections
               </button>
-              <label className="ml-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
+
+              {/* League selector */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsLeagueOpen(!isLeagueOpen)}
+                  className="flex items-center gap-1.5 rounded-sm border border-[#111111]/30 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/70 dark:border-[#333333] dark:text-[#e5e5e5]/60 hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
+                >
+                  <span className="max-w-[120px] truncate">{activeLeague?.name ?? "League"}</span>
+                  <svg viewBox="0 0 12 12" fill="currentColor" className="h-2.5 w-2.5 shrink-0">
+                    <path d="M2.5 4.5l3.5 3.5 3.5-3.5" />
+                  </svg>
+                </button>
+
+                {isLeagueOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsLeagueOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-sm border border-[#111111]/15 bg-white shadow-lg dark:border-[#333333] dark:bg-[#1a1a1a]">
+                      {leagues.map((league) => {
+                        const isActive = league.id === activeLeagueId;
+                        return (
+                          <button
+                            key={league.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveLeague(league.id);
+                              setIsLeagueOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${
+                              isActive
+                                ? "bg-[#dc2626]/[0.05] text-[#dc2626] dark:bg-[#ef4444]/[0.05] dark:text-[#ef4444]"
+                                : "text-[#111111]/70 hover:bg-[#f5f5f5] dark:text-[#e5e5e5]/60 dark:hover:bg-[#2a2a2a]"
+                            }`}
+                          >
+                            <span className="max-w-[140px] truncate">{league.name}</span>
+                            {isActive && (
+                              <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3 shrink-0">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                      <div className="border-t border-[#111111]/10 dark:border-[#e5e5e5]/[0.08]">
+                        <Link
+                          href="/settings?section=leagues"
+                          onClick={() => setIsLeagueOpen(false)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-[#111111]/50 hover:bg-[#f5f5f5] dark:text-[#e5e5e5]/40 dark:hover:bg-[#2a2a2a]"
+                        >
+                          Manage leagues...
+                        </Link>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
                 Draft Mode
                 <button
                   role="switch"
@@ -223,7 +288,7 @@ export function Header({ onOpenUpload }: HeaderProps) {
               Delete all projections?
             </h2>
             <p className="mb-8 font-sans text-sm leading-relaxed text-[#111111]/60 dark:text-[#e5e5e5]/50">
-              This removes all projection groups and uploaded players. This cannot be undone.
+              This removes all projection groups and uploaded players, and clears draft picks from all leagues. This cannot be undone.
             </p>
             <div className="flex justify-end gap-3 font-sans">
               <button

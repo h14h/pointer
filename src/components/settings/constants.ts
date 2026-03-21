@@ -17,6 +17,11 @@ export const settingsSections: SettingsSectionMeta[] = [
     label: "Draft",
     description: "League size, team names, and draft order.",
   },
+  {
+    key: "leagues",
+    label: "Leagues",
+    description: "Manage multiple league profiles.",
+  },
 ];
 
 type ScoringCategory<T> = { key: keyof T; label: string };

@@ -108,14 +108,17 @@ export function Leaderboard() {
 		projectionGroups,
 		activeProjectionGroupId,
 		setActiveProjectionGroup,
-		scoringSettings,
-		leagueSettings,
-		draftState,
 		isDraftMode,
 		toggleDraftedForTeam,
 		toggleKeeperForTeam,
 		mergeTwoWayRankings,
+		leagues,
+		activeLeagueId,
 	} = useStore();
+	const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
+	const scoringSettings = activeLeague?.scoringSettings;
+	const leagueSettings = activeLeague?.leagueSettings;
+	const draftState = activeLeague?.draftState;
 	const currentGroupId =
 		activeProjectionGroupId ?? projectionGroups[0]?.id ?? null;
 	const deferredGroupId = useDeferredValue(currentGroupId);

@@ -26,6 +26,11 @@ const sectionIcons: Record<SettingsSectionKey, ReactNode> = {
       <path fillRule="evenodd" d="M6 4.75A.75.75 0 0 1 6.75 4h10.5a.75.75 0 0 1 0 1.5H6.75A.75.75 0 0 1 6 4.75ZM6 10a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H6.75A.75.75 0 0 1 6 10Zm0 5.25a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H6.75a.75.75 0 0 1-.75-.75ZM1.99 4.75a1 1 0 0 1 1-1h.01a1 1 0 0 1 0 2h-.01a1 1 0 0 1-1-1Zm0 5.25a1 1 0 0 1 1-1h.01a1 1 0 1 1 0 2h-.01a1 1 0 0 1-1-1Zm1 4.25a1 1 0 1 0 0 2h.01a1 1 0 1 0 0-2h-.01Z" clipRule="evenodd" />
     </svg>
   ),
+  leagues: (
+    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+      <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0 0 1.5h11.5a.75.75 0 0 0 0-1.5H4.25ZM6 10a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 6 10ZM3.5 15.25a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5H3.5Zm12.75-.75a.75.75 0 0 1 0 1.5h-11.5a.75.75 0 0 1 0-1.5H16.25Zm-1.5-5.25a.75.75 0 0 0 0 1.5h1.75a.75.75 0 0 0 0-1.5h-1.75Zm-8.25-1.5a.75.75 0 0 1 .75-.75h1.75a.75.75 0 0 1 0 1.5h-1.75a.75.75 0 0 1-.75-.75ZM8 14.25a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z" clipRule="evenodd" />
+    </svg>
+  ),
 };
 
 export function SettingsLayout({ activeSection, children }: SettingsLayoutProps) {

@@ -13,10 +13,10 @@ All UI components: [Leaderboard](leaderboard.md), [CSV Upload Workflow](csv-uplo
 ## Persistence
 
 - **Storage key:** `"pointer-storage"`
-- **Version:** 4
+- **Version:** 5
 - **Middleware:** Zustand `persist` to `localStorage`
 
-Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, and converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure.
+Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure, and wrapping single-league data in a `League` object (v4→v5).
 
 ## Key Invariants
 
@@ -32,15 +32,28 @@ Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (
 
 **Team index as string key.** `DraftState` records use string keys because JSON serialization (localStorage) requires it. All consumers must parse these back to numbers.
 
+**Last league protection.** `deleteLeague` is a no-op when only one league remains.
+
 ## Action Categories
 
-The store has ~20 actions organized into:
+The store has ~25 actions organized into:
+- **League management** — create, delete, duplicate, rename, set active, update active league
 - **Projection management** — add, remove, set active, clear groups
-- **Scoring** — full replacement or single-weight updates
-- **League** — settings replacement (with normalization), individual setters for size/names/roster, team advancement (modulo wrap)
-- **Draft** — toggle drafted/keeper, set mode, reset, clear all
+- **Scoring** — full replacement or single-weight updates (operates on active league)
+- **League settings** — settings replacement (with normalization), individual setters for size/names/roster (operates on active league)
+- **Draft** — toggle drafted/keeper, set mode, reset (active league only), clear all
 - **Eligibility** — apply eligibility map to a projection group
 
 ## Default Values
 
 Default scoring uses ESPN-style weights. Default league is 12 teams with a standard roster (C, 1B, 2B, 3B, SS, 3×OF, UTIL, 7×P, 3 bench). `mergeTwoWayRankings` defaults to `true`.
+
+## Multi-League Behavior
+
+**Active league resolution.** When reading `scoringSettings`, `leagueSettings`, or `draftState`, components derive them from the active league: `leagues.find(l => l.id === activeLeagueId) ?? leagues[0]`. The store initializes with a default "My League" if none exists.
+
+**Shared projections.** Projection groups are shared across all leagues — uploading projections once makes them available for all leagues.
+
+**Per-league draft state.** Each league maintains its own `draftState`. Switching leagues preserves each league's drafted/keeper players independently.
+
+**`clearAllData` behavior.** Clears all projections. Leagues and their draft states are preserved — only the draft picks and keepers are reset to empty.

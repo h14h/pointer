@@ -8,7 +8,9 @@ import { useStore } from "@/store";
 type DropEdge = { index: number; side: "before" | "after" } | null;
 
 export function DraftSection() {
-  const { leagueSettings, setLeagueSettings } = useStore();
+  const { leagues, activeLeagueId, setLeagueSettings } = useStore();
+  const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
+  const leagueSettings = activeLeague?.leagueSettings;
   const teamNameDraftByIndexRef = useRef<Record<number, string>>({});
   const [draggingTeamIndex, setDraggingTeamIndex] = useState<number | null>(null);
   const [dropEdge, setDropEdge] = useState<DropEdge>(null);

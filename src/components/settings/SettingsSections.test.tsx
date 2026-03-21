@@ -93,14 +93,27 @@ describe("settings sections", () => {
   const setLeagueSettingsSpy = vi.fn();
   const setMergeTwoWayRankingsSpy = vi.fn();
 
+  const createLeague = () => ({
+    id: "league-1",
+    name: "My League",
+    scoringSettings: createScoringSettings(),
+    leagueSettings: createLeagueSettings(),
+    draftState: {
+      draftedByTeam: {},
+      keeperByTeam: {},
+      activeTeamIndex: 0,
+    },
+    updatedAt: Date.now(),
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     useStoreMock.mockReturnValue({
-      scoringSettings: createScoringSettings(),
+      leagues: [createLeague()],
+      activeLeagueId: "league-1",
       setScoringSettings: setScoringSettingsSpy,
       updateBattingScoring: updateBattingScoringSpy,
       updatePitchingScoring: updatePitchingScoringSpy,
-      leagueSettings: createLeagueSettings(),
       setLeagueSettings: setLeagueSettingsSpy,
       projectionGroups: [
         {

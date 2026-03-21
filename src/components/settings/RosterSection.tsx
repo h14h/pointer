@@ -14,7 +14,9 @@ import {
 import type { RosterSlot } from "@/types";
 
 export function RosterSection() {
-  const { leagueSettings, setLeagueSettings } = useStore();
+  const { leagues, activeLeagueId, setLeagueSettings } = useStore();
+  const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
+  const leagueSettings = activeLeague?.leagueSettings;
 
   const commitRosterSlot = (slot: RosterSlot, value: number) => {
     const next = {

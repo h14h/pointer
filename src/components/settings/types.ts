@@ -1,4 +1,4 @@
-export type SettingsSectionKey = "scoring" | "roster" | "draft";
+export type SettingsSectionKey = "scoring" | "roster" | "draft" | "leagues";
 
 export interface SettingsSectionMeta {
   key: SettingsSectionKey;
@@ -9,7 +9,7 @@ export interface SettingsSectionMeta {
 export function resolveSettingsSection(
   section: string | null | undefined
 ): SettingsSectionKey {
-  if (section === "scoring" || section === "roster" || section === "draft") {
+  if (section === "scoring" || section === "roster" || section === "draft" || section === "leagues") {
     return section;
   }
   return "scoring";

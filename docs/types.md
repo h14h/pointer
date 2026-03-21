@@ -16,3 +16,13 @@
 **IdSource semantics.** `"MLBAMID"` and `"PlayerId"` mean the ID was read from a known column. `"custom"` means the user chose a CSV column. `"generated"` means no ID column was found and a synthetic `"{type}-{index}"` ID was created. Generated IDs prevent two-way player merging since they can't match across files.
 
 **Position vs RosterSlot.** `Position` is the 9 fielding positions (C through DH). `RosterSlot` extends this with group slots (OF, CI, MI, IF, UTIL), pitcher slots (SP, RP, P), and special slots (IL, NA). Position is used for eligibility; RosterSlot is used for roster configuration.
+
+## Multi-League
+
+**League type.** A `League` bundles everything that is per-league: `scoringSettings`, `leagueSettings`, and `draftState`. This allows users to maintain multiple league configurations (e.g., "ESPN H2H", "Home League") with separate settings and draft state, while sharing projection data across them.
+
+**AppState structure.** The root `AppState` holds `leagues[]` and `activeLeagueId` rather than per-league data directly. All components that previously read `scoringSettings`/`leagueSettings`/`draftState` from the store now derive them from the active league.
+
+**League ID generation.** IDs are generated via `crypto.randomUUID()` to ensure uniqueness across imports/exports.
+
+**updatedAt timestamp.** Each `League` carries an `updatedAt` field (Unix ms) that updates whenever the league's settings or draft state change. This is used for display purposes in the leagues list.
