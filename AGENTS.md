@@ -4,7 +4,7 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
 ### Available skills
 - frontend-design: Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics. (file: /Users/h14h/.agents/skills/frontend-design/SKILL.md)
 - functional-design: Create highly functional, production-grade frontend interfaces logical hierarchies. Use this skill when the user asks to build interative elements in websites or applications (examples include forms, sortable tables and search inputs). Generates creative, polished code and UI design that maximizes visual clarity, emphasizes the most important elements, and leverages relative spacing to indicate logical groups. (file: /Users/h14h/.agents/skills/functional-design/SKILL.md)
-- skill-creator: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Codex's capabilities with specialized knowledge, workflows, or tool integrations. (file: /Users/h14h/.codex/skills/.system/skill-creator/SKILL.md)
+- skill-creator: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations. (file: /Users/h14h/.codex/skills/.system/skill-creator/SKILL.md)
 - skill-installer: Install Codex skills into $CODEX_HOME/skills from a curated list or a GitHub repo path. Use when a user asks to list installable skills, install a curated skill, or install a skill from another repo (including private repos). (file: /Users/h14h/.codex/skills/.system/skill-installer/SKILL.md)
 ### How to use skills
 - Discovery: The list above is the skills available in this session (name + description + file path). Skill bodies live on disk at the listed paths.
@@ -24,4 +24,14 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
   - Avoid deep reference-chasing: prefer opening only files directly linked from `SKILL.md` unless you're blocked.
   - When variants exist (frameworks, providers, domains), pick only the relevant reference file(s) and note that choice.
 - Safety and fallback: If a skill can't be applied cleanly (missing files, unclear instructions), state the issue, pick the next-best approach, and continue.
+## Quality Assurance
+Before completing any code change, run all checks in order and fix any failures:
+```bash
+bun run test && bun run test:ui && bun run lint && bun run build
+```
+- `bun run test` — unit tests for src/lib
+- `bun run test:ui` — component/UI tests (Vitest)
+- `bun run lint` — ESLint; zero errors required (warnings are acceptable when React Compiler handles the case)
+- `bun run build` — Next.js build with TypeScript validation
+See [HOW.md](HOW.md) for full QA documentation.
 </INSTRUCTIONS>

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Docker entrypoint uses CommonJS require
+    "docker-entrypoint.js",
   ]),
 ]);
 

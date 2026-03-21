@@ -124,11 +124,39 @@ export function Leaderboard() {
 	const [playerView, setPlayerView] = useState<PlayerView>("all");
 	const [draftFilter, setDraftFilter] = useState<DraftFilter>("available");
 	const [isStatsOpen, setIsStatsOpen] = useState(false);
+
+	const parseStored = (key: string, fallback: string[]) => {
+		if (typeof window === "undefined") return fallback;
+		try {
+			const raw = window.localStorage.getItem(key);
+			if (!raw) return fallback;
+			const parsed = JSON.parse(raw);
+			return Array.isArray(parsed)
+				? parsed.filter((val) => typeof val === "string")
+				: fallback;
+		} catch {
+			return fallback;
+		}
+	};
+
+	const battingOptions = new Set(
+		BATTING_STAT_OPTIONS.map((stat) => stat.id),
+	);
+	const pitchingOptions = new Set(
+		PITCHING_STAT_OPTIONS.map((stat) => stat.id),
+	);
+
 	const [selectedBattingStats, setSelectedBattingStats] = useState<string[]>(
-		() => DEFAULT_BATTING_STATS,
+		() =>
+			parseStored(STORAGE_KEYS.batting, DEFAULT_BATTING_STATS).filter(
+				(statId) => battingOptions.has(statId),
+			),
 	);
 	const [selectedPitchingStats, setSelectedPitchingStats] = useState<string[]>(
-		() => DEFAULT_PITCHING_STATS,
+		() =>
+			parseStored(STORAGE_KEYS.pitching, DEFAULT_PITCHING_STATS).filter(
+				(statId) => pitchingOptions.has(statId),
+			),
 	);
 
 	const battingStatSet = useMemo(
@@ -139,40 +167,6 @@ export function Leaderboard() {
 		() => new Set(selectedPitchingStats),
 		[selectedPitchingStats],
 	);
-
-	useEffect(() => {
-		const parseStored = (key: string, fallback: string[]) => {
-			if (typeof window === "undefined") return fallback;
-			try {
-				const raw = window.localStorage.getItem(key);
-				if (!raw) return fallback;
-				const parsed = JSON.parse(raw);
-				return Array.isArray(parsed)
-					? parsed.filter((val) => typeof val === "string")
-					: fallback;
-			} catch {
-				return fallback;
-			}
-		};
-
-		const battingOptions = new Set(
-			BATTING_STAT_OPTIONS.map((stat) => stat.id),
-		);
-		const pitchingOptions = new Set(
-			PITCHING_STAT_OPTIONS.map((stat) => stat.id),
-		);
-
-		setSelectedBattingStats(
-			parseStored(STORAGE_KEYS.batting, DEFAULT_BATTING_STATS).filter((statId) =>
-				battingOptions.has(statId),
-			),
-		);
-		setSelectedPitchingStats(
-			parseStored(STORAGE_KEYS.pitching, DEFAULT_PITCHING_STATS).filter(
-				(statId) => pitchingOptions.has(statId),
-			),
-		);
-	}, []);
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -484,8 +478,11 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		projectionGroups.find((group) => group.id === activeGroupId) ??
 		projectionGroups[0] ??
 		null;
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- React Compiler handles memoization
 	const batters = activeGroup?.batters ?? [];
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- React Compiler handles memoization
 	const pitchers = activeGroup?.pitchers ?? [];
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- React Compiler handles memoization
 	const twoWayPlayers = activeGroup?.twoWayPlayers ?? [];
 
 	const [sorting, setSorting] = useState<SortingState>([

@@ -51,3 +51,36 @@ When updating a spec after a code change, ask: *"Would an agent need to know thi
 ## Maintenance
 
 This document and its specs should always reflect the current codebase. When code changes, update the relevant spec. If a domain is added or removed, update this table.
+
+## Quality Assurance
+
+Run all checks before completing any code change. Failure in any step blocks the change.
+
+### Scripts (use `bun`)
+
+| Script | Command | Purpose |
+|--------|---------|---------|
+| `test` | `bun run test` | Unit tests for `src/lib` |
+| `test:ui` | `bun run test:ui` | Component/UI tests (Vitest, jsdom) |
+| `lint` | `bun run lint` | ESLint (includes React Compiler checks) |
+| `build` | `bun run build` | Next.js build with TypeScript validation |
+
+### Required Verification Order
+
+1. `bun run test` — all unit tests must pass
+2. `bun run test:ui` — all UI tests must pass
+3. `bun run lint` — zero errors (warnings are acceptable when React Compiler is known to handle the case)
+4. `bun run build` — TypeScript must compile cleanly
+
+### Running Everything
+
+```bash
+bun run test && bun run test:ui && bun run lint && bun run build
+```
+
+### Notes
+
+- **ESLint** is configured via `eslint.config.mjs` using `eslint-config-next`. The `react-hooks/incompatible-library` warning for TanStack Table is a known limitation — React Compiler handles it automatically and no suppression is needed.
+- **React Compiler** (Next.js 16 + Turbopack) handles memoization automatically. The `react-hooks/exhaustive-deps` warnings for `batters`/`pitchers`/`twoWayPlayers` in `Leaderboard.tsx` are suppressed inline because the compiler manages those dependencies.
+- **`.eslintignore` is not used** — ESLint v9 requires `globalIgnores` in `eslint.config.mjs` instead.
+- **TypeScript** is validated as part of `build`, not as a separate `tsc` call.
