@@ -19,42 +19,89 @@ export const settingsSections: SettingsSectionMeta[] = [
   },
 ];
 
-export const battingCategories: { key: keyof ScoringSettings["batting"]; label: string }[] = [
-  { key: "H", label: "Hits (H) - all types" },
-  { key: "1B", label: "Singles (1B)" },
-  { key: "2B", label: "Doubles (2B)" },
-  { key: "3B", label: "Triples (3B)" },
-  { key: "HR", label: "Home Runs (HR)" },
-  { key: "R", label: "Runs (R)" },
-  { key: "RBI", label: "RBI" },
-  { key: "BB", label: "Walks (BB)" },
-  { key: "HBP", label: "Hit By Pitch (HBP)" },
-  { key: "SO", label: "Strikeouts (SO)" },
-  { key: "SB", label: "Stolen Bases (SB)" },
-  { key: "CS", label: "Caught Stealing (CS)" },
-  { key: "SF", label: "Sac Flies (SF)" },
-  { key: "GDP", label: "GIDP" },
+type ScoringCategory<T> = { key: keyof T; label: string };
+
+export type BattingCategory = ScoringCategory<ScoringSettings["batting"]>;
+export type PitchingCategory = ScoringCategory<ScoringSettings["pitching"]>;
+
+export const battingGroups: { label: string; categories: BattingCategory[] }[] = [
+  {
+    label: "Hits",
+    categories: [
+      { key: "H", label: "Hits (H) - all types" },
+      { key: "1B", label: "Singles (1B)" },
+      { key: "2B", label: "Doubles (2B)" },
+      { key: "3B", label: "Triples (3B)" },
+      { key: "HR", label: "Home Runs (HR)" },
+    ],
+  },
+  {
+    label: "Run Production",
+    categories: [
+      { key: "R", label: "Runs (R)" },
+      { key: "RBI", label: "RBI" },
+    ],
+  },
+  {
+    label: "Plate Discipline",
+    categories: [
+      { key: "BB", label: "Walks (BB)" },
+      { key: "HBP", label: "Hit By Pitch (HBP)" },
+      { key: "SO", label: "Strikeouts (SO)" },
+    ],
+  },
+  {
+    label: "Baserunning",
+    categories: [
+      { key: "SB", label: "Stolen Bases (SB)" },
+      { key: "CS", label: "Caught Stealing (CS)" },
+    ],
+  },
+  {
+    label: "Other",
+    categories: [
+      { key: "SF", label: "Sac Flies (SF)" },
+      { key: "GDP", label: "GIDP" },
+    ],
+  },
 ];
 
-export const pitchingCategories: {
-  key: keyof ScoringSettings["pitching"];
-  label: string;
-}[] = [
-  { key: "IP", label: "Innings Pitched (IP)" },
-  { key: "SO", label: "Strikeouts (SO)" },
-  { key: "H", label: "Hits Allowed (H)" },
-  { key: "ER", label: "Earned Runs (ER)" },
-  { key: "HR", label: "HR Allowed (HR)" },
-  { key: "BB", label: "Walks Allowed (BB)" },
-  { key: "HBP", label: "Hit Batters (HBP)" },
-  { key: "W", label: "Wins (W)" },
-  { key: "L", label: "Losses (L)" },
-  { key: "QS", label: "Quality Starts (QS)" },
-  { key: "SV", label: "Saves (SV)" },
-  { key: "HLD", label: "Holds (HLD)" },
-  { key: "BS", label: "Blown Saves (BS)" },
-  { key: "CG", label: "Complete Games (CG)" },
-  { key: "ShO", label: "Shutouts (ShO)" },
+export const pitchingGroups: { label: string; categories: PitchingCategory[] }[] = [
+  {
+    label: "Core",
+    categories: [
+      { key: "IP", label: "Innings Pitched (IP)" },
+      { key: "SO", label: "Strikeouts (SO)" },
+      { key: "H", label: "Hits Allowed (H)" },
+      { key: "ER", label: "Earned Runs (ER)" },
+      { key: "HR", label: "HR Allowed (HR)" },
+      { key: "BB", label: "Walks Allowed (BB)" },
+      { key: "HBP", label: "Hit Batters (HBP)" },
+    ],
+  },
+  {
+    label: "Decisions",
+    categories: [
+      { key: "W", label: "Wins (W)" },
+      { key: "L", label: "Losses (L)" },
+      { key: "QS", label: "Quality Starts (QS)" },
+    ],
+  },
+  {
+    label: "Relief",
+    categories: [
+      { key: "SV", label: "Saves (SV)" },
+      { key: "HLD", label: "Holds (HLD)" },
+      { key: "BS", label: "Blown Saves (BS)" },
+    ],
+  },
+  {
+    label: "Milestones",
+    categories: [
+      { key: "CG", label: "Complete Games (CG)" },
+      { key: "ShO", label: "Shutouts (ShO)" },
+    ],
+  },
 ];
 
 export const rosterSlotLabels: Record<RosterSlot, string> = {

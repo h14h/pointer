@@ -8,13 +8,15 @@
 - `src/components/settings/DraftSection.tsx`
 - `src/components/settings/constants.ts`
 - `src/components/settings/types.ts`
+- `src/components/NumericInputGroup.tsx`
 
 ## Dependencies
 - [State](state.md) — scoring, league, draft, and merge-two-way state/actions
 - [Scoring](scoring.md) — scoring presets
 - [Types](types.md) — `ScoringSettings`, `RosterSlot`, `LeagueSettings`
 - [Utilities](utilities.md) — debounced scoring updates
-- `src/components/NumericInput.tsx` — standardized numeric input behavior
+- `src/components/NumericInput.tsx` — low-level numeric input behavior
+- `src/components/NumericInputGroup.tsx` — shared group/row wrappers used by both Scoring and Roster sections
 
 ## How It Works
 
@@ -26,9 +28,11 @@ Desktop renders a left sidebar section navigator; mobile renders a top segmented
 
 **Clean route cutover.** Header no longer opens a scoring modal; it links to `/settings?section=scoring` using an icon-only settings control.
 
-**Scoring section.** Keeps preset apply behavior, batting/pitching tab split, merge two-way toggle, and debounced numeric scoring updates.
+**Scoring section.** Displays batting and pitching stats simultaneously in a two-column layout (batting left, pitching right; stacked on mobile with batting first). Stats are organized into semantic sub-groups (e.g., Hits, Run Production, Decisions, Relief) using `NumericInputGroup`, matching the roster section's visual grouping pattern. Keeps preset apply behavior, merge two-way toggle, and debounced numeric scoring updates.
 
-**Roster section.** Keeps per-slot and reserve numeric controls with immediate commit-to-store behavior on input commit.
+**Roster section.** Keeps per-slot and reserve numeric controls with immediate commit-to-store behavior on input commit. Uses the shared `NumericInputGroup` and `NumericInputRow` components.
+
+**Shared numeric input groups.** Both Scoring and Roster sections use `NumericInputGroup` (label bar + rounded background container) and `NumericInputRow` (label + NumericInput in a bordered row) from `src/components/NumericInputGroup.tsx` to maintain consistent visual grouping.
 
 **Draft section.** Manages league size, team names, team add/remove, and drag-drop reorder. Team order remains draft order. League-size updates preserve clamping behavior and rely on store normalization/pruning.
 
