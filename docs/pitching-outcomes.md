@@ -36,6 +36,6 @@ Relief-appearance IP adjustments are model-specific:
 
 These differences come from independent fits rather than one shared coefficient set.
 
-## Legacy Resolve Helpers
+## Unused Resolve Helpers
 
-`resolveQualityStarts`, `resolveCompleteGames`, and `resolveShutouts` remain in the library for compatibility, but the primary app flow now relies on import-time estimation choices instead of runtime fallback during scoring/display.
+`resolveQualityStarts`, `resolveCompleteGames`, and `resolveShutouts` are **unused** in the current application flow. They remain in the library for reference/exploratory purposes only. The actual estimation path is entirely through `estimateQualityStarts`, `estimateCompleteGames`, and `estimateShutouts` via `applyPitchingOutcomeEstimates` in `pitchingOutcomeImport.ts`.

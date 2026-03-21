@@ -26,7 +26,7 @@ The `rankedPlayers` memo in the child is the core computation:
 3. Calculate `projectedPoints` for each player via `calculatePlayerPoints`
 4. Annotate each player with draft/keeper status and team index from `draftState`
 
-**Two-way merging edge case:** When merging is off but the group only has `twoWayPlayers` (no separate batters/pitchers), two-way players are still shown. `canMergeTwoWay` requires both batter and pitcher ID sources to be non-null and non-generated.
+**Two-way merging edge case:** When merging is off but the group only has `twoWayPlayers` (no separate batters/pitchers), two-way players are still shown. `canMergeTwoWay` requires `activeGroup` to be non-null and both batter and pitcher ID sources to be non-null and non-generated.
 
 ## Baseball IP Detection
 
@@ -48,7 +48,7 @@ Users can toggle individual batting (16 options) and pitching (17 options) stat 
 **Computed stats in display:**
 - TB (total bases) = `1B + 2B×2 + 3B×3 + HR×4` — computed inline, not from CSV
 - QS/CG/ShO — displayed exactly as imported (or import-estimated)
-- AVG: `.toFixed(3)` with leading zero stripped; ERA/WHIP: `.toFixed(2)`; null → dash
+- AVG: `.toFixed(3)` with leading zero stripped (e.g., `.328` not `0.328`); ERA/WHIP: `.toFixed(2)`; null → dash
 
 ## Performance
 

@@ -86,7 +86,7 @@ export const DEFAULT_PITCHING_OUTCOME_PARAMS: PitchingOutcomeParams = {
   qsFeatureWhip: 0.15,
   qsFeatureK9: 0.05,
   qsFeatureBB9: 0.08,
-  reliefIpPerAppearance: 1,
+  reliefIpPerAppearance: 1.81,
 };
 
 export const DEFAULT_QS_FILTER_PARAMS: QsFilterParams = {
@@ -266,8 +266,6 @@ export function estimateQualityStarts(
   params: PitchingOutcomeParams = DEFAULT_PITCHING_OUTCOME_PARAMS,
   useBaseballIp = false
 ): number {
-  void params;
-
   const { GS, ERA } = input;
   const ipInfo = useBaseballIp ? normalizeIp(input.IP) : null;
   const IP = useBaseballIp ? (ipInfo && ipInfo.valid ? ipInfo.innings : 0) : input.IP;
@@ -275,7 +273,7 @@ export function estimateQualityStarts(
   if (GS < 6) return 0;
 
   const appearances = input.G ?? GS;
-  const adjIP = IP - (appearances - GS) * 1.81;
+  const adjIP = IP - (appearances - GS) * params.reliefIpPerAppearance;
 
   const estimate =
     1.6601858118151562 +
