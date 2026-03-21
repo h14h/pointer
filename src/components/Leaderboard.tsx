@@ -781,14 +781,14 @@ const LeaderboardTable = memo(function LeaderboardTable({
 						<span
 							className={
 								row.original.isDrafted
-									? "text-[#111111]/40 dark:text-[#e5e5e5]/30 line-through truncate"
+									? "text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30 line-through truncate"
 									: row.original.isKeeper
-							? "font-bold text-[#111111] dark:text-[#e5e5e5] truncate"
-							: "truncate"
+							? "text-[10px] font-bold uppercase tracking-widest text-[#111111] dark:text-[#e5e5e5] truncate"
+							: "text-[10px] font-bold uppercase tracking-widest truncate"
 					}
 					title={row.original.player.Name}
 				>
-					{row.original.player.Name}
+					{row.original.player.Name.toUpperCase()}
 				</span>
 						{row.original.isDrafted && (
 							<span className="border border-[#111111]/20 dark:border-[#333333] px-1.5 text-[10px] font-bold uppercase tracking-wider text-[#111111]/60 dark:text-[#e5e5e5]/50 rounded-sm">
