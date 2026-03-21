@@ -751,12 +751,15 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				id: "ADP",
 				header: "ADP",
 				size: 70,
-				meta: { className: "text-right font-mono" },
 				accessorFn: (row) =>
 					(row.player as unknown as Record<string, number | null>).ADP,
 				cell: ({ getValue }) => {
 					const val = getValue() as number | null;
-					return val != null ? val.toFixed(1) : "-";
+					return (
+						<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
+							{val != null ? val.toFixed(1) : "-"}
+						</span>
+					);
 				},
 			},
 			{
@@ -804,6 +807,11 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				accessorKey: "player.Team",
 				header: "Team",
 				size: 70,
+				cell: ({ getValue }) => (
+					<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
+						{getValue() as string}
+					</span>
+				),
 			},
 			{
 				accessorKey: "player._type",
@@ -833,7 +841,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				size: 150,
 				accessorFn: (row) => formatEligibility(row.player),
 				cell: ({ getValue }) => (
-					<span className="text-xs text-[#111111]/70 dark:text-[#e5e5e5]/60">
+					<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
 						{getValue() as string}
 					</span>
 				),
