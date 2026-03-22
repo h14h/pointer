@@ -477,6 +477,33 @@ describe("leaderboardDerived", () => {
 		expect(allRow!.projectedPoints).toBeGreaterThan(pitcherRow!.projectedPoints);
 	});
 
+	it("matches accented names when the search input omits accents", () => {
+		const rows = buildFilterMetadata([
+			{
+				player: createPitcher({
+					_id: "pitcher-accented",
+					Name: "José Berríos",
+					Team: "TOR",
+				}),
+				projectedPoints: 150,
+				par: 12,
+				isDrafted: false,
+				isKeeper: false,
+			},
+		]);
+
+		const filtered = filterRankedPlayers({
+			rows,
+			selectedPositions: new Set(),
+			isDraftMode: false,
+			draftFilter: "all",
+			search: "jose berrios",
+		});
+
+		expect(filtered).toHaveLength(1);
+		expect(filtered[0]?.player.Name).toBe("José Berríos");
+	});
+
 	it("sorts rows before search so rank order stays stable", () => {
 		const rows = sortLeaderboardRows(
 			buildFilterMetadata([

@@ -37,6 +37,13 @@ type FilterRankedPlayersArgs = {
   search: string;
 };
 
+function normalizeLeaderboardSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 function getPlayersForView(
   activeGroup: ProjectionGroup | null,
   view: PlayerView,
@@ -197,7 +204,7 @@ export function buildFilterMetadata(rows: RankedPlayer[]): LeaderboardRow[] {
 
     return {
       ...row,
-      searchText: `${row.player.Name} ${row.player.Team}`.toLowerCase(),
+      searchText: normalizeLeaderboardSearchText(`${row.player.Name} ${row.player.Team}`),
       positionTokens,
     };
   });
@@ -210,7 +217,7 @@ export function filterRankedPlayers({
   draftFilter,
   search,
 }: FilterRankedPlayersArgs): LeaderboardRow[] {
-  const trimmedSearch = search.trim().toLowerCase();
+  const trimmedSearch = normalizeLeaderboardSearchText(search.trim());
 
   return rows.filter((row) => {
     if (selectedPositions.size > 0) {

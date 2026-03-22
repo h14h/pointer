@@ -26,7 +26,7 @@ Split into two UI components plus a pure derivation helper:
 
 The child consumes a three-phase pipeline:
 1. `buildBaseRankedPlayers` builds a stable full-player pool from the active projection group, computes `"all"`-view points once for PAR, recomputes display points for the active `playerView`, and annotates rows with draft / keeper state
-2. `buildFilterMetadata` adds lowercase `searchText` and precomputed position tokens to each row
+2. `buildFilterMetadata` adds lowercase, accent-folded `searchText` and precomputed position tokens to each row
 3. `filterRankedPlayers` applies position, draft, and text-search filters without touching scoring or PAR
 4. `sortLeaderboardRows` sorts the filtered rows once before pagination
 5. Search is applied after rank order is established, so the left gutter keeps the row's pre-search rank number
@@ -77,4 +77,4 @@ Users can toggle individual batting (16 options) and pitching (17 options) stat 
 
 ## Global Filter
 
-Searches both Name and Team fields, case-insensitive, using a pre-lowercased `searchText` field. Search is applied after the main ranking is established, so filtered rows keep their original rank numbers in the left gutter.
+Searches both Name and Team fields, case-insensitive, using a pre-lowercased, accent-folded `searchText` field. Search input is normalized the same way, so ASCII queries like `jose berrios` still match names such as `José Berríos`. Search is applied after the main ranking is established, so filtered rows keep their original rank numbers in the left gutter.
