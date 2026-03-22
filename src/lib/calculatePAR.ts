@@ -302,7 +302,11 @@ export function calculatePAR(
     replacementLevels[slot as SlotType] = replacement;
   }
 
-  if (typeof window !== "undefined") {
+  if (
+    typeof window !== "undefined" &&
+    process.env.NODE_ENV !== "production" &&
+    window.localStorage.getItem("pointer:debug-par") === "true"
+  ) {
     console.groupCollapsed("PAR replacement levels");
     console.table(replacementLevels);
     console.groupEnd();

@@ -2,6 +2,7 @@
 
 ## Source Files
 - `src/components/Leaderboard.tsx`
+- `src/lib/leaderboardDerived.ts`
 
 ## Dependencies
 - [State](state.md) — all major state slices
@@ -13,20 +14,22 @@
 
 ## Architecture
 
-Split into two components:
+Split into two UI components plus a pure derivation helper:
 
-**`Leaderboard` (parent)** — owns filter state (search, player view, draft filter), stat visibility selections, and projection group selection. No table logic.
+**`Leaderboard` (parent)** — owns filter state (search, player view, draft filter), stat visibility selections, projection group selection, and deferred UI transitions for search / position / player-type changes.
 
-**`LeaderboardTable` (child, `React.memo`)** — owns the TanStack table instance, sorting, pagination, and row rendering. Receives all data as props. Memoized to skip re-renders when only parent-level state changes (like the stat visibility panel toggling).
+**`LeaderboardTable` (child, `React.memo`)** — owns sorting state, pagination state, and table rendering.
+
+**`leaderboardDerived.ts`** — owns the expensive ranking pipeline plus lightweight filter/sort helpers so text search and position changes do not recompute PAR or view-specific points.
 
 ## Ranking Pipeline
 
-The child computes rankings in two stages:
-1. Build a stable full-player pool from the active projection group, with optional two-way merging
-2. Calculate `projectedPoints` for that full pool in `"all"` mode and run `calculatePAR` once to establish replacement values from the complete roster universe
-3. Build the current `playerView` subset (all/batters/pitchers)
-4. Recalculate `projectedPoints` for display in the current view and attach the already-computed PAR by player ID
-5. Annotate each player with draft/keeper status and team index from `draftState`
+The child consumes a three-phase pipeline:
+1. `buildBaseRankedPlayers` builds a stable full-player pool from the active projection group, computes `"all"`-view points once for PAR, recomputes display points for the active `playerView`, and annotates rows with draft / keeper state
+2. `buildFilterMetadata` adds lowercase `searchText` and precomputed position tokens to each row
+3. `filterRankedPlayers` applies position, draft, and text-search filters without touching scoring or PAR
+4. `sortLeaderboardRows` sorts the filtered rows once before pagination
+5. Search is applied after rank order is established, so the left gutter keeps the row's pre-search rank number
 
 This keeps replacement levels stable when the user changes table-local filters, draft filters, or the visible player view.
 
@@ -64,11 +67,14 @@ Users can toggle individual batting (16 options) and pitching (17 options) stat 
 
 ## Performance
 
-- `useDeferredValue` on the active group ID smooths projection group switching (table dims with overlay during transition)
-- `React.memo` on `LeaderboardTable` prevents re-renders from parent state changes
-- All derived data (`rankedPlayers`, `filteredPlayers`, `columns`, stat Sets) is memoized
+- `useStore(..., shallow)` narrows the leaderboard subscription to only the slices this screen needs
+- `useDeferredValue` smooths projection-group switching and live search updates; `startTransition` is used for player-type and position changes
+- Expensive ranking/PAR derivation is isolated from lightweight search/position filtering in `leaderboardDerived.ts`
+- A single explicit sort pass replaces the previous duplicate TanStack table instance used only for rank derivation
+- Dev-only `performance` / `Profiler` logging can be used to confirm whether ranking, filtering, or rendering is the bottleneck during manual profiling
+- All derived data (`rankedPlayers`, metadata rows, filtered rows, sorted rows, columns, stat sets`) is memoized
 - Pagination resets to page 0 when filters change
 
 ## Global Filter
 
-Searches both Name and Team fields, case-insensitive. Search is applied after the main ranking is established, so filtered rows keep their original rank numbers in the left gutter.
+Searches both Name and Team fields, case-insensitive, using a pre-lowercased `searchText` field. Search is applied after the main ranking is established, so filtered rows keep their original rank numbers in the left gutter.

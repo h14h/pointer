@@ -7,37 +7,39 @@ import {
 	useDeferredValue,
 	useEffect,
 	memo,
+	startTransition,
 	type Dispatch,
+	type ReactNode,
 	type SetStateAction,
 } from "react";
 import {
-	useReactTable,
-	getCoreRowModel,
-	getSortedRowModel,
-	getPaginationRowModel,
-	flexRender,
 	type SortingState,
 	type ColumnDef,
 } from "@tanstack/react-table";
 import { MenuSelect } from "@/components/ui/MenuSelect";
 import { useStore } from "@/store";
-import { calculatePlayerPoints } from "@/lib/calculatePoints";
-import { calculatePAR } from "@/lib/calculatePAR";
 import { POSITION_ORDER } from "@/lib/eligibility";
-import { isValidBaseballIp } from "@/lib/ipMath";
+import { useDebouncedCallback } from "@/lib/useDebounce";
+import {
+	buildBaseRankedPlayers,
+	buildFilterMetadata,
+	filterRankedPlayers,
+	formatEligibilityForLeaderboard,
+	sortLeaderboardRows,
+	type DraftFilter,
+	type LeaderboardRow,
+	type PlayerView,
+} from "@/lib/leaderboardDerived";
 import type {
-	Player,
 	RankedPlayer,
 	DraftState,
 	ScoringSettings,
 	ProjectionGroup,
 	LeagueSettings,
 } from "@/types";
-
-type PlayerView = "all" | "batters" | "pitchers";
+import { useShallow } from "zustand/react/shallow";
 
 const POSITION_FILTER_OPTIONS: string[] = [...POSITION_ORDER, "SP", "RP"];
-type DraftFilter = "all" | "available" | "drafted" | "keepers";
 type StatOption = { id: string; label: string };
 
 const BATTING_STAT_OPTIONS: StatOption[] = [
@@ -94,28 +96,69 @@ const formatCountingStat = (value: number | null) =>
 		<span className="font-mono">{Math.round(value)}</span>
 	);
 
-function formatEligibility(player: Player): string {
-	const eligibility = player.eligibility;
-	if (!eligibility) return "-";
-
-	const parts: string[] = [];
-	const eligibleSet = new Set(eligibility.eligiblePositions);
-	const orderedPositions = POSITION_ORDER.filter((pos) => eligibleSet.has(pos));
-	if (orderedPositions.length > 0) {
-		parts.push(orderedPositions.join(","));
-	}
-	if (eligibility.isSP) parts.push("SP");
-	if (eligibility.isRP) parts.push("RP");
-
-	return parts.length > 0 ? parts.join(" / ") : "-";
-}
-
 function abbreviateName(name: string): string {
 	const parts = name.trim().split(/\s+/);
 	if (parts.length === 1) return parts[0].toUpperCase();
 	const firstName = parts[0];
 	const remaining = parts.slice(1).join(" ");
 	return `${firstName[0].toUpperCase()}. ${remaining}`;
+}
+
+function getAccessorValue<TData>(row: TData, column: ColumnDef<TData>): unknown {
+	if ("accessorFn" in column && typeof column.accessorFn === "function") {
+		return column.accessorFn(row, 0);
+	}
+	if ("accessorKey" in column && typeof column.accessorKey === "string") {
+		return column.accessorKey
+			.split(".")
+			.reduce<unknown>((value, key) => {
+				if (value && typeof value === "object" && key in value) {
+					return (value as Record<string, unknown>)[key];
+				}
+				return undefined;
+			}, row);
+	}
+	return undefined;
+}
+
+function renderColumnHeader<TData>(column: ColumnDef<TData>): ReactNode {
+	return typeof column.header === "function"
+		? column.header({} as never)
+		: column.header ?? null;
+}
+
+function renderColumnCell<TData>(column: ColumnDef<TData>, row: TData): ReactNode {
+	const value = getAccessorValue(row, column);
+	if (typeof column.cell === "function") {
+		return column.cell({
+			getValue: () => value,
+			row: { original: row },
+			column: { columnDef: column },
+			cell: { getValue: () => value },
+			table: {},
+			renderValue: () => value,
+			getContext: () => ({}),
+		} as never);
+	}
+	return value as ReactNode;
+}
+
+function getColumnId<TData>(column: ColumnDef<TData>, fallbackIndex: number): string {
+	if ("id" in column && typeof column.id === "string") {
+		return column.id;
+	}
+	if ("accessorKey" in column && typeof column.accessorKey === "string") {
+		return column.accessorKey;
+	}
+	return `column-${fallbackIndex}`;
+}
+
+function getNextSorting(columnId: string, currentSorting: SortingState): SortingState {
+	const current = currentSorting[0];
+	if (!current || current.id !== columnId) {
+		return [{ id: columnId, desc: false }];
+	}
+	return [{ id: columnId, desc: !current.desc }];
 }
 
 function PlayerViewFilter({
@@ -172,7 +215,19 @@ export function Leaderboard() {
 		mergeTwoWayRankings,
 		leagues,
 		activeLeagueId,
-	} = useStore();
+	} = useStore(
+		useShallow((state) => ({
+			projectionGroups: state.projectionGroups,
+			activeProjectionGroupId: state.activeProjectionGroupId,
+			setActiveProjectionGroup: state.setActiveProjectionGroup,
+			isDraftMode: state.isDraftMode,
+			toggleDraftedForTeam: state.toggleDraftedForTeam,
+			toggleKeeperForTeam: state.toggleKeeperForTeam,
+			mergeTwoWayRankings: state.mergeTwoWayRankings,
+			leagues: state.leagues,
+			activeLeagueId: state.activeLeagueId,
+		})),
+	);
 	const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
 	const scoringSettings = activeLeague?.scoringSettings;
 	const leagueSettings = activeLeague?.leagueSettings;
@@ -182,10 +237,27 @@ export function Leaderboard() {
 	const deferredGroupId = useDeferredValue(currentGroupId);
 	const isSwitchingGroups = deferredGroupId !== currentGroupId;
 	const [globalFilter, setGlobalFilter] = useState("");
+	const [appliedGlobalFilter, setAppliedGlobalFilter] = useState("");
 	const [playerView, setPlayerView] = useState<PlayerView>("all");
 	const [draftFilter, setDraftFilter] = useState<DraftFilter>("available");
 	const [isStatsOpen, setIsStatsOpen] = useState(false);
 	const [selectedPositions, setSelectedPositions] = useState<Set<string>>(new Set());
+	const [appliedSelectedPositions, setAppliedSelectedPositions] = useState<Set<string>>(
+		new Set(),
+	);
+	const [pagination, setPagination] = useState({
+		pageIndex: 0,
+		pageSize: 25,
+	});
+	const deferredPlayerView = useDeferredValue(playerView);
+	const selectedPositionsKey = Array.from(selectedPositions).sort().join("|");
+	const appliedSelectedPositionsKey = Array.from(appliedSelectedPositions)
+		.sort()
+		.join("|");
+	const isApplyingFilters =
+		appliedGlobalFilter !== globalFilter ||
+		deferredPlayerView !== playerView ||
+		appliedSelectedPositionsKey !== selectedPositionsKey;
 
 	const parseStored = (key: string, fallback: string[]) => {
 		if (typeof window === "undefined") return fallback;
@@ -287,6 +359,51 @@ export function Leaderboard() {
 
 		setSelectedPitchingStats([]);
 	}, []);
+	const resetPagination = useCallback(() => {
+		setPagination((current) =>
+			current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
+		);
+	}, []);
+	const applySearchFilter = useDebouncedCallback((nextValue: string) => {
+		startTransition(() => {
+			resetPagination();
+			setAppliedGlobalFilter(nextValue);
+		});
+	}, 120);
+	const applyPositionFilter = useDebouncedCallback((nextValues: string[]) => {
+		startTransition(() => {
+			resetPagination();
+			setAppliedSelectedPositions(new Set(nextValues));
+		});
+	}, 120);
+	const tableNode = (
+		<div className="relative">
+			{(isSwitchingGroups || isApplyingFilters) && (
+				<div className="pointer-events-none absolute inset-0 z-[2] bg-white/50 dark:bg-[#111111]/50" />
+			)}
+			<LeaderboardTable
+				projectionGroups={projectionGroups}
+				activeGroupId={deferredGroupId}
+				scoringSettings={scoringSettings}
+				leagueSettings={leagueSettings}
+				draftState={draftState}
+				isDraftMode={isDraftMode}
+				mergeTwoWayRankings={mergeTwoWayRankings}
+				toggleDraftedForTeam={toggleDraftedForTeam}
+				toggleKeeperForTeam={toggleKeeperForTeam}
+				activeTeamIndex={draftState.activeTeamIndex}
+				playerView={deferredPlayerView}
+				globalFilter={appliedGlobalFilter}
+				draftFilter={draftFilter}
+				battingStatIds={selectedBattingStats}
+				pitchingStatIds={selectedPitchingStats}
+				selectedPositions={appliedSelectedPositions}
+				pagination={pagination}
+				setPagination={setPagination}
+			/>
+		</div>
+	);
+
 	return (
 		<div className="flex flex-col font-sans">
 			{/* Filters */}
@@ -296,17 +413,34 @@ export function Leaderboard() {
 						type="text"
 						placeholder="Search players..."
 						value={globalFilter}
-						onChange={(e) => setGlobalFilter(e.target.value)}
+						onChange={(e) => {
+							const nextValue = e.target.value;
+							setGlobalFilter(nextValue);
+							applySearchFilter(nextValue);
+						}}
 						className="w-full min-w-[220px] flex-1 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-1.5 text-sm text-[#111111] dark:text-[#e5e5e5] placeholder:text-[#111111]/30 dark:placeholder:text-[#e5e5e5]/30 focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
 					/>
 
-					<PlayerViewFilter value={playerView} onChange={setPlayerView} />
+					<PlayerViewFilter
+						value={playerView}
+						onChange={(nextValue) => {
+							startTransition(() => {
+								resetPagination();
+								setPlayerView(nextValue);
+							});
+						}}
+					/>
 
 					{projectionGroups.length > 1 && (
 						<div className="flex items-center gap-2">
 							<MenuSelect
 								value={currentGroupId ?? ""}
-								onChange={setActiveProjectionGroup}
+								onChange={(nextGroupId) => {
+									startTransition(() => {
+										resetPagination();
+										setActiveProjectionGroup(nextGroupId);
+									});
+								}}
 								ariaLabel="Projection group"
 								options={projectionGroups.map((group) => ({
 									value: group.id,
@@ -325,7 +459,12 @@ export function Leaderboard() {
 					{isDraftMode && (
 						<MenuSelect
 							value={draftFilter}
-							onChange={setDraftFilter}
+							onChange={(nextValue) => {
+								startTransition(() => {
+									resetPagination();
+									setDraftFilter(nextValue);
+								});
+							}}
 							ariaLabel="Draft filter"
 							options={[
 								{ value: "available", label: "Available" },
@@ -338,7 +477,14 @@ export function Leaderboard() {
 
 					<PositionFilter
 						selectedPositions={selectedPositions}
-						onChange={setSelectedPositions}
+						onChange={(nextValue) => {
+							const resolvedNextValues =
+								typeof nextValue === "function"
+									? nextValue(selectedPositions)
+									: nextValue;
+							setSelectedPositions(resolvedNextValues);
+							applyPositionFilter(Array.from(resolvedNextValues));
+						}}
 					/>
 
 					{isDraftMode && (
@@ -461,33 +607,8 @@ export function Leaderboard() {
 					</div>
 				</div>
 			)}
-
-
-
 			{/* Table */}
-			<div className="relative">
-				{isSwitchingGroups && (
-					<div className="pointer-events-none absolute inset-0 bg-white/50 dark:bg-[#111111]/50" />
-				)}
-				<LeaderboardTable
-					projectionGroups={projectionGroups}
-					activeGroupId={deferredGroupId}
-					scoringSettings={scoringSettings}
-					leagueSettings={leagueSettings}
-					draftState={draftState}
-					isDraftMode={isDraftMode}
-					mergeTwoWayRankings={mergeTwoWayRankings}
-					toggleDraftedForTeam={toggleDraftedForTeam}
-					toggleKeeperForTeam={toggleKeeperForTeam}
-					activeTeamIndex={draftState.activeTeamIndex}
-					playerView={playerView}
-					globalFilter={globalFilter}
-					draftFilter={draftFilter}
-					battingStatIds={selectedBattingStats}
-					pitchingStatIds={selectedPitchingStats}
-					selectedPositions={selectedPositions}
-				/>
-			</div>
+			{tableNode}
 		</div>
 	);
 }
@@ -509,6 +630,10 @@ type LeaderboardTableProps = {
 	battingStatIds: string[];
 	pitchingStatIds: string[];
 	selectedPositions: Set<string>;
+	pagination: { pageIndex: number; pageSize: number };
+	setPagination: Dispatch<
+		SetStateAction<{ pageIndex: number; pageSize: number }>
+	>;
 };
 
 const LeaderboardTable = memo(function LeaderboardTable({
@@ -528,220 +653,94 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	battingStatIds,
 	pitchingStatIds,
 	selectedPositions,
+	pagination,
+	setPagination,
 }: LeaderboardTableProps) {
 	const activeGroup =
 		projectionGroups.find((group) => group.id === activeGroupId) ??
 		projectionGroups[0] ??
 		null;
-	// eslint-disable-next-line react-hooks/exhaustive-deps -- React Compiler handles memoization
 	const batters = activeGroup?.batters ?? [];
-	// eslint-disable-next-line react-hooks/exhaustive-deps -- React Compiler handles memoization
 	const pitchers = activeGroup?.pitchers ?? [];
-	// eslint-disable-next-line react-hooks/exhaustive-deps -- React Compiler handles memoization
 	const twoWayPlayers = activeGroup?.twoWayPlayers ?? [];
 
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "projectedPoints", desc: true },
 	]);
-	const [pagination, setPagination] = useState({
-		pageIndex: 0,
-		pageSize: 50,
-	});
-
-	const canMergeTwoWay =
-		!!activeGroup &&
-		activeGroup.batterIdSource !== null &&
-		activeGroup.batterIdSource !== "generated" &&
-		activeGroup.pitcherIdSource !== null &&
-		activeGroup.pitcherIdSource !== "generated";
-
-	const twoWayIds = useMemo(
-		() => new Set(twoWayPlayers.map((player) => player._id)),
-		[twoWayPlayers],
-	);
-
-	const useBaseballIp = useMemo(() => {
-		const pitcherIps = [...pitchers, ...twoWayPlayers]
-			.map((player) => {
-				if (player._type === "two-way") {
-					return player._pitchingStats.IP;
-				}
-				if (player._type === "pitcher") {
-					return player.IP;
-				}
-				return null;
-			})
-			.filter((ip): ip is number => typeof ip === "number");
-
-		if (pitcherIps.length === 0) return false;
-		return pitcherIps.every((ip) => isValidBaseballIp(ip));
-	}, [pitchers, twoWayPlayers]);
-
 	// Memoize toggle handler to prevent column regeneration
 	const handleToggleDrafted = useCallback(
 		(playerId: string) => toggleDraftedForTeam(playerId, activeTeamIndex),
 		[toggleDraftedForTeam, activeTeamIndex],
 	);
 
-	const getPlayersForView = useCallback((view: PlayerView) => {
-		let players: Player[] = [];
-		const useMergedTwoWay =
-			canMergeTwoWay && mergeTwoWayRankings && twoWayPlayers.length > 0;
-
-		if (view === "all") {
-			if (useMergedTwoWay) {
-				players = [
-					...batters.filter((player) => !twoWayIds.has(player._id)),
-					...pitchers.filter((player) => !twoWayIds.has(player._id)),
-					...twoWayPlayers,
-				];
-			} else if (
-				batters.length === 0 &&
-				pitchers.length === 0 &&
-				twoWayPlayers.length > 0
-			) {
-				players = [...twoWayPlayers];
-			} else {
-				players = [...batters, ...pitchers];
-			}
-		} else if (view === "batters") {
-			if (useMergedTwoWay) {
-				players = [
-					...batters.filter((player) => !twoWayIds.has(player._id)),
-					...twoWayPlayers,
-				];
-			} else if (batters.length === 0 && twoWayPlayers.length > 0) {
-				players = [...twoWayPlayers];
-			} else {
-				players = [...batters];
-			}
-		} else {
-			if (useMergedTwoWay) {
-				players = [
-					...pitchers.filter((player) => !twoWayIds.has(player._id)),
-					...twoWayPlayers,
-				];
-			} else if (pitchers.length === 0 && twoWayPlayers.length > 0) {
-				players = [...twoWayPlayers];
-			} else {
-				players = [...pitchers];
-			}
-		}
-
-		return players;
-	}, [
-		batters,
-		pitchers,
-		twoWayPlayers,
-		canMergeTwoWay,
-		mergeTwoWayRankings,
-		twoWayIds,
-	]);
-
-	const allPlayersForPar = useMemo(() => getPlayersForView("all"), [getPlayersForView]);
-
-	const parRankedPlayers = useMemo(() => {
-		const parInputPlayers = allPlayersForPar.map((player) => ({
-			player,
-			projectedPoints: calculatePlayerPoints(
-				player,
+	const rankedPlayers = useMemo(
+		() =>
+			buildBaseRankedPlayers({
+				activeGroup,
+				playerView,
 				scoringSettings,
-				"all",
-				useBaseballIp,
-			),
-			par: 0,
-			isDrafted: false,
-			isKeeper: false,
-		})) as RankedPlayer[];
-
-		return calculatePAR(parInputPlayers, leagueSettings);
-	}, [
-		allPlayersForPar,
-		scoringSettings,
-		leagueSettings,
-		useBaseballIp,
-	]);
-
-	const parByPlayerId = useMemo(
-		() => new Map(parRankedPlayers.map((rankedPlayer) => [rankedPlayer.player._id, rankedPlayer.par])),
-		[parRankedPlayers],
+				leagueSettings,
+				draftState,
+				mergeTwoWayRankings,
+			}),
+		[
+			activeGroup,
+			playerView,
+			scoringSettings,
+			leagueSettings,
+			draftState,
+			mergeTwoWayRankings,
+		],
 	);
 
-	// Calculate view-specific points while reusing stable PAR values from the full player pool.
-	const rankedPlayers = useMemo(() => {
-		const players = getPlayersForView(playerView);
+	const rankedPlayersWithMetadata = useMemo(
+		() => buildFilterMetadata(rankedPlayers),
+		[rankedPlayers],
+	);
 
-		return players.map((player) => ({
-			player,
-			projectedPoints: calculatePlayerPoints(
-				player,
-				scoringSettings,
-				playerView,
-				useBaseballIp,
+	const filteredPlayers = useMemo(
+		() =>
+			filterRankedPlayers({
+				rows: rankedPlayersWithMetadata,
+				selectedPositions,
+				isDraftMode,
+				draftFilter,
+				search: "",
+			}),
+		[rankedPlayersWithMetadata, selectedPositions, isDraftMode, draftFilter],
+	);
+
+	const sortedPlayers = useMemo(
+		() => sortLeaderboardRows(filteredPlayers, sorting),
+		[filteredPlayers, sorting],
+	);
+
+	const rankByPlayerId = useMemo(
+		() =>
+			new Map(
+				sortedPlayers.map((row, index) => [row.player._id, index + 1]),
 			),
-			par: parByPlayerId.get(player._id) ?? 0,
-			isDrafted: draftState.draftedByTeam[player._id] !== undefined,
-			isKeeper: draftState.keeperByTeam[player._id] !== undefined,
-			draftedTeamIndex:
-				draftState.draftedByTeam[player._id] !== undefined
-					? Number(draftState.draftedByTeam[player._id])
-					: undefined,
-			keeperTeamIndex:
-				draftState.keeperByTeam[player._id] !== undefined
-					? Number(draftState.keeperByTeam[player._id])
-					: undefined,
-		})) as RankedPlayer[];
-	}, [
-		getPlayersForView,
-		playerView,
-		scoringSettings,
-		useBaseballIp,
-		parByPlayerId,
-		draftState.draftedByTeam,
-		draftState.keeperByTeam,
-	]);
+		[sortedPlayers],
+	);
 
-	// Filter by draft status in draft mode
-	const filteredPlayers = useMemo(() => {
-		let result = rankedPlayers;
+	const searchedPlayers = useMemo(
+		() =>
+			filterRankedPlayers({
+				rows: sortedPlayers,
+				selectedPositions: new Set<string>(),
+				isDraftMode: false,
+				draftFilter: "all",
+				search: globalFilter,
+			}),
+		[sortedPlayers, globalFilter],
+	);
 
-		if (selectedPositions.size > 0) {
-			result = result.filter((p) => {
-				const eligible = p.player.eligibility?.eligiblePositions ?? [];
-				const isSP = p.player.eligibility?.isSP ?? false;
-				const isRP = p.player.eligibility?.isRP ?? false;
-
-				for (const pos of selectedPositions) {
-					if (pos === "SP" && isSP) return true;
-					if (pos === "RP" && isRP) return true;
-					if ((eligible as string[]).includes(pos)) return true;
-				}
-				return false;
-			});
-		}
-
-		if (!isDraftMode || draftFilter === "all") return result;
-
-		return result.filter((p) => {
-			switch (draftFilter) {
-				case "available":
-					return !p.isDrafted && !p.isKeeper;
-				case "drafted":
-					return p.isDrafted;
-				case "keepers":
-					return p.isKeeper;
-				default:
-					return true;
-			}
-		});
-	}, [rankedPlayers, isDraftMode, draftFilter, selectedPositions]);
-
-	const columns = useMemo<ColumnDef<RankedPlayer>[]>(() => {
+	const columns = useMemo<ColumnDef<LeaderboardRow>[]>(() => {
 		const resolveTeamLabel = (teamIndex?: number) => {
 			if (teamIndex === undefined || Number.isNaN(teamIndex)) return null;
 			return leagueSettings.teamNames[teamIndex] ?? `Team ${teamIndex + 1}`;
 		};
-		const baseColumns: ColumnDef<RankedPlayer>[] = [
+		const baseColumns: ColumnDef<LeaderboardRow>[] = [
 			{
 				id: "ADP",
 				header: "ADP",
@@ -834,7 +833,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				id: "eligibility",
 				header: "Pos",
 				size: 150,
-				accessorFn: (row) => formatEligibility(row.player),
+				accessorFn: (row) => formatEligibilityForLeaderboard(row.player),
 				cell: ({ getValue }) => (
 					<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
 						{getValue() as string}
@@ -881,7 +880,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		const pitchingStatSet = new Set(pitchingStatIds);
 
 		const withLeadingSeparator = (
-			columnDefs: ColumnDef<RankedPlayer>[],
+			columnDefs: ColumnDef<LeaderboardRow>[],
 			shouldAdd: boolean,
 		) => {
 			if (!shouldAdd || columnDefs.length === 0) return columnDefs;
@@ -891,7 +890,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			const mergedClass = [existingClass, "border-l border-[#111111]/10 dark:border-[#333333]"]
 				.filter(Boolean)
 				.join(" ");
-			const firstWithBorder: ColumnDef<RankedPlayer> = {
+			const firstWithBorder: ColumnDef<LeaderboardRow> = {
 				...first,
 				meta: { ...((first.meta ?? {}) as object), className: mergedClass },
 			};
@@ -900,7 +899,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 
 		// Add type-specific stat columns
 		if (playerView === "batters" || playerView === "all") {
-			const batterCols: ColumnDef<RankedPlayer>[] = [
+			const batterCols: ColumnDef<LeaderboardRow>[] = [
 				{
 					id: "H",
 					header: "H",
@@ -1132,7 +1131,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		}
 
 		if (playerView === "pitchers" || playerView === "all") {
-			const pitcherCols: ColumnDef<RankedPlayer>[] = [
+			const pitcherCols: ColumnDef<LeaderboardRow>[] = [
 				{
 					id: "IP",
 					header: "IP",
@@ -1387,56 +1386,18 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			pitchingStatIds,
 		]);
 
-	const searchedPlayers = useMemo(() => {
-		const search = globalFilter.trim().toLowerCase();
-		if (search.length === 0) return filteredPlayers;
-
-		return filteredPlayers.filter((row) => {
-			const name = row.player.Name.toLowerCase();
-			const team = row.player.Team.toLowerCase();
-			return name.includes(search) || team.includes(search);
-		});
-	}, [filteredPlayers, globalFilter]);
-
-	const rankTable = useReactTable({
-		data: filteredPlayers,
-		columns,
-		state: {
-			sorting,
-		},
-		onSortingChange: setSorting,
-		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-	});
-
-	const rankByPlayerId = useMemo(
-		() =>
-			new Map(
-				rankTable
-					.getSortedRowModel()
-					.rows.map((row, index) => [row.original.player._id, index + 1]),
-			),
-		[rankTable],
-	);
-
-	const table = useReactTable({
-		data: searchedPlayers,
-		columns,
-		state: {
-			sorting,
-			pagination,
-		},
-		onSortingChange: setSorting,
-		onPaginationChange: setPagination,
-		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-	});
-	useEffect(() => {
-		setPagination((current) =>
-			current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
+	const currentPageRows = useMemo(() => {
+		const effectivePageIndex = Math.min(
+			pagination.pageIndex,
+			Math.max(0, Math.ceil(searchedPlayers.length / pagination.pageSize) - 1),
 		);
-	}, [globalFilter, draftFilter, playerView, activeGroupId, selectedPositions]);
+		const start = effectivePageIndex * pagination.pageSize;
+		return searchedPlayers.slice(start, start + pagination.pageSize);
+	}, [searchedPlayers, pagination.pageIndex, pagination.pageSize]);
+	const totalRowCount = searchedPlayers.length;
+	const pageCount = Math.max(1, Math.ceil(totalRowCount / pagination.pageSize));
+	const effectivePageIndex = Math.min(pagination.pageIndex, pageCount - 1);
+	const currentSort = sorting[0];
 
 	const handleRowClick = useCallback(
 		(player: RankedPlayer) => {
@@ -1471,77 +1432,73 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			<div className="overflow-x-auto overflow-y-clip">
 				<table className="w-full text-sm text-[#111111] dark:text-[#e5e5e5]">
 					<thead>
-						{table.getHeaderGroups().map((headerGroup) => (
-							<tr key={headerGroup.id}>
-								<th className="sticky left-0 top-0 z-20 w-12 border-b border-b-[#111111]/40 border-r border-[#111111]/10 bg-white px-2 py-2 text-right text-[10px] font-bold uppercase tracking-widest text-[#111111]/35 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-b-[#e5e5e5]/25 dark:border-[#333333] dark:bg-[#111111] dark:text-[#e5e5e5]/30 dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]">
-									#
-								</th>
-								{headerGroup.headers.map((header) => (
+						<tr>
+							<th className="sticky left-0 top-0 z-20 w-12 border-b border-b-[#111111]/40 border-r border-[#111111]/10 bg-white px-2 py-2 text-right text-[10px] font-bold uppercase tracking-widest text-[#111111]/35 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-b-[#e5e5e5]/25 dark:border-[#333333] dark:bg-[#111111] dark:text-[#e5e5e5]/30 dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]">
+								#
+							</th>
+							{columns.map((column, columnIndex) => {
+								const columnId = getColumnId(column, columnIndex);
+								const isSorted = currentSort?.id === columnId;
+								const meta =
+									(column.meta as { className?: string } | undefined) ?? undefined;
+
+								return (
 									<th
-										key={header.id}
-										style={{ width: header.getSize() }}
-										className={`sticky top-0 z-10 border-b border-b-[#111111]/40 dark:border-b-[#e5e5e5]/25 border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#111111] px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 whitespace-nowrap after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-1 after:bg-gradient-to-b after:from-black/[0.04] after:to-transparent dark:after:from-white/[0.06] relative ${
-											header.column.getCanSort()
-												? "cursor-pointer select-none hover:text-[#111111] dark:hover:text-[#e5e5e5]"
-												: ""
-										} ${
-											(
-												header.column.columnDef.meta as
-													| { className?: string }
-													| undefined
-											)?.className ?? ""
+										key={columnId}
+										style={{
+											width:
+												"size" in column && typeof column.size === "number"
+													? column.size
+													: undefined,
+										}}
+										className={`sticky top-0 z-10 border-b border-b-[#111111]/40 dark:border-b-[#e5e5e5]/25 border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#111111] px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 whitespace-nowrap after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-1 after:bg-gradient-to-b after:from-black/[0.04] after:to-transparent dark:after:from-white/[0.06] relative cursor-pointer select-none hover:text-[#111111] dark:hover:text-[#e5e5e5] ${
+											meta?.className ?? ""
 										}`}
-										onClick={header.column.getToggleSortingHandler()}
+										onClick={() => setSorting((current) => getNextSorting(columnId, current))}
 									>
 										<div className="flex items-center gap-1 whitespace-nowrap">
-											{flexRender(
-												header.column.columnDef.header,
-												header.getContext(),
-											)}
-											{{
-												asc: " \u2191",
-												desc: " \u2193",
-											}[header.column.getIsSorted() as string] ?? null}
+											{renderColumnHeader(column)}
+											{isSorted ? (currentSort?.desc ? " \u2193" : " \u2191") : null}
 										</div>
 									</th>
-								))}
-							</tr>
-						))}
+								);
+							})}
+						</tr>
 					</thead>
 					<tbody>
-						{table.getRowModel().rows.map((row, rowIndex) => (
+						{currentPageRows.map((row, rowIndex) => (
 							<tr
-								key={row.id}
-								onClick={() => handleRowClick(row.original)}
-								onContextMenu={(e) => handleRowContextMenu(e, row.original)}
+								key={row.player._id}
+								onClick={() => handleRowClick(row)}
+								onContextMenu={(e) => handleRowContextMenu(e, row)}
 								className={`border-b border-[#111111]/10 dark:border-[#333333]/60 ${
 									isDraftMode ? "cursor-pointer" : ""
 								} ${
-									row.original.isDrafted
+									row.isDrafted
 										? "text-[#111111]/30 dark:text-[#e5e5e5]/20"
-										: row.original.isKeeper
+										: row.isKeeper
 											? "bg-[#dc2626]/[0.03] dark:bg-[#ef4444]/[0.03]"
 										: "hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
 								}`}
 							>
 								<td className="sticky left-0 z-[1] w-12 border-r border-[#111111]/10 bg-white px-2 py-2.5 text-right font-mono text-[11px] text-[#111111]/38 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-[#333333] dark:bg-[#111111] dark:text-[#e5e5e5]/30 dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]">
-									{rankByPlayerId.get(row.original.player._id) ??
-										pagination.pageIndex * pagination.pageSize + rowIndex + 1}
+									{rankByPlayerId.get(row.player._id) ??
+										effectivePageIndex * pagination.pageSize + rowIndex + 1}
 								</td>
-								{row.getVisibleCells().map((cell) => (
+								{columns.map((column, columnIndex) => {
+									const columnId = getColumnId(column, columnIndex);
+									const meta =
+										(column.meta as { className?: string } | undefined) ?? undefined;
+
+									return (
 									<td
-										key={cell.id}
-										className={`px-3 py-2.5 ${
-											(
-												cell.column.columnDef.meta as
-													| { className?: string }
-													| undefined
-											)?.className ?? ""
-										}`}
+										key={`${row.player._id}-${columnId}`}
+										className={`px-3 py-2.5 ${meta?.className ?? ""}`}
 									>
-										{flexRender(cell.column.columnDef.cell, cell.getContext())}
+										{renderColumnCell(column, row)}
 									</td>
-								))}
+									);
+								})}
 							</tr>
 						))}
 					</tbody>
@@ -1550,27 +1507,37 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			<div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#111111]/10 dark:border-[#333333] pt-4 text-xs text-[#111111]/60 dark:text-[#e5e5e5]/50">
 				<div className="flex items-center gap-3">
 					<button
-						onClick={() => table.previousPage()}
-						disabled={!table.getCanPreviousPage()}
+						onClick={() =>
+							setPagination((current) => ({
+								...current,
+								pageIndex: Math.max(0, current.pageIndex - 1),
+							}))
+						}
+						disabled={effectivePageIndex === 0}
 						className="text-xs font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 hover:text-[#111111] dark:hover:text-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-30"
 					>
 						Prev
 					</button>
 					<button
-						onClick={() => table.nextPage()}
-						disabled={!table.getCanNextPage()}
+						onClick={() =>
+							setPagination((current) => ({
+								...current,
+								pageIndex: Math.min(pageCount - 1, current.pageIndex + 1),
+							}))
+						}
+						disabled={effectivePageIndex >= pageCount - 1}
 						className="text-xs font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 hover:text-[#111111] dark:hover:text-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-30"
 					>
 						Next
 					</button>
 					<span>
-						Page {pagination.pageIndex + 1} of{" "}
-						{Math.max(1, table.getPageCount())}
+						Page {effectivePageIndex + 1} of{" "}
+						{pageCount}
 					</span>
 				</div>
 				<div className="flex items-center gap-3">
 					<span>
-						{table.getPrePaginationRowModel().rows.length} total
+						{totalRowCount} total
 					</span>
 					<label className="flex items-center gap-2">
 						<span>Rows</span>

@@ -16,7 +16,7 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 | Eligibility | Position eligibility computation and pitcher role classification | `src/lib/eligibility.ts` | [docs/eligibility.md](docs/eligibility.md) |
 | MLB Stats API | Fetching real-time stats from MLB's public API for eligibility enrichment | `src/lib/mlbStatsApi.ts` | [docs/mlb-stats-api.md](docs/mlb-stats-api.md) |
 | State Management | Zustand store, persistence, and schema migrations | `src/store/index.ts` | [docs/state.md](docs/state.md) |
-| Leaderboard | Player ranking table with sorting, filtering, and draft interactions | `src/components/Leaderboard.tsx` | [docs/leaderboard.md](docs/leaderboard.md) |
+| Leaderboard | Player ranking table with sorting, filtering, draft interactions, and extracted derivation helpers | `src/components/Leaderboard.tsx`, `src/lib/leaderboardDerived.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
 | CSV Upload Workflow | Upload modal, file handling, eligibility import, and optional pitching-outcome estimation | `src/components/CsvUpload.tsx` | [docs/csv-upload-workflow.md](docs/csv-upload-workflow.md) |
 | Settings Page | Dedicated settings route with sectioned Scoring, Roster, and Draft controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx` | [docs/settings-page.md](docs/settings-page.md) |
 | Header | Top navigation, draft controls, and team selection | `src/components/Header.tsx` | [docs/header.md](docs/header.md) |
