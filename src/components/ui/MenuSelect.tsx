@@ -19,6 +19,7 @@ export interface MenuSelectOption<T extends string | number> {
 interface MenuSelectBaseProps<T extends string | number> {
   options: Array<MenuSelectOption<T>>;
   ariaLabel?: string;
+  disabled?: boolean;
   triggerClassName?: string;
   menuClassName?: string;
   menuPlacement?: "bottom-left" | "bottom-right" | "top-left" | "top-right";
@@ -63,6 +64,7 @@ export function MenuSelect<T extends string | number>(props: MenuSelectProps<T>)
   const {
     options,
     ariaLabel,
+    disabled = false,
     triggerClassName,
     menuClassName,
     menuPlacement = "bottom-left",
@@ -103,11 +105,15 @@ export function MenuSelect<T extends string | number>(props: MenuSelectProps<T>)
     <div className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen((open) => !open);
+        }}
         className={cx(dropdownTriggerClassName, triggerClassName)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label={ariaLabel}
+        disabled={disabled}
       >
         {triggerContent}
         <svg viewBox="0 0 12 12" fill="currentColor" className="h-2.5 w-2.5 shrink-0">
@@ -115,7 +121,7 @@ export function MenuSelect<T extends string | number>(props: MenuSelectProps<T>)
         </svg>
       </button>
 
-      {isOpen && (
+      {isOpen && !disabled ? (
         <>
           <button
             type="button"
@@ -170,7 +176,7 @@ export function MenuSelect<T extends string | number>(props: MenuSelectProps<T>)
             })}
           </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

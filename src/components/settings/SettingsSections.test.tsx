@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DraftSection } from "@/components/settings/DraftSection";
 import { RosterSection } from "@/components/settings/RosterSection";
@@ -141,8 +141,31 @@ describe("settings sections", () => {
   const removeKeeperSpy = vi.fn();
   const resetDraftSpy = vi.fn();
   const canEditDraftSetupSpy = vi.fn(() => true);
+  type TestLeague = {
+    id: string;
+    name: string;
+    scoringSettings: ScoringSettings;
+    leagueSettings: LeagueSettings;
+    draftState: {
+      format: "snake";
+      draftedByTeam: Record<string, string>;
+      keeperByTeam: Record<string, string>;
+      keeperSlotByPlayer: Record<string, number>;
+      pickIndex: number;
+      history: Array<{
+        playerId: string;
+        teamIndex: number;
+        slotIndex: number;
+        overallPick: number;
+        round: number;
+        pickInRound: number;
+        timestamp: number;
+      }>;
+    };
+    updatedAt: number;
+  };
 
-  const createLeague = () => ({
+  const createLeague = (overrides: Partial<TestLeague> = {}): TestLeague => ({
     id: "league-1",
     name: "My League",
     scoringSettings: createScoringSettings(),
@@ -156,6 +179,7 @@ describe("settings sections", () => {
       history: [],
     },
     updatedAt: Date.now(),
+    ...overrides,
   });
 
   const createStoreState = () => ({
@@ -267,6 +291,9 @@ describe("settings sections", () => {
     const user = userEvent.setup();
     render(<DraftSection />);
 
+    expect(screen.queryByLabelText("Search keepers for Team 1")).toBeNull();
+    expect(screen.getAllByText("No Keepers")).toHaveLength(12);
+
     await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
     const addTeamLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
     expect(addTeamLeagueSettings.teamNames.length).toBe(13);
@@ -282,6 +309,96 @@ describe("settings sections", () => {
 
     const renameLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
     expect(renameLeagueSettings.teamNames[0]).toBe("My Team");
+  });
+
+  it("reorders a team when the draft position control changes", async () => {
+    const user = userEvent.setup();
+    render(<DraftSection />);
+
+    await user.click(screen.getByRole("button", { name: "Draft position for Team 1" }));
+    await user.click(screen.getByRole("button", { name: "3" }));
+
+    const reorderedLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    expect(reorderedLeagueSettings.teamNames.slice(0, 4)).toEqual([
+      "Team 2",
+      "Team 3",
+      "Team 1",
+      "Team 4",
+    ]);
+  });
+
+  it("does not commit a reorder when the selected draft position is unchanged", async () => {
+    const user = userEvent.setup();
+    render(<DraftSection />);
+
+    await user.click(screen.getByRole("button", { name: "Draft position for Team 1" }));
+    await user.click(screen.getByRole("button", { name: "1" }));
+
+    expect(setLeagueSettingsSpy).not.toHaveBeenCalled();
+  });
+
+  it("expands a team to reveal keeper controls", async () => {
+    const user = userEvent.setup();
+    render(<DraftSection />);
+
+    expect(screen.queryByLabelText("Search keepers for Team 1")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
+
+    expect(screen.getByLabelText("Search keepers for Team 1")).toBeVisible();
+  });
+
+  it("preserves the expanded team after reordering that team", async () => {
+    const user = userEvent.setup();
+    const leagueSettings = createLeagueSettings();
+    leagueSettings.teamNames = ["Alpha", "Beta", "Gamma", "Delta", ...leagueSettings.teamNames.slice(4)];
+    const { rerender } = render(<DraftSection />);
+
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      leagues: [createLeague({ leagueSettings })],
+    });
+    rerender(<DraftSection />);
+
+    await user.click(screen.getByRole("button", { name: "Show keepers for Beta" }));
+    await user.click(screen.getByRole("button", { name: "Draft position for Beta" }));
+    await user.click(screen.getByRole("button", { name: "4" }));
+
+    const reorderedLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      leagues: [createLeague({ leagueSettings: reorderedLeagueSettings })],
+    });
+    rerender(<DraftSection />);
+
+    expect(screen.getByLabelText("Search keepers for Beta")).toBeVisible();
+    expect(screen.getByLabelText("Team 4 name")).toHaveValue("Beta");
+  });
+
+  it("shifts the expanded team index when another team moves around it", async () => {
+    const user = userEvent.setup();
+    const leagueSettings = createLeagueSettings();
+    leagueSettings.teamNames = ["Alpha", "Beta", "Gamma", "Delta", ...leagueSettings.teamNames.slice(4)];
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      leagues: [createLeague({ leagueSettings })],
+    });
+    const { rerender } = render(<DraftSection />);
+
+    await user.click(screen.getByRole("button", { name: "Show keepers for Gamma" }));
+    await user.click(screen.getByRole("button", { name: "Draft position for Alpha" }));
+    await user.click(screen.getByRole("button", { name: "4" }));
+
+    const reorderedLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      leagues: [createLeague({ leagueSettings: reorderedLeagueSettings })],
+    });
+    rerender(<DraftSection />);
+
+    expect(screen.getByLabelText("Search keepers for Gamma")).toBeVisible();
+    expect(screen.getByLabelText("Team 2 name")).toHaveValue("Gamma");
   });
 
   it("locks risky draft setup edits once manual picks exist", async () => {
@@ -309,9 +426,18 @@ describe("settings sections", () => {
 
     expect(screen.getByText(/team order, add\/remove, and league size are locked/i)).toBeVisible();
     expect(screen.getByLabelText("League size")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Draft position for Team 1" })).toBeDisabled();
 
     await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
     expect(setLeagueSettingsSpy).not.toHaveBeenCalled();
+
+    const teamNameInput = screen.getByLabelText("Team 1 name");
+    await user.clear(teamNameInput);
+    await user.keyboard("Locked Team");
+    await user.tab();
+
+    const renamedLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    expect(renamedLeagueSettings.teamNames[0]).toBe("Locked Team");
   });
 
   it("keeps structural draft setup edits available when only keepers exist", async () => {
@@ -344,6 +470,48 @@ describe("settings sections", () => {
 
     await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
     expect(setLeagueSettingsSpy).toHaveBeenCalled();
+  });
+
+  it("keeps keeper editing available when draft setup is locked", async () => {
+    const user = userEvent.setup();
+    canEditDraftSetupSpy.mockReturnValue(false);
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [createBatter("keeper-1", "Mookie Betts", "LAD"), createBatter("batter-1", "Mike Trout", "LAA")],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        createLeague({
+          draftState: {
+            format: "snake",
+            draftedByTeam: { "player-1": "0" },
+            keeperByTeam: { "keeper-1": "0" },
+            keeperSlotByPlayer: { "keeper-1": 0 },
+            pickIndex: 1,
+            history: [],
+          },
+        }),
+      ],
+    });
+
+    render(<DraftSection />);
+
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
+    await user.type(screen.getByLabelText("Search keepers for Team 1"), "mike");
+    await user.click(screen.getByRole("button", { name: /Mike Trout/i }));
+    await user.click(screen.getByRole("button", { name: "Remove keeper Mookie Betts" }));
+
+    expect(setKeeperForTeamSpy).toHaveBeenCalledWith("batter-1", 0, 2);
+    expect(removeKeeperSpy).toHaveBeenCalledWith("keeper-1");
   });
 
   it("assigns and removes keepers from the draft section", async () => {
@@ -452,13 +620,54 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
+    expect(screen.getByText("M. Betts • R1")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
     await user.type(screen.getByLabelText("Search keepers for Team 1"), "mike");
     await user.click(screen.getByRole("button", { name: /Mike Trout/i }));
     expect(setKeeperForTeamSpy).toHaveBeenCalledWith("batter-1", 0, 2);
-    expect(screen.getByText(/next open: pick 24/i)).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Remove keeper Mookie Betts" }));
     expect(removeKeeperSpy).toHaveBeenCalledWith("keeper-1");
+  });
+
+  it("shows collapsed keeper badges with abbreviated first names and round labels", () => {
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            createBatter("keeper-1", "Mookie Betts", "LAD"),
+            createBatter("keeper-2", "Fernando Tatis Jr.", "SD"),
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        createLeague({
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0", "keeper-2": "0" },
+            keeperSlotByPlayer: { "keeper-1": 0, "keeper-2": 48 },
+            pickIndex: 0,
+            history: [],
+          },
+        }),
+      ],
+    });
+
+    render(<DraftSection />);
+
+    expect(screen.getByText("M. Betts • R1")).toBeVisible();
+    expect(screen.getByText("F. Tatis Jr. • R5")).toBeVisible();
+    expect(screen.queryByText(/next open:/i)).toBeNull();
+    expect(screen.queryByText(/draft order locked/i)).toBeNull();
   });
 
   it("Given one team with keepers in rounds 5 and 6, when I click earlier or later, then only the selected keeper moves to the nearest open round", async () => {
@@ -497,12 +706,89 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
     await user.click(screen.getByRole("button", { name: "Move keeper Mike Trout earlier" }));
     await user.click(screen.getByRole("button", { name: "Move keeper Mookie Betts later" }));
 
     expect(setKeeperForTeamSpy).toHaveBeenNthCalledWith(1, "keeper-2", 0, 4);
     expect(setKeeperForTeamSpy).toHaveBeenNthCalledWith(2, "keeper-1", 0, 7);
     expect(screen.getByLabelText("Keeper round for Mike Trout")).toBeVisible();
+  });
+
+  it("fades non-edited keepers into their new positions after a round edit reorders the list", async () => {
+    const user = userEvent.setup();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            createBatter("keeper-1", "Mookie Betts", "LAD"),
+            createBatter("keeper-2", "Mike Trout", "LAA"),
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        createLeague({
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0", "keeper-2": "0" },
+            keeperSlotByPlayer: { "keeper-1": 48, "keeper-2": 60 },
+            pickIndex: 0,
+            history: [],
+          },
+        }),
+      ],
+    });
+    const { rerender } = render(<DraftSection />);
+
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
+    await user.click(screen.getByRole("button", { name: "Move keeper Mike Trout earlier" }));
+
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            createBatter("keeper-1", "Mookie Betts", "LAD"),
+            createBatter("keeper-2", "Mike Trout", "LAA"),
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        createLeague({
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0", "keeper-2": "0" },
+            keeperSlotByPlayer: { "keeper-1": 48, "keeper-2": 36 },
+            pickIndex: 0,
+            history: [],
+          },
+        }),
+      ],
+    });
+    rerender(<DraftSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Mookie Betts").closest("[data-keeper-row]")).toHaveClass(
+        "keeper-row-fade-in"
+      );
+    });
   });
 
   it("Given one team with keepers in rounds 5 and 6, when I commit an occupied round, then the edit is rejected and the input reverts", async () => {
@@ -541,6 +827,7 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
     const roundInput = screen.getByLabelText("Keeper round for Mookie Betts");
     await user.clear(roundInput);
     await user.type(roundInput, "6");
@@ -549,6 +836,51 @@ describe("settings sections", () => {
     expect(setKeeperForTeamSpy).not.toHaveBeenCalled();
     expect(toastSpy).toHaveBeenCalledWith("Round 6 is already occupied");
     expect(screen.getByLabelText("Keeper round for Mookie Betts")).toHaveValue("5");
+  });
+
+  it("selects the full keeper round value on focus so typing replaces it", async () => {
+    const user = userEvent.setup();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [createBatter("keeper-1", "Mookie Betts", "LAD")],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        createLeague({
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0" },
+            keeperSlotByPlayer: { "keeper-1": 48 },
+            pickIndex: 0,
+            history: [],
+          },
+        }),
+      ],
+    });
+
+    render(<DraftSection />);
+
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
+    const roundInput = screen.getByLabelText("Keeper round for Mookie Betts") as HTMLInputElement;
+
+    await user.click(roundInput);
+
+    expect(roundInput.selectionStart).toBe(0);
+    expect(roundInput.selectionEnd).toBe(roundInput.value.length);
+
+    await user.keyboard("7");
+
+    expect(roundInput).toHaveValue("7");
   });
 
   it("Given the draft cursor has already passed a keeper slot, when I edit or move into that slot, then the change is rejected", async () => {
@@ -587,6 +919,7 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
     const roundInput = screen.getByLabelText("Keeper round for Mike Trout");
     await user.clear(roundInput);
     await user.type(roundInput, "4");
@@ -597,7 +930,8 @@ describe("settings sections", () => {
     expect(screen.getByRole("button", { name: "Move keeper Mike Trout earlier" })).toBeDisabled();
   });
 
-  it("Given a keeper is already at round 1 or the final roster round, when the Draft section renders, then the blocked arrow is disabled", () => {
+  it("Given a keeper is already at round 1 or the final roster round, when the Draft section renders, then the blocked arrow is disabled", async () => {
+    const user = userEvent.setup();
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       projectionGroups: [
@@ -632,6 +966,7 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
     expect(screen.getByRole("button", { name: "Move keeper Mookie Betts earlier" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Move keeper Mike Trout later" })).toBeDisabled();
   });
@@ -693,6 +1028,7 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
     await user.type(screen.getByLabelText("Search keepers for Team 1"), "jose berrios");
     expect(screen.getByRole("button", { name: /José Berríos/i })).toBeVisible();
   });
@@ -790,6 +1126,7 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
+    await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
     await user.type(screen.getByLabelText("Search keepers for Team 1"), "aaron");
 
     const resultButtons = screen.getAllByRole("button", { name: /Aaron/i });
