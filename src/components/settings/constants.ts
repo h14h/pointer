@@ -3,14 +3,9 @@ import type { SettingsSectionMeta } from "@/components/settings/types";
 
 export const settingsSections: SettingsSectionMeta[] = [
   {
-    key: "scoring",
-    label: "Scoring",
-    description: "Weights, presets, and two-way merge behavior.",
-  },
-  {
-    key: "roster",
-    label: "Roster",
-    description: "Per-team slot counts and reserves.",
+    key: "leagues",
+    label: "Leagues",
+    description: "Manage multiple league profiles.",
   },
   {
     key: "draft",
@@ -18,9 +13,14 @@ export const settingsSections: SettingsSectionMeta[] = [
     description: "League size, team names, and draft order.",
   },
   {
-    key: "leagues",
-    label: "Leagues",
-    description: "Manage multiple league profiles.",
+    key: "roster",
+    label: "Roster",
+    description: "Per-team slot counts and reserves.",
+  },
+  {
+    key: "scoring",
+    label: "Scoring",
+    description: "Weights, presets, and two-way merge behavior.",
   },
 ];
 

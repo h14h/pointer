@@ -11,24 +11,36 @@ interface SettingsLayoutProps {
 }
 
 const sectionIcons: Record<SettingsSectionKey, ReactNode> = {
-  scoring: (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-      <path d="M10.75 10.818a1.5 1.5 0 0 0-1.5 0l-5 2.907A1 1 0 0 0 3.75 14.7v.55a1 1 0 0 0 .5.866l5 2.907a1.5 1.5 0 0 0 1.5 0l5-2.907a1 1 0 0 0 .5-.866v-.55a1 1 0 0 0-.5-.866l-5-2.907ZM12.25 2.875a1.5 1.5 0 0 0-1.5 0l-5 2.907A1 1 0 0 0 5.25 6.757v.55a1 1 0 0 0 .5.866l5 2.907a1.5 1.5 0 0 0 1.5 0l5-2.907a1 1 0 0 0 .5-.866v-.55a1 1 0 0 0-.5-.866l-5-2.907Z" />
-    </svg>
-  ),
-  roster: (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-      <path d="M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM14.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.615 16.428a1.224 1.224 0 0 1-.569-1.175 6.002 6.002 0 0 1 11.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 0 1 7 18a9.953 9.953 0 0 1-5.385-1.572ZM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 0 0-1.588-3.755 4.502 4.502 0 0 1 5.874 2.636.818.818 0 0 1-.36.98A7.465 7.465 0 0 1 14.5 16Z" />
+  leagues: (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <rect x="3" y="4" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="7" y="9" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M5.5 6.5h5M5.5 8.5h3.5M9.5 11.5h5M9.5 13.5h3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
   draft: (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-      <path fillRule="evenodd" d="M6 4.75A.75.75 0 0 1 6.75 4h10.5a.75.75 0 0 1 0 1.5H6.75A.75.75 0 0 1 6 4.75ZM6 10a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H6.75A.75.75 0 0 1 6 10Zm0 5.25a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H6.75a.75.75 0 0 1-.75-.75ZM1.99 4.75a1 1 0 0 1 1-1h.01a1 1 0 0 1 0 2h-.01a1 1 0 0 1-1-1Zm0 5.25a1 1 0 0 1 1-1h.01a1 1 0 1 1 0 2h-.01a1 1 0 0 1-1-1Zm1 4.25a1 1 0 1 0 0 2h.01a1 1 0 1 0 0-2h-.01Z" clipRule="evenodd" />
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path d="M4 5.25h12M7 9.75h9M10 14.25h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="4" cy="5.25" r="1.25" fill="currentColor" />
+      <circle cx="7" cy="9.75" r="1.25" fill="currentColor" />
+      <circle cx="10" cy="14.25" r="1.25" fill="currentColor" />
     </svg>
   ),
-  leagues: (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-      <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0 0 1.5h11.5a.75.75 0 0 0 0-1.5H4.25ZM6 10a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 6 10ZM3.5 15.25a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5H3.5Zm12.75-.75a.75.75 0 0 1 0 1.5h-11.5a.75.75 0 0 1 0-1.5H16.25Zm-1.5-5.25a.75.75 0 0 0 0 1.5h1.75a.75.75 0 0 0 0-1.5h-1.75Zm-8.25-1.5a.75.75 0 0 1 .75-.75h1.75a.75.75 0 0 1 0 1.5h-1.75a.75.75 0 0 1-.75-.75ZM8 14.25a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z" clipRule="evenodd" />
+  roster: (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path d="M10 3.25 16.75 10 10 16.75 3.25 10 10 3.25Z" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="10" cy="10" r="1.5" fill="currentColor" />
+      <circle cx="10" cy="5.5" r="1.1" fill="currentColor" />
+      <circle cx="14.5" cy="10" r="1.1" fill="currentColor" />
+      <circle cx="10" cy="14.5" r="1.1" fill="currentColor" />
+      <circle cx="5.5" cy="10" r="1.1" fill="currentColor" />
+    </svg>
+  ),
+  scoring: (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <rect x="3.25" y="4" width="13.5" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M6.25 8h7.5M6.25 12h2.5M11.25 12h2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M9.5 4v12" stroke="currentColor" strokeWidth="1.5" opacity="0.55" />
     </svg>
   ),
 };
