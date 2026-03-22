@@ -93,12 +93,14 @@ describe("Header settings navigation", () => {
     expect(settingsLink).toHaveAttribute("href", "/settings?section=scoring");
   });
 
-  it("applies active styles on the settings page", () => {
+  it("links back to the leaderboard and applies active styles on the settings page", () => {
     usePathnameMock.mockReturnValue("/settings");
     mockStore();
     render(<Header onOpenUpload={onOpenUpload} />);
 
     const settingsLink = screen.getByLabelText("Settings");
+    expect(settingsLink).toHaveAttribute("href", "/");
+    expect(settingsLink).toHaveAttribute("title", "Back to leaderboard");
     expect(settingsLink.className).toContain("bg-[#dc2626]");
   });
 });

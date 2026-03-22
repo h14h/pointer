@@ -49,6 +49,8 @@ export function Header({ onOpenUpload }: HeaderProps) {
   const activeTeamIndex = draftStateForLeague?.activeTeamIndex ?? 0;
   const activeTeamName =
     leagueSettings?.teamNames[activeTeamIndex] ?? `Team ${activeTeamIndex + 1}`;
+  const settingsHref = isSettingsPage ? "/" : "/settings?section=scoring";
+  const settingsTitle = isSettingsPage ? "Back to leaderboard" : "Settings";
 
   const draftedEntries = Object.entries(draftStateForLeague?.draftedByTeam ?? {});
   const keeperEntries = Object.entries(draftStateForLeague?.keeperByTeam ?? {});
@@ -153,9 +155,9 @@ export function Header({ onOpenUpload }: HeaderProps) {
                 />
               </label>
               <Link
-                href="/settings?section=scoring"
+                href={settingsHref}
                 aria-label="Settings"
-                title="Settings"
+                title={settingsTitle}
                 className={`ml-1 inline-flex h-8 w-8 items-center justify-center rounded-sm border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#dc2626] dark:focus-visible:outline-[#ef4444] ${
                   isSettingsPage
                     ? "border-[#dc2626] bg-[#dc2626] text-white dark:border-[#ef4444] dark:bg-[#ef4444] dark:text-[#111111]"

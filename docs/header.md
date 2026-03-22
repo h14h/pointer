@@ -10,7 +10,7 @@
 
 ## What It Does
 
-Top navigation bar with upload trigger (passed as prop), settings cog route link (`/settings?section=scoring`), draft mode toggle, and a Clear Projections button.
+Top navigation bar with upload trigger (passed as prop), a settings cog that routes to `/settings?section=scoring` from the leaderboard and back to `/` from the settings page, draft mode toggle, and a Clear Projections button.
 
 When draft mode is on, a second row appears with active team selector, Next button (wraps via modulo in the store), draft status display, and a Reset Draft button.
 
