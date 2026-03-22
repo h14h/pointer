@@ -36,6 +36,10 @@ This keeps replacement levels stable when the user changes table-local filters, 
 
 PAR is displayed as a sortable column after the Points column. Format: whole numbers with a `+` prefix for positive values (for example `+15`, `-9`). Color coding: green (positive), red (negative), muted gray (zero).
 
+## Rank Gutter
+
+A narrow sticky `#` gutter on the left shows the player's table rank. The number reflects the current sorted leaderboard before text search is applied, so typing in the search box narrows the visible rows without renumbering them. This lets users search for a player while preserving their place in the broader ranking.
+
 ## Baseball IP Detection
 
 `useBaseballIp` is a memo that checks whether *all* pitcher IP values in the active group pass `isValidBaseballIp`. This is an all-or-nothing flag — if any pitcher has IP like `5.3`, the entire group uses decimal IP math.
@@ -67,4 +71,4 @@ Users can toggle individual batting (16 options) and pitching (17 options) stat 
 
 ## Global Filter
 
-Searches both Name and Team fields, case-insensitive.
+Searches both Name and Team fields, case-insensitive. Search is applied after the main ranking is established, so filtered rows keep their original rank numbers in the left gutter.

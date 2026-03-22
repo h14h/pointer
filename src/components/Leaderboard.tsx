@@ -14,7 +14,6 @@ import {
 	useReactTable,
 	getCoreRowModel,
 	getSortedRowModel,
-	getFilteredRowModel,
 	getPaginationRowModel,
 	flexRender,
 	type SortingState,
@@ -532,7 +531,6 @@ export function Leaderboard() {
 					activeTeamIndex={draftState.activeTeamIndex}
 					playerView={playerView}
 					globalFilter={globalFilter}
-					setGlobalFilter={setGlobalFilter}
 					draftFilter={draftFilter}
 					battingStatIds={selectedBattingStats}
 					pitchingStatIds={selectedPitchingStats}
@@ -556,7 +554,6 @@ type LeaderboardTableProps = {
 	activeTeamIndex: number;
 	playerView: PlayerView;
 	globalFilter: string;
-	setGlobalFilter: Dispatch<SetStateAction<string>>;
 	draftFilter: DraftFilter;
 	battingStatIds: string[];
 	pitchingStatIds: string[];
@@ -576,7 +573,6 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	activeTeamIndex,
 	playerView,
 	globalFilter,
-	setGlobalFilter,
 	draftFilter,
 	battingStatIds,
 	pitchingStatIds,
@@ -1440,27 +1436,50 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			pitchingStatIds,
 		]);
 
-	const table = useReactTable({
+	const searchedPlayers = useMemo(() => {
+		const search = globalFilter.trim().toLowerCase();
+		if (search.length === 0) return filteredPlayers;
+
+		return filteredPlayers.filter((row) => {
+			const name = row.player.Name.toLowerCase();
+			const team = row.player.Team.toLowerCase();
+			return name.includes(search) || team.includes(search);
+		});
+	}, [filteredPlayers, globalFilter]);
+
+	const rankTable = useReactTable({
 		data: filteredPlayers,
 		columns,
 		state: {
 			sorting,
-			globalFilter,
+		},
+		onSortingChange: setSorting,
+		getCoreRowModel: getCoreRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+	});
+
+	const rankByPlayerId = useMemo(
+		() =>
+			new Map(
+				rankTable
+					.getSortedRowModel()
+					.rows.map((row, index) => [row.original.player._id, index + 1]),
+			),
+		[rankTable],
+	);
+
+	const table = useReactTable({
+		data: searchedPlayers,
+		columns,
+		state: {
+			sorting,
 			pagination,
 		},
 		onSortingChange: setSorting,
-		onGlobalFilterChange: setGlobalFilter,
 		onPaginationChange: setPagination,
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
-		globalFilterFn: (row, _, filterValue) => {
-			const name = row.original.player.Name.toLowerCase();
-			const team = row.original.player.Team.toLowerCase();
-			const search = filterValue.toLowerCase();
-			return name.includes(search) || team.includes(search);
-		},
 	});
 	useEffect(() => {
 		setPagination((current) =>
@@ -1503,6 +1522,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					<thead>
 						{table.getHeaderGroups().map((headerGroup) => (
 							<tr key={headerGroup.id}>
+								<th className="sticky left-0 top-0 z-20 w-12 border-b border-b-[#111111]/40 border-r border-[#111111]/10 bg-white px-2 py-2 text-right text-[10px] font-bold uppercase tracking-widest text-[#111111]/35 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-b-[#e5e5e5]/25 dark:border-[#333333] dark:bg-[#111111] dark:text-[#e5e5e5]/30 dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]">
+									#
+								</th>
 								{headerGroup.headers.map((header) => (
 									<th
 										key={header.id}
@@ -1536,7 +1558,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 						))}
 					</thead>
 					<tbody>
-						{table.getRowModel().rows.map((row) => (
+						{table.getRowModel().rows.map((row, rowIndex) => (
 							<tr
 								key={row.id}
 								onClick={() => handleRowClick(row.original)}
@@ -1548,9 +1570,13 @@ const LeaderboardTable = memo(function LeaderboardTable({
 										? "text-[#111111]/30 dark:text-[#e5e5e5]/20"
 										: row.original.isKeeper
 											? "bg-[#dc2626]/[0.03] dark:bg-[#ef4444]/[0.03]"
-											: "hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
+										: "hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
 								}`}
 							>
+								<td className="sticky left-0 z-[1] w-12 border-r border-[#111111]/10 bg-white px-2 py-2.5 text-right font-mono text-[11px] text-[#111111]/38 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-[#333333] dark:bg-[#111111] dark:text-[#e5e5e5]/30 dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]">
+									{rankByPlayerId.get(row.original.player._id) ??
+										pagination.pageIndex * pagination.pageSize + rowIndex + 1}
+								</td>
 								{row.getVisibleCells().map((cell) => (
 									<td
 										key={cell.id}

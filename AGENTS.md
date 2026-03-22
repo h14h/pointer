@@ -27,8 +27,10 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
 ## Quality Assurance
 Before completing any code change, run all checks in order and fix any failures:
 ```bash
+check whether any specs in docs/ or HOW.md need to be updated, then run:
 bun run test && bun run test:ui && bun run lint && bun run build
 ```
+- review relevant specs/docs for code changes and update them if needed
 - `bun run test` — unit tests for src/lib
 - `bun run test:ui` — component/UI tests (Vitest)
 - `bun run lint` — ESLint; zero errors required (warnings are acceptable when React Compiler handles the case)

@@ -68,14 +68,16 @@ Run all checks before completing any code change. Failure in any step blocks the
 
 ### Required Verification Order
 
-1. `bun run test` — all unit tests must pass
-2. `bun run test:ui` — all UI tests must pass
-3. `bun run lint` — zero errors (warnings are acceptable when React Compiler is known to handle the case)
-4. `bun run build` — TypeScript must compile cleanly
+1. Review whether `HOW.md` or any relevant spec in `docs/` needs to be updated for the code change, and update it if needed
+2. `bun run test` — all unit tests must pass
+3. `bun run test:ui` — all UI tests must pass
+4. `bun run lint` — zero errors (warnings are acceptable when React Compiler is known to handle the case)
+5. `bun run build` — TypeScript must compile cleanly
 
 ### Running Everything
 
 ```bash
+review specs/docs first, then run:
 bun run test && bun run test:ui && bun run lint && bun run build
 ```
 
