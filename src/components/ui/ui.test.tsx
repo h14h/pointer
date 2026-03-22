@@ -44,7 +44,7 @@ describe("shared ui primitives", () => {
   it("supports multi-select mode with count badge and clear action", () => {
     const onChange = vi.fn();
 
-    render(
+    const { rerender } = render(
       <MenuSelect
         mode="multi"
         values={["C", "SS"]}
@@ -61,6 +61,11 @@ describe("shared ui primitives", () => {
     );
 
     expect(screen.getByRole("button", { name: /position/i })).toHaveTextContent("2");
+    expect(
+      screen
+        .getByRole("button", { name: /position/i })
+        .querySelector('[aria-hidden="true"].flex.h-4.w-4.items-center.justify-center')
+    ).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /position/i }));
     fireEvent.click(screen.getByRole("button", { name: "1B" }));
@@ -68,5 +73,27 @@ describe("shared ui primitives", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
     expect(onChange).toHaveBeenCalledWith([]);
+
+    rerender(
+      <MenuSelect
+        mode="multi"
+        values={[]}
+        onChange={onChange}
+        triggerLabel="Position"
+        menuLabel="Filter by Position"
+        clearLabel="Clear"
+        options={[
+          { value: "C", label: "C" },
+          { value: "1B", label: "1B" },
+          { value: "SS", label: "SS" },
+        ]}
+      />
+    );
+
+    expect(
+      screen
+        .getByRole("button", { name: /position/i })
+        .querySelector('[aria-hidden="true"].flex.h-4.w-4.items-center.justify-center')
+    ).not.toBeNull();
   });
 });

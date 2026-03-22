@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { cx } from "@/components/ui/cx";
 
 const dropdownTriggerClassName =
-  "flex items-center gap-1.5 rounded-sm border border-[#111111]/30 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/70 transition-colors hover:bg-[#f5f5f5] dark:border-[#333333] dark:text-[#e5e5e5]/60 dark:hover:bg-[#1a1a1a]";
+  "flex min-h-8 items-center gap-1.5 rounded-sm border border-[#111111]/30 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/70 transition-colors hover:bg-[#f5f5f5] dark:border-[#333333] dark:text-[#e5e5e5]/60 dark:hover:bg-[#1a1a1a]";
 
 const dropdownMenuClassName =
   "absolute z-20 min-w-[180px] rounded-sm border border-[#111111]/15 bg-white shadow-lg dark:border-[#333333] dark:bg-[#1a1a1a]";
@@ -87,11 +87,13 @@ export function MenuSelect<T extends string | number>(props: MenuSelectProps<T>)
   const triggerContent = isMulti ? (
     <>
       <span>{props.triggerLabel}</span>
-      {selectedValues.length > 0 ? (
-        <span className="h-5 w-5 rounded-full bg-[#dc2626] dark:bg-[#ef4444] text-white text-xs flex items-center justify-center font-bold">
-          {selectedValues.length}
-        </span>
-      ) : null}
+      <span className="flex h-4 w-4 items-center justify-center" aria-hidden="true">
+        {selectedValues.length > 0 ? (
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#dc2626] text-[10px] font-bold leading-none text-white dark:bg-[#ef4444]">
+            {selectedValues.length}
+          </span>
+        ) : null}
+      </span>
     </>
   ) : (
     <span>{activeOption.label}</span>

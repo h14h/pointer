@@ -495,11 +495,14 @@ export function Leaderboard() {
 
 					<button
 						onClick={() => setIsStatsOpen((open) => !open)}
-						className="rounded-sm border border-[#111111]/30 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/70 transition-colors hover:bg-[#f5f5f5] dark:border-[#333333] dark:text-[#e5e5e5]/60 dark:hover:bg-[#1a1a1a]"
+						className="relative inline-flex min-h-8 items-center justify-center rounded-sm border border-[#111111]/30 px-3 py-1.5 text-center text-xs font-bold uppercase tracking-widest text-[#111111]/70 transition-colors hover:bg-[#f5f5f5] dark:border-[#333333] dark:text-[#e5e5e5]/60 dark:hover:bg-[#1a1a1a]"
 						aria-expanded={isStatsOpen}
 						aria-controls="stat-visibility-panel"
 					>
-						{isStatsOpen ? "Hide Stats" : "Customize Stats"}
+						<span className="invisible">Customize Stats</span>
+						<span className="absolute inset-0 flex items-center justify-center">
+							{isStatsOpen ? "Hide Stats" : "Customize Stats"}
+						</span>
 					</button>
 				</div>
 			</div>
@@ -835,7 +838,10 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				size: 150,
 				accessorFn: (row) => formatEligibilityForLeaderboard(row.player),
 				cell: ({ getValue }) => (
-					<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
+					<span
+						className="whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50"
+						title={getValue() as string}
+					>
 						{getValue() as string}
 					</span>
 				),
