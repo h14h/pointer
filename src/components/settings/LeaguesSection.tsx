@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { Button } from "@/components/ui/Button";
 import { useStore } from "@/store";
 import type { League } from "@/types";
 
@@ -64,13 +65,9 @@ export function LeaguesSection() {
 
       {/* Create league button */}
       <div className="mb-6">
-        <button
-          type="button"
-          onClick={handleCreateLeague}
-          className="rounded-sm bg-[#dc2626] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#b91c1c] dark:bg-[#ef4444] dark:hover:bg-[#dc2626]"
-        >
+        <Button variant="primary" onClick={handleCreateLeague}>
           Create New League
-        </button>
+        </Button>
       </div>
 
       {/* League list */}
@@ -149,41 +146,45 @@ export function LeaguesSection() {
 
                 {/* Actions */}
                 <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => duplicateLeague(league.id)}
-                    className="rounded-sm px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[#111111]/60 hover:bg-[#111111]/[0.05] dark:text-[#e5e5e5]/50 dark:hover:bg-[#e5e5e5]/[0.05]"
+                    className="text-[11px]"
                     title="Duplicate league"
                   >
                     Duplicate
-                  </button>
+                  </Button>
                   {isDeleteConfirm ? (
                     <div className="flex items-center gap-1">
-                      <button
-                        type="button"
+                      <Button
+                        variant="destructiveGhost"
+                        size="sm"
                         onClick={() => deleteLeague(league.id)}
-                        className="rounded-sm px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[#dc2626] hover:bg-red-50 dark:text-[#ef4444] dark:hover:bg-red-950/30"
+                        className="text-[11px]"
                       >
                         Delete
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setDeleteConfirmId(null)}
-                        className="rounded-sm px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[#111111]/60 hover:bg-[#111111]/[0.05] dark:text-[#e5e5e5]/50 dark:hover:bg-[#e5e5e5]/[0.05]"
+                        className="text-[11px]"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
+                    <Button
+                      variant="destructiveGhost"
+                      size="sm"
                       onClick={() => setDeleteConfirmId(league.id)}
-                      className="rounded-sm px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[#dc2626]/60 hover:bg-red-50 dark:text-[#ef4444]/50 dark:hover:bg-red-950/30"
+                      className="text-[11px] opacity-60 enabled:opacity-100"
                       title="Delete league"
                       disabled={leagues.length <= 1}
                     >
                       Delete
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

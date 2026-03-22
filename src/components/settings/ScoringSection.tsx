@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NumericInputGroup, NumericInputRow } from "@/components/NumericInputGroup";
 import {
   battingGroups,
   pitchingGroups,
 } from "@/components/settings/constants";
+import { Button } from "@/components/ui/Button";
+import { MenuSelect } from "@/components/ui/MenuSelect";
+import { Toggle } from "@/components/ui/Toggle";
 import { scoringPresets, presetNames } from "@/lib/presets";
 import { useDebouncedCallback } from "@/lib/useDebounce";
 import { useStore } from "@/store";
@@ -25,10 +28,14 @@ export function ScoringSection() {
   } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
   const scoringSettings = activeLeague?.scoringSettings;
-  const presetSelectionRef = useRef<HTMLSelectElement>(null);
   const activePresetKey =
     presetNames.find((key) => scoringPresets[key].name === scoringSettings.name) ??
     presetNames[0];
+  const [selectedPresetKey, setSelectedPresetKey] = useState(activePresetKey);
+
+  useEffect(() => {
+    setSelectedPresetKey(activePresetKey);
+  }, [activePresetKey]);
 
   const debouncedUpdateBatting = useDebouncedCallback(
     useCallback(
@@ -61,7 +68,6 @@ export function ScoringSection() {
 
   return (
     <div className="font-sans">
-      {/* Section header */}
       <div className="mb-8">
         <h2
           className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
@@ -84,30 +90,27 @@ export function ScoringSection() {
             >
               Preset
             </label>
-            <select
-              key={activePresetKey}
-              id="scoring-preset"
-              defaultValue={activePresetKey}
-              ref={presetSelectionRef}
-              className="h-9 rounded-md border border-[#111111]/15 bg-white px-2.5 text-sm text-[#111111] transition-colors focus:border-[#dc2626] focus:outline-none dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5] dark:focus:border-[#ef4444]"
-            >
-              {presetNames.map((key) => (
-                <option key={key} value={key}>
-                  {scoringPresets[key].name}
-                </option>
-              ))}
-            </select>
+            <MenuSelect
+              value={selectedPresetKey}
+              onChange={setSelectedPresetKey}
+              ariaLabel="Scoring preset"
+              triggerClassName="h-9 justify-between rounded-md border-[#111111]/15 px-2.5 text-sm normal-case tracking-normal dark:border-[#333333]"
+              menuClassName="min-w-[220px]"
+              options={presetNames.map((key) => ({
+                value: key,
+                label: scoringPresets[key].name,
+              }))}
+            />
           </div>
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => {
-              const presetKey = presetSelectionRef.current?.value ?? activePresetKey;
-              setScoringSettings(scoringPresets[presetKey]);
+              setScoringSettings(scoringPresets[selectedPresetKey]);
             }}
-            className="h-9 rounded-md bg-[#dc2626] px-4 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#b91c1c] dark:bg-[#ef4444] dark:hover:bg-[#dc2626]"
           >
             Apply Preset
-          </button>
+          </Button>
         </div>
 
         <div
@@ -119,10 +122,8 @@ export function ScoringSection() {
           title={!canMergeTwoWay ? "Merge two-way requires provided player IDs in both uploads." : undefined}
         >
           <span className="text-xs font-medium">Merge two-way</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={mergeTwoWayRankings}
+          <Toggle
+            checked={mergeTwoWayRankings}
             aria-disabled={!canMergeTwoWay}
             disabled={!canMergeTwoWay}
             onClick={() => {
@@ -130,20 +131,8 @@ export function ScoringSection() {
                 setMergeTwoWayRankings(!mergeTwoWayRankings);
               }
             }}
-            className={`relative inline-flex h-[22px] w-10 items-center rounded-full transition-colors ${
-              mergeTwoWayRankings && canMergeTwoWay
-                ? "bg-[#dc2626] dark:bg-[#ef4444]"
-                : "bg-[#111111]/15 dark:bg-[#e5e5e5]/15"
-            } ${canMergeTwoWay ? "cursor-pointer" : "cursor-not-allowed opacity-40"}`}
-          >
-            <span
-              className={`inline-block h-[16px] w-[16px] rounded-full bg-white shadow-sm transition-transform ${
-                mergeTwoWayRankings && canMergeTwoWay
-                  ? "translate-x-[21px]"
-                  : "translate-x-[3px]"
-              }`}
-            />
-          </button>
+            className={!canMergeTwoWay ? "bg-[#111111]/15 dark:bg-[#e5e5e5]/15 border-transparent" : ""}
+          />
         </div>
       </div>
 

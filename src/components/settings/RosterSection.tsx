@@ -3,6 +3,7 @@
 import { NumericInput } from "@/components/NumericInput";
 import { useStore } from "@/store";
 import { NumericInputGroup, NumericInputRow } from "@/components/NumericInputGroup";
+import { Toggle } from "@/components/ui/Toggle";
 import {
   catcherSlots,
   extraSlots,
@@ -156,24 +157,13 @@ export function RosterSection() {
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={leagueSettings.weeklyStartLimit != null}
+                <Toggle
+                  checked={leagueSettings.weeklyStartLimit != null}
+                  size="md"
                   aria-label="Enable weekly start limit"
                   onClick={toggleWeeklyStartLimit}
-                  className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition-colors ${
-                    leagueSettings.weeklyStartLimit != null
-                      ? "border-[#dc2626]/60 bg-[#dc2626]"
-                      : "border-[#111111]/15 bg-white/80 dark:border-[#e5e5e5]/15 dark:bg-[#1f1f1f]"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform dark:bg-[#f5f5f5] ${
-                      leagueSettings.weeklyStartLimit != null ? "translate-x-[22px]" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
+                  className="shrink-0"
+                />
               </div>
               <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#111111]/10 pt-4 dark:border-[#e5e5e5]/10">
                 <div className="text-sm font-semibold text-[#111111]/65 dark:text-[#e5e5e5]/55">

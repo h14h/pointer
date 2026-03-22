@@ -6,6 +6,7 @@
 ## Dependencies
 - [State](state.md) — draft state, league settings, draft mode toggle
 - Next navigation (`next/link`, `next/navigation`) — settings route link and active-state styling
+- [UI System](ui-system.md) — shared buttons, dialogs, select styling, labels, and page container tokens
 
 ## What It Does
 
@@ -15,7 +16,7 @@ When draft mode is on, a second row appears with active team selector, Next butt
 
 ## Confirmation Modals
 
-Both destructive actions use the same pattern: fixed overlay with backdrop blur, close/cancel buttons, red-tinted confirm.
+Both destructive actions use the shared `DialogShell` pattern: fixed overlay, shared close affordance, ghost cancel action, destructive confirm action.
 
 - **Reset Draft** — clears drafted players and keepers, leaves projection data intact
 - **Delete Projections** — removes all projection groups and uploaded players (cannot be undone)

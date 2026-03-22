@@ -20,6 +20,7 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 | CSV Upload Workflow | Upload modal, file handling, eligibility import, and optional pitching-outcome estimation | `src/components/CsvUpload.tsx` | [docs/csv-upload-workflow.md](docs/csv-upload-workflow.md) |
 | Settings Page | Dedicated settings route with sectioned Scoring, Roster, and Draft controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx` | [docs/settings-page.md](docs/settings-page.md) |
 | Header | Top navigation, draft controls, and team selection | `src/components/Header.tsx` | [docs/header.md](docs/header.md) |
+| UI System | Shared visual tokens and reusable UI primitives for consistent styling | `src/app/globals.css`, `src/components/ui/*.tsx` | [docs/ui-system.md](docs/ui-system.md) |
 | Utilities | IP math, debounce hook, and other shared helpers | `src/lib/ipMath.ts`, `src/lib/useDebounce.ts` | [docs/utilities.md](docs/utilities.md) |
 
 ## Cross-Cutting Concerns

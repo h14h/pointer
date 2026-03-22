@@ -10,6 +10,7 @@ import { LeaguesSection } from "@/components/settings/LeaguesSection";
 import { RosterSection } from "@/components/settings/RosterSection";
 import { ScoringSection } from "@/components/settings/ScoringSection";
 import { SettingsLayout } from "@/components/settings/SettingsLayout";
+import { Button } from "@/components/ui/Button";
 import { resolveSettingsSection } from "@/components/settings/types";
 
 function SettingsPageContent() {
@@ -18,7 +19,7 @@ function SettingsPageContent() {
   const activeSection = resolveSettingsSection(searchParams.get("section"));
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#111111]">
+    <div className="min-h-screen bg-[var(--color-surface-base)]">
       <Header onOpenUpload={() => setUploadOpen(true)} />
 
       <main className="mx-auto max-w-5xl px-4 py-6 font-sans sm:px-6 sm:py-8">
@@ -32,12 +33,14 @@ function SettingsPageContent() {
             </h1>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-md border border-[#111111]/20 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/70 transition-colors hover:border-[#111111]/30 hover:text-[#111111] dark:border-[#e5e5e5]/20 dark:text-[#e5e5e5]/60 dark:hover:border-[#e5e5e5]/30 dark:hover:text-[#e5e5e5]"
+              className="inline-flex"
             >
-              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
-                <path fillRule="evenodd" d="M7.78 4.22a.75.75 0 0 1 0 1.06L5.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L3.22 8.53a.75.75 0 0 1 0-1.06l3.5-3.5a.75.75 0 0 1 1.06 0ZM12.78 4.22a.75.75 0 0 1 0 1.06L10.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06l-3.5-3.5a.75.75 0 0 1 0-1.06l3.5-3.5a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
-              </svg>
-              Back to Board
+              <Button variant="secondary" size="sm">
+                <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
+                  <path fillRule="evenodd" d="M7.78 4.22a.75.75 0 0 1 0 1.06L5.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L3.22 8.53a.75.75 0 0 1 0-1.06l3.5-3.5a.75.75 0 0 1 1.06 0ZM12.78 4.22a.75.75 0 0 1 0 1.06L10.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06l-3.5-3.5a.75.75 0 0 1 0-1.06l3.5-3.5a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
+                </svg>
+                Back to Board
+              </Button>
             </Link>
           </div>
           <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">

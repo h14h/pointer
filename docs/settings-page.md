@@ -15,6 +15,7 @@
 - [Scoring](scoring.md) — scoring presets
 - [Types](types.md) — `ScoringSettings`, `RosterSlot`, `LeagueSettings`
 - [Utilities](utilities.md) — debounced scoring updates
+- [UI System](ui-system.md) — shared page shell, section header, labels, select styling, and grouped surface patterns
 - `src/components/NumericInput.tsx` — low-level numeric input behavior
 - `src/components/NumericInputGroup.tsx` — shared group/row wrappers used by both Scoring and Roster sections
 
@@ -33,6 +34,8 @@ Desktop renders a left sidebar section navigator; mobile renders a top segmented
 **Roster section.** Keeps per-slot and reserve numeric controls with immediate commit-to-store behavior on input commit. Weekly start limits live in a separate `Pitcher Usage` callout with an explicit toggle plus a numeric input that is disabled until the rule is enabled. Uses the shared `NumericInputGroup` and `NumericInputRow` components for standard roster slots.
 
 **Shared numeric input groups.** Both Scoring and Roster sections use `NumericInputGroup` (label bar + rounded background container) and `NumericInputRow` (label + NumericInput in a bordered row) from `src/components/NumericInputGroup.tsx` to maintain consistent visual grouping.
+
+**Shared UI shell.** The route header, section navigation, preset select, and grouped controls now use the shared UI primitives instead of repeating hardcoded color/font/border recipes in each surface component.
 
 **Draft section.** Manages league size, team names, team add/remove, and drag-drop reorder. Team order remains draft order. League-size updates preserve clamping behavior and rely on store normalization/pruning.
 

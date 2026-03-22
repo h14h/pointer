@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { MenuSelect } from "@/components/ui/MenuSelect";
+import { Toggle } from "@/components/ui/Toggle";
 import { useStore } from "@/store";
 
 interface HeaderProps {
@@ -76,20 +79,13 @@ export function Header({ onOpenUpload }: HeaderProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 font-sans">
-              <button
-                onClick={onOpenUpload}
-                className="rounded-sm bg-[#dc2626] dark:bg-[#ef4444] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#b91c1c] dark:hover:bg-[#dc2626] transition-colors"
-              >
+              <Button variant="primary" size="sm" onClick={onOpenUpload}>
                 Upload
-              </button>
-              <button
-                onClick={() => setIsClearOpen(true)}
-                className="rounded-sm px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#dc2626] dark:text-[#ef4444] hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-              >
+              </Button>
+              <Button variant="destructiveGhost" size="sm" onClick={() => setIsClearOpen(true)}>
                 Clear Projections
-              </button>
+              </Button>
 
-              {/* League selector */}
               <div className="relative">
                 <button
                   type="button"
@@ -150,25 +146,11 @@ export function Header({ onOpenUpload }: HeaderProps) {
 
               <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
                 Draft Mode
-                <button
-                  role="switch"
+                <Toggle
                   aria-label="Draft Mode"
-                  aria-checked={isDraftMode}
+                  checked={isDraftMode}
                   onClick={() => setDraftMode(!isDraftMode)}
-                  className={`relative inline-flex h-5 w-10 items-center rounded-sm border transition-colors ${
-                    isDraftMode
-                      ? "border-[#dc2626] dark:border-[#ef4444] bg-[#dc2626] dark:bg-[#ef4444]"
-                      : "border-[#111111]/30 dark:border-[#333333] bg-transparent"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-3 w-3 transform rounded-sm transition-transform ${
-                      isDraftMode
-                        ? "translate-x-6 bg-white"
-                        : "translate-x-1 bg-[#111111]/40 dark:bg-[#e5e5e5]/40"
-                    }`}
-                  />
-                </button>
+                />
               </label>
               <Link
                 href="/settings?section=scoring"
@@ -196,24 +178,20 @@ export function Header({ onOpenUpload }: HeaderProps) {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
                   Active Team
                 </span>
-                <select
-                  aria-label="Active team"
+                <MenuSelect
                   value={activeTeamIndex}
-                  onChange={(e) => setActiveTeamIndex(parseInt(e.target.value, 10))}
-                  className="rounded-sm border border-[#111111]/30 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2 py-1 text-sm text-[#111111] dark:text-[#e5e5e5]"
-                >
-                  {leagueSettings.teamNames.map((name, index) => (
-                    <option key={`team-${index}`} value={index}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={advanceActiveTeam}
-                  className="rounded-sm border border-[#111111]/30 dark:border-[#333333] px-2 py-1 text-xs font-bold uppercase tracking-widest text-[#111111] dark:text-[#e5e5e5] hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
-                >
+                  onChange={setActiveTeamIndex}
+                  ariaLabel="Active team"
+                  triggerClassName="px-2 py-1 text-sm normal-case tracking-normal"
+                  menuClassName="min-w-[10rem]"
+                  options={leagueSettings.teamNames.map((name, index) => ({
+                    value: index,
+                    label: name,
+                  }))}
+                />
+                <Button variant="secondary" size="sm" onClick={advanceActiveTeam} className="px-2 py-1">
                   Next
-                </button>
+                </Button>
               </div>
 
               <div className="text-[#111111]/70 dark:text-[#e5e5e5]/60">
@@ -226,12 +204,14 @@ export function Header({ onOpenUpload }: HeaderProps) {
                 {keeperCount > 0 && `, ${keeperCount} keepers`}
               </div>
 
-              <button
+              <Button
+                variant="destructiveGhost"
+                size="sm"
                 onClick={() => setIsResetOpen(true)}
-                className="ml-auto text-xs font-bold uppercase tracking-widest text-[#dc2626] dark:text-[#ef4444] hover:underline"
+                className="ml-auto hover:underline"
               >
                 Reset Draft
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -254,21 +234,18 @@ export function Header({ onOpenUpload }: HeaderProps) {
               This clears drafted players and keepers, but leaves projection data intact.
             </p>
             <div className="flex justify-end gap-3 font-sans">
-              <button
-                onClick={() => setIsResetOpen(false)}
-                className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 hover:text-[#111111] dark:hover:text-[#e5e5e5]"
-              >
+              <Button variant="ghost" onClick={() => setIsResetOpen(false)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={() => {
                   resetDraft();
                   setIsResetOpen(false);
                 }}
-                className="rounded-sm bg-[#dc2626] dark:bg-[#ef4444] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#b91c1c] dark:hover:bg-[#dc2626]"
               >
                 Reset Draft
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -291,21 +268,18 @@ export function Header({ onOpenUpload }: HeaderProps) {
               This removes all projection groups and uploaded players, and clears draft picks from all leagues. This cannot be undone.
             </p>
             <div className="flex justify-end gap-3 font-sans">
-              <button
-                onClick={() => setIsClearOpen(false)}
-                className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 hover:text-[#111111] dark:hover:text-[#e5e5e5]"
-              >
+              <Button variant="ghost" onClick={() => setIsClearOpen(false)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={() => {
                   clearAllData();
                   setIsClearOpen(false);
                 }}
-                className="rounded-sm bg-[#dc2626] dark:bg-[#ef4444] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#b91c1c] dark:hover:bg-[#dc2626]"
               >
                 Delete Projections
-              </button>
+              </Button>
             </div>
           </div>
         </div>

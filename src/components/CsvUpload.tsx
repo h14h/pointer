@@ -23,6 +23,9 @@ import {
   DEFAULT_PITCHING_OUTCOME_ESTIMATE_SELECTION,
   type PitchingOutcomeEstimateSelection,
 } from "@/lib/pitchingOutcomeImport";
+import { Button } from "@/components/ui/Button";
+import { MenuSelect } from "@/components/ui/MenuSelect";
+import { Toggle } from "@/components/ui/Toggle";
 import { useStore } from "@/store";
 import type {
   TwoWayPlayer,
@@ -642,15 +645,18 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
                 Player Type
               </label>
-              <select
+              <MenuSelect
                 value={uploadType}
-                onChange={(e) => setUploadType(e.target.value as UploadType)}
-                className="w-full rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-2 text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-              >
-                <option value="auto">Auto-detect</option>
-                <option value="batter">Batters</option>
-                <option value="pitcher">Pitchers</option>
-              </select>
+                onChange={setUploadType}
+                ariaLabel="Player Type"
+                triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                menuClassName="w-full min-w-0"
+                options={[
+                  { value: "auto", label: "Auto-detect" },
+                  { value: "batter", label: "Batters" },
+                  { value: "pitcher", label: "Pitchers" },
+                ]}
+              />
             </div>
 
             <div
@@ -684,12 +690,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
 
             <div className="flex justify-end">
-              <button
-                onClick={handleCancel}
-                className="text-xs font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40 hover:text-[#111111] dark:hover:text-[#e5e5e5]"
-              >
+              <Button variant="ghost" size="sm" onClick={handleCancel}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </>
         ) : needsIdSelection ? (
@@ -711,38 +714,41 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                 <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
                   ID Source
                 </label>
-                <select
+                <MenuSelect
                   value={batterFile.selectedIdSource}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     setBatterFile({
                       ...batterFile,
-                      selectedIdSource: e.target.value as IdSource | "custom",
+                      selectedIdSource: value,
                     })
                   }
-                  className="w-full rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-2 text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-                >
-                  <option value="generated">Generate IDs automatically</option>
-                  <option value="custom">Use a column from the file</option>
-                </select>
+                  ariaLabel="Batter ID Source"
+                  triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                  menuClassName="w-full min-w-0"
+                  options={[
+                    { value: "generated", label: "Generate IDs automatically" },
+                    { value: "custom", label: "Use a column from the file" },
+                  ]}
+                />
 
                 {batterFile.selectedIdSource === "custom" && (
                   <div className="mt-3">
                     <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
                       Select Column
                     </label>
-                    <select
+                    <MenuSelect
                       value={batterFile.customIdColumn}
-                      onChange={(e) =>
-                        setBatterFile({ ...batterFile, customIdColumn: e.target.value })
+                      onChange={(value) =>
+                        setBatterFile({ ...batterFile, customIdColumn: value })
                       }
-                      className="w-full rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-2 text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-                    >
-                      {batterFile.parseResult.availableColumns.map((col) => (
-                        <option key={col} value={col}>
-                          {col}
-                        </option>
-                      ))}
-                    </select>
+                      ariaLabel="Batter ID Column"
+                      triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                      menuClassName="w-full min-w-0"
+                      options={batterFile.parseResult.availableColumns.map((col) => ({
+                        value: col,
+                        label: col,
+                      }))}
+                    />
                   </div>
                 )}
               </div>
@@ -756,56 +762,53 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                 <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
                   ID Source
                 </label>
-                <select
+                <MenuSelect
                   value={pitcherFile.selectedIdSource}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     setPitcherFile({
                       ...pitcherFile,
-                      selectedIdSource: e.target.value as IdSource | "custom",
+                      selectedIdSource: value,
                     })
                   }
-                  className="w-full rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-2 text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-                >
-                  <option value="generated">Generate IDs automatically</option>
-                  <option value="custom">Use a column from the file</option>
-                </select>
+                  ariaLabel="Pitcher ID Source"
+                  triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                  menuClassName="w-full min-w-0"
+                  options={[
+                    { value: "generated", label: "Generate IDs automatically" },
+                    { value: "custom", label: "Use a column from the file" },
+                  ]}
+                />
 
                 {pitcherFile.selectedIdSource === "custom" && (
                   <div className="mt-3">
                     <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
                       Select Column
                     </label>
-                    <select
+                    <MenuSelect
                       value={pitcherFile.customIdColumn}
-                      onChange={(e) =>
-                        setPitcherFile({ ...pitcherFile, customIdColumn: e.target.value })
+                      onChange={(value) =>
+                        setPitcherFile({ ...pitcherFile, customIdColumn: value })
                       }
-                      className="w-full rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-2 text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-                    >
-                      {pitcherFile.parseResult.availableColumns.map((col) => (
-                        <option key={col} value={col}>
-                          {col}
-                        </option>
-                      ))}
-                    </select>
+                      ariaLabel="Pitcher ID Column"
+                      triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                      menuClassName="w-full min-w-0"
+                      options={pitcherFile.parseResult.availableColumns.map((col) => ({
+                        value: col,
+                        label: col,
+                      }))}
+                    />
                   </div>
                 )}
               </div>
             )}
 
             <div className="flex justify-end gap-3">
-              <button
-                onClick={handleCancel}
-                className="text-xs font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40 hover:text-[#111111] dark:hover:text-[#e5e5e5]"
-              >
+              <Button variant="ghost" size="sm" onClick={handleCancel}>
                 Cancel
-              </button>
-              <button
-                onClick={handleIdSelection}
-                className="rounded-sm bg-[#dc2626] dark:bg-[#ef4444] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#b91c1c] dark:hover:bg-[#dc2626]"
-              >
+              </Button>
+              <Button variant="primary" onClick={handleIdSelection}>
                 Continue
-              </button>
+              </Button>
             </div>
           </>
         ) : (
@@ -836,9 +839,8 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                     Uses MLB games to assign positions after upload. Requires MLBAMID.
                   </p>
                 </div>
-                <button
-                  role="switch"
-                  aria-checked={importEligibilityEnabled}
+                <Toggle
+                  checked={importEligibilityEnabled}
                   onClick={() => {
                     if (!isImportingEligibility) {
                       setImportEligibilityEnabled(!importEligibilityEnabled);
@@ -846,20 +848,8 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                   }}
                   disabled={isImportingEligibility}
                   aria-label="Import Position Eligibility"
-                  className={`relative inline-flex h-5 w-10 shrink-0 items-center rounded-sm border transition-colors ${
-                    importEligibilityEnabled
-                      ? "border-[#dc2626] dark:border-[#ef4444] bg-[#dc2626] dark:bg-[#ef4444]"
-                      : "border-[#111111]/30 dark:border-[#333333] bg-transparent"
-                  } ${isImportingEligibility ? "opacity-60 cursor-not-allowed" : ""}`}
-                >
-                  <span
-                    className={`inline-block h-3 w-3 transform rounded-sm transition-transform ${
-                      importEligibilityEnabled
-                        ? "translate-x-6 bg-white"
-                        : "translate-x-1 bg-[#111111]/40 dark:bg-[#e5e5e5]/40"
-                    }`}
-                  />
-                </button>
+                  className="shrink-0"
+                />
               </div>
               <p className="mt-2 text-xs text-[#111111]/30 dark:text-[#e5e5e5]/20">
                 May take a minute for larger files.
@@ -981,19 +971,23 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                     <span className="text-sm text-[#dc2626] dark:text-[#ef4444]">
                       {importError}
                     </span>
-                    <button
+                    <Button
+                      variant="destructiveGhost"
+                      size="sm"
                       onClick={() => void handleRetryImport()}
-                      className="text-xs font-bold uppercase tracking-widest text-[#dc2626] dark:text-[#ef4444] hover:underline"
+                      className="hover:underline"
                     >
                       Retry Import
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
             )}
 
             <div className="flex justify-end gap-3 border-t border-[#111111]/10 dark:border-[#333333] pt-4">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setBatterFile(null);
                   setPitcherFile(null);
@@ -1003,14 +997,13 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                   });
                 }}
                 disabled={isImportingEligibility}
-                className="text-xs font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40 hover:text-[#111111] dark:hover:text-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 onClick={handleConfirm}
                 disabled={isImportingEligibility}
-                className="rounded-sm bg-[#dc2626] dark:bg-[#ef4444] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#b91c1c] dark:hover:bg-[#dc2626] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isImportingEligibility
                   ? "Importing Group..."
@@ -1021,7 +1014,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                       : hasSelectedPitchingOutcomeEstimates
                         ? "Import Group & Stats"
                         : "Import Group"}
-              </button>
+              </Button>
             </div>
           </>
         )}

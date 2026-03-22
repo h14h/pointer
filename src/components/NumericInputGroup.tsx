@@ -1,4 +1,5 @@
 import { NumericInput, type NumericIncrement } from "@/components/NumericInput";
+import { cx } from "@/components/ui/cx";
 
 /* ------------------------------------------------------------------ */
 /*  Shared row inside any NumericInputGroup                           */
@@ -39,11 +40,12 @@ export function NumericInputRow({
 }: NumericInputRowProps) {
   return (
     <div
-      className={`flex items-center justify-between gap-3 border-b border-[#111111]/[0.10] py-2.5 last:border-0 dark:border-[#e5e5e5]/[0.08] ${className ?? ""}`}
+      className={cx(
+        "flex items-center justify-between gap-3 border-b border-[#111111]/[0.10] py-2.5 last:border-0 dark:border-[#e5e5e5]/[0.08]",
+        className
+      )}
     >
-      <span className="text-sm font-semibold text-[#111111]/65 dark:text-[#e5e5e5]/55">
-        {label}
-      </span>
+      <span className="text-sm font-semibold text-[#111111]/65 dark:text-[#e5e5e5]/55">{label}</span>
       <NumericInput
         aria-label={ariaLabel}
         increment={increment}

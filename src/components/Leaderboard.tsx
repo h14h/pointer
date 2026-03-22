@@ -19,6 +19,7 @@ import {
 	type SortingState,
 	type ColumnDef,
 } from "@tanstack/react-table";
+import { MenuSelect } from "@/components/ui/MenuSelect";
 import { useStore } from "@/store";
 import { calculatePlayerPoints } from "@/lib/calculatePoints";
 import { calculatePAR } from "@/lib/calculatePAR";
@@ -117,6 +118,27 @@ function abbreviateName(name: string): string {
 	return `${firstName[0].toUpperCase()}. ${remaining}`;
 }
 
+function PlayerViewFilter({
+	value,
+	onChange,
+}: {
+	value: PlayerView;
+	onChange: (nextValue: PlayerView) => void;
+}) {
+	return (
+		<MenuSelect
+			value={value}
+			onChange={onChange}
+			ariaLabel="Player type"
+			options={[
+				{ value: "all", label: "All Players" },
+				{ value: "batters", label: "Batters" },
+				{ value: "pitchers", label: "Pitchers" },
+			]}
+		/>
+	);
+}
+
 function PositionFilter({
 	selectedPositions,
 	onChange,
@@ -124,77 +146,18 @@ function PositionFilter({
 	selectedPositions: Set<string>;
 	onChange: Dispatch<SetStateAction<Set<string>>>;
 }) {
-	const [isOpen, setIsOpen] = useState(false);
-
-	const togglePosition = (pos: string, checked: boolean) => {
-		onChange((current) => {
-			const next = new Set(current);
-			if (checked) {
-				next.add(pos);
-			} else {
-				next.delete(pos);
-			}
-			return next;
-		});
-	};
-
 	return (
-		<div className="relative inline-flex items-center">
-			<button
-				type="button"
-				onClick={() => setIsOpen((open) => !open)}
-				className={`rounded-sm border px-3 py-1.5 text-sm flex items-center gap-2 ${
-					selectedPositions.size > 0
-						? "border-[#dc2626] dark:border-[#ef4444] text-[#dc2626] dark:text-[#ef4444]"
-						: "border-[#111111]/20 dark:border-[#333333] text-[#111111] dark:text-[#e5e5e5]"
-				} bg-white dark:bg-[#1a1a1a] hover:border-[#111111]/40 dark:hover:border-[#e5e5e5]/30 transition-colors`}
-			>
-				<span className="font-medium">Position</span>
-				{selectedPositions.size > 0 && (
-					<span className="h-5 w-5 rounded-full bg-[#dc2626] dark:bg-[#ef4444] text-white text-xs flex items-center justify-center font-bold">
-						{selectedPositions.size}
-					</span>
-				)}
-			</button>
-
-			{isOpen && (
-				<>
-					<button type="button" className="fixed inset-0 z-10 cursor-default" onClick={() => setIsOpen(false)} />
-					<div className="absolute top-full left-0 mt-1 z-20 border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] rounded-sm shadow-lg min-w-[200px]">
-						<div className="p-3">
-							<div className="flex items-center justify-between mb-3">
-								<span className="text-xs font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40">
-									Filter by Position
-								</span>
-								<button
-									type="button"
-									onClick={() => onChange(new Set())}
-									className="text-xs font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30 hover:text-[#111111] dark:hover:text-[#e5e5e5]"
-								>
-									Clear
-								</button>
-							</div>
-							<div className="flex flex-wrap gap-2">
-								{POSITION_FILTER_OPTIONS.map((pos) => (
-									<label
-										key={pos}
-										className="flex items-center gap-1.5 border border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2.5 py-1.5 text-xs font-medium text-[#111111] dark:text-[#e5e5e5] rounded-sm cursor-pointer hover:border-[#111111]/30 dark:hover:border-[#e5e5e5]/30"
-									>
-										<input
-											type="checkbox"
-											checked={selectedPositions.has(pos)}
-											onChange={(e) => togglePosition(pos, e.target.checked)}
-											className="h-3.5 w-3.5 rounded-sm border-[#111111]/30 dark:border-[#333333] text-[#dc2626] dark:text-[#ef4444] accent-[#dc2626] dark:accent-[#ef4444]"
-										/>
-										<span>{pos}</span>
-									</label>
-								))}
-							</div>
-						</div>
-					</div>
-				</>
-			)}
-		</div>
+		<MenuSelect
+			mode="multi"
+			values={Array.from(selectedPositions)}
+			onChange={(nextValues) => onChange(new Set(nextValues))}
+			ariaLabel="Position"
+			triggerLabel="Position"
+			menuLabel="Filter by Position"
+			clearLabel="Clear"
+			menuClassName="min-w-[200px]"
+			options={POSITION_FILTER_OPTIONS.map((pos) => ({ value: pos, label: pos }))}
+		/>
 	);
 }
 
@@ -337,32 +300,19 @@ export function Leaderboard() {
 						className="w-full min-w-[220px] flex-1 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-1.5 text-sm text-[#111111] dark:text-[#e5e5e5] placeholder:text-[#111111]/30 dark:placeholder:text-[#e5e5e5]/30 focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
 					/>
 
-					<select
-						value={playerView}
-						onChange={(e) => setPlayerView(e.target.value as PlayerView)}
-						className="rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-1.5 text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-					>
-						<option value="all">All Players</option>
-						<option value="batters">Batters</option>
-						<option value="pitchers">Pitchers</option>
-					</select>
+					<PlayerViewFilter value={playerView} onChange={setPlayerView} />
 
 					{projectionGroups.length > 1 && (
 						<div className="flex items-center gap-2">
-							<select
+							<MenuSelect
 								value={currentGroupId ?? ""}
-								onChange={(e) => {
-									const nextId = e.target.value;
-									setActiveProjectionGroup(nextId);
-								}}
-								className="rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-1.5 text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-							>
-								{projectionGroups.map((group) => (
-									<option key={group.id} value={group.id}>
-										{group.name}
-									</option>
-								))}
-							</select>
+								onChange={setActiveProjectionGroup}
+								ariaLabel="Projection group"
+								options={projectionGroups.map((group) => ({
+									value: group.id,
+									label: group.name,
+								}))}
+							/>
 							{isSwitchingGroups && (
 								<span
 									className="h-4 w-4 animate-spin rounded-full border-2 border-[#111111]/20 dark:border-[#333333] border-t-[#dc2626] dark:border-t-[#ef4444]"
@@ -373,16 +323,17 @@ export function Leaderboard() {
 					)}
 
 					{isDraftMode && (
-						<select
+						<MenuSelect
 							value={draftFilter}
-							onChange={(e) => setDraftFilter(e.target.value as DraftFilter)}
-							className="rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-1.5 text-sm text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-						>
-							<option value="available">Available</option>
-							<option value="all">All</option>
-							<option value="drafted">Drafted</option>
-							<option value="keepers">Keepers</option>
-						</select>
+							onChange={setDraftFilter}
+							ariaLabel="Draft filter"
+							options={[
+								{ value: "available", label: "Available" },
+								{ value: "all", label: "All" },
+								{ value: "drafted", label: "Drafted" },
+								{ value: "keepers", label: "Keepers" },
+							]}
+						/>
 					)}
 
 					<PositionFilter
@@ -398,7 +349,7 @@ export function Leaderboard() {
 
 					<button
 						onClick={() => setIsStatsOpen((open) => !open)}
-						className="rounded-sm border border-[#111111]/20 dark:border-[#333333] px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/70 dark:text-[#e5e5e5]/60 hover:border-[#111111]/40 dark:hover:border-[#e5e5e5]/30 transition-colors"
+						className="rounded-sm border border-[#111111]/30 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/70 transition-colors hover:bg-[#f5f5f5] dark:border-[#333333] dark:text-[#e5e5e5]/60 dark:hover:bg-[#1a1a1a]"
 						aria-expanded={isStatsOpen}
 						aria-controls="stat-visibility-panel"
 					>
@@ -1623,18 +1574,21 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					</span>
 					<label className="flex items-center gap-2">
 						<span>Rows</span>
-						<select
+						<MenuSelect
 							value={pagination.pageSize}
-							onChange={(e) => {
-								const nextSize = Number(e.target.value);
-								setPagination({ pageIndex: 0, pageSize: nextSize });
-							}}
-							className="rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2 py-1 text-xs text-[#111111] dark:text-[#e5e5e5] focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
-						>
-							<option value={25}>25</option>
-							<option value={50}>50</option>
-							<option value={100}>100</option>
-						</select>
+							onChange={(nextSize) =>
+								setPagination({ pageIndex: 0, pageSize: nextSize })
+							}
+							ariaLabel="Rows per page"
+							triggerClassName="px-2 py-1 text-xs"
+							menuClassName="min-w-[5rem]"
+							menuPlacement="top-right"
+							options={[
+								{ value: 25, label: "25" },
+								{ value: 50, label: "50" },
+								{ value: 100, label: "100" },
+							]}
+						/>
 					</label>
 				</div>
 			</div>

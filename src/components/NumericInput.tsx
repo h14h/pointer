@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { cx } from "@/components/ui/cx";
 
 export type NumericIncrement = 0.5 | 1;
 
@@ -98,10 +99,13 @@ export function NumericInput({
   );
 
   return (
-    <div className={`inline-flex min-w-0 items-center gap-2 ${className ?? ""}`}>
+    <div className={cx("inline-flex min-w-0 items-center gap-2", className)}>
       {label ? (
         <span
-          className={`shrink-0 text-sm font-semibold tracking-wide text-[#111111]/70 dark:text-[#e5e5e5]/60 ${labelClassName ?? ""}`}
+          className={cx(
+            "shrink-0 text-sm font-semibold tracking-wide text-[#111111]/70 dark:text-[#e5e5e5]/60",
+            labelClassName
+          )}
         >
           {label}
         </span>
@@ -173,14 +177,20 @@ export function NumericInput({
               handleStep(-1);
             }
           }}
-          className={`numeric-input-field w-12 border-0 bg-transparent px-2 text-center text-base font-semibold tabular-nums text-[#111111] outline-none placeholder:text-[#111111]/30 dark:text-[#e5e5e5] dark:placeholder:text-[#e5e5e5]/25 sm:w-14 sm:text-lg ${inputClassName ?? ""}`}
+          className={cx(
+            "numeric-input-field w-12 border-0 bg-transparent px-2 text-center text-base font-semibold tabular-nums text-[#111111] outline-none placeholder:text-[#111111]/30 dark:text-[#e5e5e5] dark:placeholder:text-[#e5e5e5]/25 sm:w-14 sm:text-lg",
+            inputClassName
+          )}
           style={{ fontVariantNumeric: "tabular-nums", MozAppearance: "textfield" }}
         />
       </div>
 
       {units ? (
         <span
-          className={`shrink-0 text-sm font-semibold tracking-wide text-[#111111]/55 dark:text-[#e5e5e5]/45 ${unitsClassName ?? ""}`}
+          className={cx(
+            "shrink-0 text-sm font-semibold tracking-wide text-[#111111]/55 dark:text-[#e5e5e5]/45",
+            unitsClassName
+          )}
         >
           {units}
         </span>

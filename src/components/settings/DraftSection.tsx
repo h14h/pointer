@@ -59,12 +59,6 @@ export function DraftSection() {
     commitLeagueSettings(nextNames);
   };
 
-  const updateTeamNameDraft = (index: number, value: string) => {
-    const nextNames = [...leagueSettings.teamNames];
-    nextNames[index] = value;
-    commitLeagueSettings(nextNames);
-  };
-
   const finalizeTeamName = (index: number, value: string) => {
     const nextNames = [...leagueSettings.teamNames];
     nextNames[index] = value.trim().length > 0 ? value.trim() : `Team ${index + 1}`;
@@ -221,13 +215,10 @@ export function DraftSection() {
 
                 {/* Name input */}
                 <input
-                  key={`team-input-${index}-${name}`}
                   type="text"
                   defaultValue={name}
                   onChange={(event) => {
-                    const value = event.target.value;
-                    teamNameDraftByIndexRef.current[index] = value;
-                    updateTeamNameDraft(index, value);
+                    teamNameDraftByIndexRef.current[index] = event.target.value;
                   }}
                   onBlur={(event) => {
                     const value = teamNameDraftByIndexRef.current[index] ?? event.target.value;

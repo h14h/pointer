@@ -9,7 +9,7 @@ export default function Home() {
   const [uploadOpen, setUploadOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#111111] font-serif">
+    <div className="min-h-screen bg-[var(--color-surface-base)] font-serif">
       <Header onOpenUpload={() => setUploadOpen(true)} />
 
       <main className="mx-auto max-w-5xl py-8">
