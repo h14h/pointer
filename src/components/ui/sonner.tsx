@@ -1,8 +1,17 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { Toaster as SonnerToaster } from "sonner";
 
 export function Toaster() {
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
+  if (!mounted) return null;
+
   return (
     <SonnerToaster
       position="bottom-right"

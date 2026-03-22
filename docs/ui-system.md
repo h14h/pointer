@@ -48,6 +48,7 @@ The initial primitive set is intentionally small:
 - **`Panel`** provides a reusable container for muted or bordered surfaces without forcing full card abstraction.
 - **`DialogShell`** centralizes destructive-confirmation modal structure and close affordances.
 - **`Toaster`** mounts the shared Sonner toast surface used for lightweight confirmation and undo flows, and follows the app's system light/dark mode behavior.
+- **`Tooltip`** is the shared hover/focus helper surface for compact status badges and inline help affordances, built on Radix Tooltip and styled to match Pointer's warm paper utility feel.
 
 These primitives are meant to carry the repeated visual recipes. Feature components still own structure and behavior.
 
@@ -59,6 +60,7 @@ The current visual baseline that should be preserved is:
 - **Menu selects** use the same trigger/menu/item styling family as the header league selector.
 - **Multi-select menus** use the same trigger as single-select plus a count badge and optional in-menu clear action.
 - **Toggles** use the shared switch component instead of re-implementing track/thumb geometry in feature code.
+- **Tooltips** use the shared Radix-based primitive with the warm light `#fffaf5` / dark `#202020` surface, soft border, and compact `text-xs leading-5` copy instead of browser-native `title` styling.
 - **Destructive actions** use the current red family; if the interaction is text-only or light-emphasis, use destructive-ghost rather than inventing a new red button style.
 
 These are not redesign targets. They are the styles future work should inherit by default.

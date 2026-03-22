@@ -48,6 +48,17 @@ Specs are **briefing documents, not reference manuals**. They exist to tell you 
 - State variable tables, event handler inventories, or props interfaces
 - Anything an agent can learn by reading the source file directly
 
+### Complex UI Behavior
+
+When a UI interaction has subtle rules, competing interpretations, or a history of regressions, capture the behavior in Cucumber-style BDD language before or alongside implementation.
+
+Use short `Given / When / Then` scenarios in the relevant spec and mirror the same scenarios in automated UI tests. This is especially useful for:
+- controls whose meaning depends on domain concepts like draft slots, ranking, or roster constraints
+- interactions where multiple outcomes seem plausible from the UI alone
+- behaviors that previously required back-and-forth clarification
+
+Keep the scenarios concrete and example-driven rather than abstract. Prefer a canonical fixture like "one team with keepers in rounds 5 and 6" over generic prose when that makes the intended behavior unambiguous.
+
 When updating a spec after a code change, ask: *"Would an agent need to know this to work effectively, or could it just read the code?"* If the answer is the latter, leave it out.
 
 ## Maintenance

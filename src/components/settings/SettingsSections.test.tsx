@@ -7,6 +7,7 @@ import { ScoringSection } from "@/components/settings/ScoringSection";
 import type { LeagueSettings, ScoringSettings } from "@/types";
 
 const useStoreMock = vi.fn();
+const toastSpy = vi.fn();
 
 vi.mock("@/store", () => ({
   useStore: () => useStoreMock(),
@@ -14,6 +15,10 @@ vi.mock("@/store", () => ({
 
 vi.mock("@/lib/useDebounce", () => ({
   useDebouncedCallback: <T extends (...args: never[]) => void>(callback: T) => callback,
+}));
+
+vi.mock("sonner", () => ({
+  toast: (...args: unknown[]) => toastSpy(...args),
 }));
 
 function createScoringSettings(): ScoringSettings {
@@ -84,6 +89,45 @@ function createLeagueSettings(): LeagueSettings {
       },
       bench: 3,
     },
+  };
+}
+
+function createBatter(id: string, name: string, team: string) {
+  return {
+    _type: "batter" as const,
+    _id: id,
+    Name: name,
+    Team: team,
+    PlayerId: id,
+    MLBAMID: id,
+    G: 0,
+    PA: 0,
+    AB: 0,
+    H: 0,
+    "1B": 0,
+    "2B": 0,
+    "3B": 0,
+    HR: 0,
+    R: 0,
+    RBI: 0,
+    BB: 0,
+    IBB: 0,
+    SO: 0,
+    HBP: 0,
+    SF: 0,
+    SH: 0,
+    GDP: 0,
+    SB: 0,
+    CS: 0,
+    AVG: 0.25,
+    OBP: 0.3,
+    SLG: 0.4,
+    OPS: 0.7,
+    ISO: 0.15,
+    BABIP: 0.3,
+    "wRC+": 100,
+    WAR: 0,
+    ADP: null,
   };
 }
 
@@ -240,7 +284,7 @@ describe("settings sections", () => {
     expect(renameLeagueSettings.teamNames[0]).toBe("My Team");
   });
 
-  it("locks risky draft setup edits once picks or keepers exist", async () => {
+  it("locks risky draft setup edits once manual picks exist", async () => {
     const user = userEvent.setup();
     canEditDraftSetupSpy.mockReturnValue(false);
     useStoreMock.mockReturnValue({
@@ -268,6 +312,38 @@ describe("settings sections", () => {
 
     await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
     expect(setLeagueSettingsSpy).not.toHaveBeenCalled();
+  });
+
+  it("keeps structural draft setup edits available when only keepers exist", async () => {
+    const user = userEvent.setup();
+    canEditDraftSetupSpy.mockReturnValue(true);
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      leagues: [
+        {
+          ...createLeague(),
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0" },
+            keeperSlotByPlayer: { "keeper-1": 0 },
+            pickIndex: 1,
+            history: [],
+          },
+        },
+      ],
+      canEditDraftSetup: canEditDraftSetupSpy,
+    });
+
+    render(<DraftSection />);
+
+    expect(
+      screen.queryByText(/team order, add\/remove, and league size are locked/i)
+    ).toBeNull();
+    expect(screen.getByLabelText("League size")).not.toBeDisabled();
+
+    await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
+    expect(setLeagueSettingsSpy).toHaveBeenCalled();
   });
 
   it("assigns and removes keepers from the draft section", async () => {
@@ -379,10 +455,185 @@ describe("settings sections", () => {
     await user.type(screen.getByLabelText("Search keepers for Team 1"), "mike");
     await user.click(screen.getByRole("button", { name: /Mike Trout/i }));
     expect(setKeeperForTeamSpy).toHaveBeenCalledWith("batter-1", 0, 2);
-    expect(screen.getAllByText("Pick 24").length).toBeGreaterThan(0);
+    expect(screen.getByText(/next open: pick 24/i)).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Remove keeper Mookie Betts" }));
     expect(removeKeeperSpy).toHaveBeenCalledWith("keeper-1");
+  });
+
+  it("Given one team with keepers in rounds 5 and 6, when I click earlier or later, then only the selected keeper moves to the nearest open round", async () => {
+    const user = userEvent.setup();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            createBatter("keeper-1", "Mookie Betts", "LAD"),
+            createBatter("keeper-2", "Mike Trout", "LAA"),
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        {
+          ...createLeague(),
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0", "keeper-2": "0" },
+            keeperSlotByPlayer: { "keeper-1": 48, "keeper-2": 60 },
+            pickIndex: 0,
+            history: [],
+          },
+        },
+      ],
+    });
+
+    render(<DraftSection />);
+
+    await user.click(screen.getByRole("button", { name: "Move keeper Mike Trout earlier" }));
+    await user.click(screen.getByRole("button", { name: "Move keeper Mookie Betts later" }));
+
+    expect(setKeeperForTeamSpy).toHaveBeenNthCalledWith(1, "keeper-2", 0, 4);
+    expect(setKeeperForTeamSpy).toHaveBeenNthCalledWith(2, "keeper-1", 0, 7);
+    expect(screen.getByLabelText("Keeper round for Mike Trout")).toBeVisible();
+  });
+
+  it("Given one team with keepers in rounds 5 and 6, when I commit an occupied round, then the edit is rejected and the input reverts", async () => {
+    const user = userEvent.setup();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            createBatter("keeper-1", "Mookie Betts", "LAD"),
+            createBatter("keeper-2", "Mike Trout", "LAA"),
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        {
+          ...createLeague(),
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0", "keeper-2": "0" },
+            keeperSlotByPlayer: { "keeper-1": 48, "keeper-2": 60 },
+            pickIndex: 0,
+            history: [],
+          },
+        },
+      ],
+    });
+
+    render(<DraftSection />);
+
+    const roundInput = screen.getByLabelText("Keeper round for Mookie Betts");
+    await user.clear(roundInput);
+    await user.type(roundInput, "6");
+    await user.tab();
+
+    expect(setKeeperForTeamSpy).not.toHaveBeenCalled();
+    expect(toastSpy).toHaveBeenCalledWith("Round 6 is already occupied");
+    expect(screen.getByLabelText("Keeper round for Mookie Betts")).toHaveValue("5");
+  });
+
+  it("Given the draft cursor has already passed a keeper slot, when I edit or move into that slot, then the change is rejected", async () => {
+    const user = userEvent.setup();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            createBatter("keeper-1", "Mookie Betts", "LAD"),
+            createBatter("keeper-2", "Mike Trout", "LAA"),
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        {
+          ...createLeague(),
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0", "keeper-2": "0" },
+            keeperSlotByPlayer: { "keeper-1": 48, "keeper-2": 60 },
+            pickIndex: 54,
+            history: [],
+          },
+        },
+      ],
+    });
+
+    render(<DraftSection />);
+
+    const roundInput = screen.getByLabelText("Keeper round for Mike Trout");
+    await user.clear(roundInput);
+    await user.type(roundInput, "4");
+    await user.tab();
+
+    expect(setKeeperForTeamSpy).not.toHaveBeenCalled();
+    expect(toastSpy).toHaveBeenCalledWith("That keeper slot has already passed");
+    expect(screen.getByRole("button", { name: "Move keeper Mike Trout earlier" })).toBeDisabled();
+  });
+
+  it("Given a keeper is already at round 1 or the final roster round, when the Draft section renders, then the blocked arrow is disabled", () => {
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            createBatter("keeper-1", "Mookie Betts", "LAD"),
+            createBatter("keeper-2", "Mike Trout", "LAA"),
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        {
+          ...createLeague(),
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0", "keeper-2": "0" },
+            keeperSlotByPlayer: { "keeper-1": 0, "keeper-2": 216 },
+            pickIndex: 0,
+            history: [],
+          },
+        },
+      ],
+    });
+
+    render(<DraftSection />);
+
+    expect(screen.getByRole("button", { name: "Move keeper Mookie Betts earlier" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Move keeper Mike Trout later" })).toBeDisabled();
   });
 
   it("matches accented keeper names when the search omits accents", async () => {
@@ -548,6 +799,7 @@ describe("settings sections", () => {
 
   it("resets the draft from the draft settings view", async () => {
     const user = userEvent.setup();
+    canEditDraftSetupSpy.mockReturnValue(false);
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       leagues: [
@@ -584,7 +836,8 @@ describe("settings sections", () => {
     expect(resetDraftSpy).toHaveBeenCalled();
   });
 
-  it("disables reset draft when no manual picks exist", () => {
+  it("hides reset draft when draft activity exists but no manual picks exist", () => {
+    canEditDraftSetupSpy.mockReturnValue(false);
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       leagues: [
@@ -604,6 +857,12 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
-    expect(screen.getByRole("button", { name: "Reset Draft" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Reset Draft" })).toBeNull();
+  });
+
+  it("hides reset draft when no draft activity exists", () => {
+    render(<DraftSection />);
+
+    expect(screen.queryByRole("button", { name: "Reset Draft" })).toBeNull();
   });
 });

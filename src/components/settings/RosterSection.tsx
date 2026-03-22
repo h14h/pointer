@@ -5,6 +5,12 @@ import { useStore } from "@/store";
 import { NumericInputGroup, NumericInputRow } from "@/components/NumericInputGroup";
 import { Toggle } from "@/components/ui/Toggle";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/Tooltip";
+import {
   catcherSlots,
   extraSlots,
   infieldSlots,
@@ -142,19 +148,23 @@ export function RosterSection() {
                     <div className="text-sm font-semibold text-[#111111] dark:text-[#e5e5e5]">
                       Weekly start limit
                     </div>
-                    <div className="group relative">
-                      <button
-                        type="button"
-                        aria-label="Weekly start limit help"
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#111111]/15 text-[11px] font-bold text-[#111111]/45 transition-colors hover:border-[#111111]/25 hover:text-[#111111]/70 focus-visible:border-[#111111]/25 focus-visible:text-[#111111]/70 focus-visible:outline-none dark:border-[#e5e5e5]/15 dark:text-[#e5e5e5]/45 dark:hover:border-[#e5e5e5]/25 dark:hover:text-[#e5e5e5]/70 dark:focus-visible:border-[#e5e5e5]/25 dark:focus-visible:text-[#e5e5e5]/70"
-                      >
-                        ?
-                      </button>
-                      <div className="pointer-events-none absolute left-0 top-7 z-10 w-64 rounded-md border border-[#111111]/10 bg-[#fffaf5] px-3 py-2 text-xs leading-5 text-[#111111]/80 opacity-0 shadow-[0_10px_30px_rgba(17,17,17,0.12)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 dark:border-[#e5e5e5]/10 dark:bg-[#202020] dark:text-[#e5e5e5]/78 dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                    <TooltipProvider delayDuration={140}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label="Weekly start limit help"
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#111111]/15 text-[11px] font-bold text-[#111111]/45 transition-colors hover:border-[#111111]/25 hover:text-[#111111]/70 focus-visible:border-[#111111]/25 focus-visible:text-[#111111]/70 focus-visible:outline-none dark:border-[#e5e5e5]/15 dark:text-[#e5e5e5]/45 dark:hover:border-[#e5e5e5]/25 dark:hover:text-[#e5e5e5]/70 dark:focus-visible:border-[#e5e5e5]/25 dark:focus-visible:text-[#e5e5e5]/70"
+                          >
+                            ?
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" align="start">
                         Use this only for leagues that cap pitcher starts per matchup. It shifts
                         some flexible pitcher demand from SP toward RP in PAR.
-                      </div>
-                    </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </div>
                 <Toggle

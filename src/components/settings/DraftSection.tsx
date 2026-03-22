@@ -1,14 +1,19 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { NumericInput } from "@/components/NumericInput";
 import { Button } from "@/components/ui/Button";
 import { normalizeLeagueSettingsDraft } from "@/components/settings/constants";
 import { calculatePlayerPoints } from "@/lib/calculatePoints";
-import { getDraftPickContext, getPickIndexForTeamRound } from "@/lib/draft";
+import {
+  findNextAvailableKeeperRound,
+  getDraftPickContext,
+  getPickIndexForTeamRound,
+} from "@/lib/draft";
 import { matchesPlayerSearch } from "@/lib/playerSearch";
 import { useStore } from "@/store";
-import type { Player, ProjectionGroup } from "@/types";
+import type { LeagueSettings, Player, ProjectionGroup } from "@/types";
 
 type DropEdge = { index: number; side: "before" | "after" } | null;
 
@@ -26,6 +31,13 @@ function getActiveGroup(
 function getAllPlayers(activeGroup: ProjectionGroup | null): Player[] {
   if (!activeGroup) return [];
   return [...activeGroup.batters, ...activeGroup.pitchers, ...activeGroup.twoWayPlayers];
+}
+
+function getTeamRosterSize(leagueSettings: LeagueSettings) {
+  return (
+    Object.values(leagueSettings.roster.positions).reduce((total, value) => total + value, 0) +
+    leagueSettings.roster.bench
+  );
 }
 
 export function DraftSection() {
@@ -60,7 +72,7 @@ export function DraftSection() {
   const [draggingTeamIndex, setDraggingTeamIndex] = useState<number | null>(null);
   const [dropEdge, setDropEdge] = useState<DropEdge>(null);
   const [keeperSearchByTeam, setKeeperSearchByTeam] = useState<Record<number, string>>({});
-  const [keeperRoundDraftByTeam, setKeeperRoundDraftByTeam] = useState<Record<number, number>>({});
+  const [keeperRoundDraftByPlayer, setKeeperRoundDraftByPlayer] = useState<Record<string, string>>({});
   const [expandedTeamIndex, setExpandedTeamIndex] = useState<number | null>(0);
   const [isResetOpen, setIsResetOpen] = useState(false);
 
@@ -81,6 +93,7 @@ export function DraftSection() {
     });
     setLeagueSettings(next);
   };
+  const maxKeeperRound = getTeamRosterSize(leagueSettings);
 
   const handleLeagueSizeCommit = (value: number) => {
     if (!setupUnlocked) return;
@@ -178,7 +191,7 @@ export function DraftSection() {
 
   const getNextAvailableKeeperRound = (teamIndex: number) => {
     let round = 1;
-    while (round < 200) {
+    while (round <= maxKeeperRound) {
       const pickIndex = getPickIndexForTeamRound(
         leagueSettings.leagueSize,
         round,
@@ -204,6 +217,118 @@ export function DraftSection() {
   const getKeeperRoundValue = (entry: { teamIndex: number; slotIndex: number | null }) => {
     if (entry.slotIndex === null) return getNextAvailableKeeperRound(entry.teamIndex);
     return getDraftPickContext(leagueSettings.leagueSize, entry.slotIndex, draftState.format).round;
+  };
+
+  const getSortedTeamKeepers = (teamIndex: number) =>
+    keeperEntries
+      .filter((entry) => entry.teamIndex === teamIndex)
+      .sort((left, right) => getKeeperRoundValue(left) - getKeeperRoundValue(right));
+
+  const resetKeeperRoundDraft = (playerId: string) => {
+    setKeeperRoundDraftByPlayer((current) => {
+      const next = { ...current };
+      delete next[playerId];
+      return next;
+    });
+  };
+
+  const rejectKeeperRoundChange = (playerId: string, message: string) => {
+    resetKeeperRoundDraft(playerId);
+    toast(message);
+  };
+
+  const isRoundPassed = (teamIndex: number, round: number) => {
+    const pickIndex = getPickIndexForTeamRound(
+      leagueSettings.leagueSize,
+      round,
+      teamIndex,
+      draftState.format
+    );
+    return pickIndex === null || pickIndex < draftState.pickIndex;
+  };
+
+  const handleCommitKeeperRound = (teamIndex: number, playerId: string, requestedRound: number) => {
+    if (!Number.isFinite(requestedRound)) {
+      rejectKeeperRoundChange(playerId, `Keeper rounds must be between 1 and ${maxKeeperRound}`);
+      return;
+    }
+    const normalizedRound = Math.round(requestedRound);
+    const teamKeepers = getSortedTeamKeepers(teamIndex);
+    const editedEntry = teamKeepers.find((entry) => entry.playerId === playerId);
+    if (!editedEntry) return;
+
+    if (normalizedRound < 1 || normalizedRound > maxKeeperRound) {
+      rejectKeeperRoundChange(playerId, `Keeper rounds must be between 1 and ${maxKeeperRound}`);
+      return;
+    }
+
+    const currentRound = getKeeperRoundValue(editedEntry);
+    if (normalizedRound === currentRound) {
+      resetKeeperRoundDraft(playerId);
+      return;
+    }
+
+    const occupiedByOtherKeeper = teamKeepers.some(
+      (entry) => entry.playerId !== playerId && getKeeperRoundValue(entry) === normalizedRound
+    );
+    if (occupiedByOtherKeeper) {
+      rejectKeeperRoundChange(playerId, `Round ${normalizedRound} is already occupied`);
+      return;
+    }
+
+    if (isRoundPassed(teamIndex, normalizedRound)) {
+      rejectKeeperRoundChange(playerId, "That keeper slot has already passed");
+      return;
+    }
+
+    setKeeperForTeam(playerId, teamIndex, normalizedRound);
+    resetKeeperRoundDraft(playerId);
+  };
+
+  const getMoveTargetRound = (
+    teamIndex: number,
+    playerId: string,
+    direction: "earlier" | "later"
+  ) => {
+    const teamKeepers = getSortedTeamKeepers(teamIndex);
+    const entry = teamKeepers.find((candidate) => candidate.playerId === playerId);
+    if (!entry) return null;
+    const currentRound = getKeeperRoundValue(entry);
+    const occupiedRounds = teamKeepers
+      .filter((candidate) => candidate.playerId !== playerId)
+      .map((candidate) => getKeeperRoundValue(candidate));
+
+    return findNextAvailableKeeperRound({
+      leagueSize: leagueSettings.leagueSize,
+      currentRound,
+      teamIndex,
+      direction,
+      occupiedRounds,
+      maxRound: maxKeeperRound,
+      pickIndex: draftState.pickIndex,
+      format: draftState.format,
+    });
+  };
+
+  const handleMoveKeeperRound = (
+    teamIndex: number,
+    playerId: string,
+    direction: "earlier" | "later"
+  ) => {
+    const targetRound = getMoveTargetRound(teamIndex, playerId, direction);
+    if (targetRound === null) {
+      const currentEntry = getSortedTeamKeepers(teamIndex).find((entry) => entry.playerId === playerId);
+      if (!currentEntry) return;
+      const currentRound = getKeeperRoundValue(currentEntry);
+      const hitBoundary =
+        (direction === "earlier" && currentRound <= 1) ||
+        (direction === "later" && currentRound >= maxKeeperRound);
+      if (hitBoundary) return;
+      toast("That keeper slot has already passed");
+      return;
+    }
+    setKeeperForTeam(playerId, teamIndex, targetRound);
+    resetKeeperRoundDraft(playerId);
   };
 
   const getKeeperCostLabel = (teamIndex: number, round: number | null) => {
@@ -234,9 +359,20 @@ export function DraftSection() {
       </div>
 
       {!setupUnlocked ? (
-        <div className="mb-6 rounded-lg border border-[#dc2626]/20 bg-[#dc2626]/[0.04] p-4 text-sm text-[#111111]/70 dark:border-[#ef4444]/20 dark:bg-[#ef4444]/[0.05] dark:text-[#e5e5e5]/65">
-          Team order, add/remove, and league size are locked because draft activity already exists.
-          Team names and keeper assignments can still be edited on the fly.
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#dc2626]/20 bg-[#dc2626]/[0.04] p-4 text-sm text-[#111111]/70 dark:border-[#ef4444]/20 dark:bg-[#ef4444]/[0.05] dark:text-[#e5e5e5]/65">
+          <p className="max-w-[64ch]">
+            Team order, add/remove, and league size are locked because draft activity already exists.
+            Team names and keeper assignments can still be edited on the fly.
+          </p>
+          {hasInProgressDraft ? (
+            <Button
+              variant="destructiveGhost"
+              size="sm"
+              onClick={() => setIsResetOpen(true)}
+            >
+              Reset Draft
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
@@ -261,16 +397,6 @@ export function DraftSection() {
             inputClassName="w-14"
             disabled={!setupUnlocked}
           />
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Button
-            variant="destructiveGhost"
-            size="sm"
-            onClick={() => setIsResetOpen(true)}
-            disabled={!hasInProgressDraft}
-          >
-            Reset Draft
-          </Button>
         </div>
       </div>
 
@@ -387,8 +513,8 @@ export function DraftSection() {
 
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38">
                     <span>{teamKeepers.length} keepers</span>
-                    <span className="min-w-[4.5rem] font-mono tabular-nums">
-                      {getKeeperCostLabel(index, keeperRoundDraftByTeam[index] ?? getNextAvailableKeeperRound(index))}
+                    <span className="min-w-[5.75rem] font-mono tabular-nums">
+                      Next open: {getKeeperCostLabel(index, getNextAvailableKeeperRound(index))}
                     </span>
                     {!setupUnlocked ? <span>Draft order locked</span> : null}
                   </div>
@@ -461,25 +587,73 @@ export function DraftSection() {
                           <div className="truncate font-semibold">{entry.player?.Name}</div>
                           <div className="flex min-w-0 items-center gap-2 text-[#111111]/45 dark:text-[#e5e5e5]/38">
                             <span className="truncate">{entry.player?.Team}</span>
-                            <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-[#dc2626]/80 dark:text-[#ef4444]/80 font-mono tabular-nums">
-                              {entry.slotIndex === null
-                                ? "No slot assigned"
-                                : getKeeperCostLabel(entry.teamIndex, getKeeperRoundValue(entry))}
-                            </span>
                           </div>
                         </div>
-                        <div className="ml-auto flex shrink-0 items-center justify-end">
-                          <NumericInput
-                            aria-label={`Keeper round for ${entry.player?.Name ?? entry.playerId}`}
-                            value={getKeeperRoundValue(entry)}
-                            onCommit={(nextRound) =>
-                              setKeeperForTeam(entry.playerId, entry.teamIndex, nextRound)
-                            }
-                            min={1}
-                            increment={1}
-                            inputClassName="w-10 text-sm"
-                            className="gap-1"
-                          />
+                        <div className="ml-auto flex shrink-0 items-center gap-2">
+                          <div className="flex items-center gap-1 rounded-lg border border-[#111111]/10 bg-white/70 px-2 py-1 dark:border-[#333333] dark:bg-[#111111]/60">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/35">
+                              Rd
+                            </span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              aria-label={`Keeper round for ${entry.player?.Name ?? entry.playerId}`}
+                              value={
+                                keeperRoundDraftByPlayer[entry.playerId] ?? String(getKeeperRoundValue(entry))
+                              }
+                              onChange={(event) => {
+                                const nextValue = event.target.value.replace(/[^0-9]/g, "");
+                                setKeeperRoundDraftByPlayer((current) => ({
+                                  ...current,
+                                  [entry.playerId]: nextValue,
+                                }));
+                              }}
+                              onBlur={() => {
+                                const nextValue = keeperRoundDraftByPlayer[entry.playerId];
+                                if (!nextValue) {
+                                  resetKeeperRoundDraft(entry.playerId);
+                                  return;
+                                }
+                                handleCommitKeeperRound(entry.teamIndex, entry.playerId, Number(nextValue));
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  event.currentTarget.blur();
+                                }
+                                if (event.key === "Escape") {
+                                  resetKeeperRoundDraft(entry.playerId);
+                                  event.currentTarget.blur();
+                                }
+                              }}
+                              className="w-9 bg-transparent text-right text-sm font-semibold tabular-nums text-[#111111] outline-none dark:text-[#e5e5e5]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleMoveKeeperRound(entry.teamIndex, entry.playerId, "earlier")}
+                              disabled={getMoveTargetRound(entry.teamIndex, entry.playerId, "earlier") === null}
+                              aria-label={`Move keeper ${entry.player?.Name ?? entry.playerId} earlier`}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#111111]/10 text-[#111111]/55 transition-colors hover:bg-white hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-30 dark:border-[#333333] dark:text-[#e5e5e5]/50 dark:hover:bg-[#111111] dark:hover:text-[#e5e5e5]"
+                            >
+                              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                                <path d="M8 4.22a.75.75 0 0 1 .53.22l4 4a.75.75 0 0 1-1.06 1.06L8 6.06 4.53 9.5a.75.75 0 1 1-1.06-1.06l4-4A.75.75 0 0 1 8 4.22Z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveKeeperRound(entry.teamIndex, entry.playerId, "later")}
+                              disabled={getMoveTargetRound(entry.teamIndex, entry.playerId, "later") === null}
+                              aria-label={`Move keeper ${entry.player?.Name ?? entry.playerId} later`}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#111111]/10 text-[#111111]/55 transition-colors hover:bg-white hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-30 dark:border-[#333333] dark:text-[#e5e5e5]/50 dark:hover:bg-[#111111] dark:hover:text-[#e5e5e5]"
+                            >
+                              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                                <path d="M8 11.78a.75.75 0 0 1-.53-.22l-4-4A.75.75 0 0 1 4.53 6.5L8 9.94l3.47-3.44a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-.53.22Z" />
+                              </svg>
+                            </button>
+                          </div>
+                          <span className="min-w-[4.75rem] text-right text-[10px] font-bold uppercase tracking-widest text-[#dc2626]/80 dark:text-[#ef4444]/80">
+                            {getKeeperCostLabel(entry.teamIndex, getKeeperRoundValue(entry))}
+                          </span>
                         </div>
                         <button
                           type="button"
@@ -502,7 +676,7 @@ export function DraftSection() {
                   <div className="mt-3 border-t border-[#111111]/10 pt-3 dark:border-[#333333]">
                     {activeGroup ? (
                       <>
-                        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                        <div className="grid gap-3">
                           <input
                             type="text"
                             aria-label={`Search keepers for ${name}`}
@@ -516,28 +690,9 @@ export function DraftSection() {
                             placeholder={`Search available players for ${name}`}
                             className="w-full rounded-sm border border-[#111111]/20 bg-white px-3 py-2 text-sm text-[#111111] placeholder:text-[#111111]/35 focus:border-[#dc2626] focus:outline-none dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5] dark:placeholder:text-[#e5e5e5]/30 dark:focus:border-[#ef4444]"
                           />
-                          <div className="flex items-center gap-3">
-                            <NumericInput
-                              aria-label={`Keeper round for ${name}`}
-                              value={keeperRoundDraftByTeam[index] ?? getNextAvailableKeeperRound(index)}
-                              onCommit={(nextRound) =>
-                                setKeeperRoundDraftByTeam((current) => ({
-                                  ...current,
-                                  [index]: nextRound,
-                                }))
-                              }
-                              min={1}
-                              increment={1}
-                              inputClassName="w-10 text-sm"
-                              className="gap-1"
-                            />
-                            <span className="min-w-[4.5rem] text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38 font-mono tabular-nums">
-                              {getKeeperCostLabel(
-                                index,
-                                keeperRoundDraftByTeam[index] ?? getNextAvailableKeeperRound(index)
-                              )}
-                            </span>
-                          </div>
+                          <p className="text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38">
+                            New keepers are added to the next open slot for this team. Use Rd or the arrows to move them to any open round.
+                          </p>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {keeperCandidates.map((player) => (
@@ -548,7 +703,7 @@ export function DraftSection() {
                                 setKeeperForTeam(
                                   player._id,
                                   index,
-                                  keeperRoundDraftByTeam[index] ?? getNextAvailableKeeperRound(index)
+                                  getNextAvailableKeeperRound(index)
                                 );
                                 setKeeperSearchByTeam((current) => ({
                                   ...current,
@@ -570,7 +725,7 @@ export function DraftSection() {
                               ? "Upload projections to assign keepers."
                               : keeperSearch.trim().length === 0
                                 ? "Type to search for an available keeper."
-                                : "No available players match this search and cost slot."}
+                                : "No available players match this search."}
                           </p>
                         ) : null}
                       </>

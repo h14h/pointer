@@ -2,8 +2,10 @@ import { describe, expect, it } from "bun:test";
 import {
   countManualDraftPicks,
   createDraftPick,
+  findNextAvailableKeeperRound,
   getDraftPickContext,
   hasDraftActivity,
+  hasManualDraftActivity,
 } from "@/lib/draft";
 import type { DraftState } from "@/types";
 
@@ -71,5 +73,75 @@ describe("draft helpers", () => {
     expect(
       hasDraftActivity(createDraftState({ keeperByTeam: { "player-2": "1" } }))
     ).toBe(true);
+  });
+
+  it("treats only manual picks as structural draft activity", () => {
+    expect(hasManualDraftActivity(createDraftState())).toBe(false);
+    expect(
+      hasManualDraftActivity(createDraftState({ keeperByTeam: { "player-2": "1" } }))
+    ).toBe(false);
+    expect(
+      hasManualDraftActivity(createDraftState({ draftedByTeam: { "player-1": "0" } }))
+    ).toBe(true);
+    expect(
+      hasManualDraftActivity(
+        createDraftState({
+          draftedByTeam: { "player-1": "0", "player-2": "1" },
+          keeperByTeam: { "player-2": "1" },
+        })
+      )
+    ).toBe(true);
+  });
+
+  it("finds the next open keeper round in either direction", () => {
+    expect(
+      findNextAvailableKeeperRound({
+        leagueSize: 12,
+        currentRound: 5,
+        teamIndex: 0,
+        direction: "later",
+        occupiedRounds: [6],
+        maxRound: 20,
+        pickIndex: 0,
+      })
+    ).toBe(7);
+
+    expect(
+      findNextAvailableKeeperRound({
+        leagueSize: 12,
+        currentRound: 6,
+        teamIndex: 0,
+        direction: "earlier",
+        occupiedRounds: [5],
+        maxRound: 20,
+        pickIndex: 0,
+      })
+    ).toBe(4);
+  });
+
+  it("returns null when no valid keeper round remains in that direction", () => {
+    expect(
+      findNextAvailableKeeperRound({
+        leagueSize: 12,
+        currentRound: 1,
+        teamIndex: 0,
+        direction: "earlier",
+        occupiedRounds: [],
+        maxRound: 20,
+        pickIndex: 0,
+      })
+    ).toBeNull();
+
+    expect(
+      findNextAvailableKeeperRound({
+        leagueSize: 12,
+        currentRound: 6,
+        teamIndex: 0,
+        direction: "earlier",
+        occupiedRounds: [5, 4],
+        maxRound: 20,
+        pickIndex: 48,
+      })
+    ).toBeNull();
   });
 });

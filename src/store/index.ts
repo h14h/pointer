@@ -5,7 +5,7 @@ import {
   getDraftPickContext,
   getNextOpenPickIndex,
   getPickIndexForTeamRound,
-  hasDraftActivity,
+  hasManualDraftActivity,
 } from "@/lib/draft";
 import type {
   Player,
@@ -102,13 +102,18 @@ const createDefaultDraftState = (): DraftState => ({
   history: [],
 });
 
-const createDefaultLeague = (name = "My League"): League => ({
-  id: crypto.randomUUID(),
+const INITIAL_LEAGUE_ID = "default-league";
+
+const createDefaultLeague = (
+  name = "My League",
+  options?: { deterministic?: boolean }
+): League => ({
+  id: options?.deterministic ? INITIAL_LEAGUE_ID : crypto.randomUUID(),
   name,
   scoringSettings: { ...defaultScoringSettings },
   leagueSettings: { ...defaultLeagueSettings },
   draftState: createDefaultDraftState(),
-  updatedAt: Date.now(),
+  updatedAt: options?.deterministic ? 0 : Date.now(),
 });
 
 const normalizeLeague = (league: League): League => ({
@@ -191,6 +196,7 @@ interface Store {
   activeProjectionGroupId: string | null;
   isDraftMode: boolean;
   mergeTwoWayRankings: boolean;
+  hasHydrated: boolean;
 
   // League actions
   createLeague: (name?: string) => void;
@@ -245,7 +251,18 @@ interface Store {
     teamIndex: number;
     nextTeamIndex: number;
   } | null;
+  setHasHydrated: (value: boolean) => void;
 }
+
+type PersistedStoreState = Pick<
+  Store,
+  | "leagues"
+  | "activeLeagueId"
+  | "projectionGroups"
+  | "activeProjectionGroupId"
+  | "isDraftMode"
+  | "mergeTwoWayRankings"
+>;
 
 type LegacyDraftState = {
   draftedByTeam?: Record<string, string>;
@@ -285,12 +302,13 @@ export const useStore = create<Store>()(
   persist(
     (set, get) => ({
       // Initial state
-      leagues: [createDefaultLeague()],
+      leagues: [createDefaultLeague("My League", { deterministic: true })],
       activeLeagueId: null,
       projectionGroups: [],
       activeProjectionGroupId: null,
       isDraftMode: false,
       mergeTwoWayRankings: true,
+      hasHydrated: false,
 
       // Helpers
       getActiveLeague: () => {
@@ -300,7 +318,7 @@ export const useStore = create<Store>()(
       },
       canEditDraftSetup: () => {
         const activeLeague = get().getActiveLeague();
-        return activeLeague ? !hasDraftActivity(activeLeague.draftState) : true;
+        return activeLeague ? !hasManualDraftActivity(activeLeague.draftState) : true;
       },
       getCurrentPickContext: () => {
         const activeLeague = get().getActiveLeague();
@@ -317,6 +335,7 @@ export const useStore = create<Store>()(
           activeLeague.draftState.format
         );
       },
+      setHasHydrated: (value) => set({ hasHydrated: value }),
 
       // League actions
       createLeague: (name) =>
@@ -465,7 +484,7 @@ export const useStore = create<Store>()(
             leagues: state.leagues.map((l) => {
               if (l.id !== activeId) return l;
               if (
-                hasDraftActivity(l.draftState) &&
+                hasManualDraftActivity(l.draftState) &&
                 isBlockedDraftStructureChange(l.leagueSettings, normalized)
               ) {
                 return l;
@@ -498,7 +517,7 @@ export const useStore = create<Store>()(
           return {
             leagues: state.leagues.map((l) => {
               if (l.id !== activeId) return l;
-              if (hasDraftActivity(l.draftState)) return l;
+              if (hasManualDraftActivity(l.draftState)) return l;
               const normalized = normalizeLeagueSettings({ ...l.leagueSettings, leagueSize: size });
               const maxTeamIndex = normalized.leagueSize - 1;
               const draftedByTeam = Object.fromEntries(
@@ -867,8 +886,22 @@ export const useStore = create<Store>()(
     {
       name: "pointer-storage",
       version: 6,
+      skipHydration: true,
+      partialize: (state): PersistedStoreState => ({
+        leagues: state.leagues,
+        activeLeagueId: state.activeLeagueId,
+        projectionGroups: state.projectionGroups,
+        activeProjectionGroupId: state.activeProjectionGroupId,
+        isDraftMode: state.isDraftMode,
+        mergeTwoWayRankings: state.mergeTwoWayRankings,
+      }),
+      onRehydrateStorage: () => (state, error) => {
+        if (!error) {
+          state?.setHasHydrated(true);
+        }
+      },
       migrate: (persistedState, version) => {
-        if (version >= 6) return persistedState as Store;
+        if (version >= 6) return persistedState as PersistedStoreState;
 
         type V4State = {
           scoringSettings: ScoringSettings;
@@ -903,9 +936,12 @@ export const useStore = create<Store>()(
         };
 
         return {
-          ...state,
           leagues: [league],
           activeLeagueId: league.id,
+          projectionGroups: state.projectionGroups ?? [],
+          activeProjectionGroupId: state.activeProjectionGroupId ?? null,
+          isDraftMode: state.isDraftMode ?? false,
+          mergeTwoWayRankings: state.mergeTwoWayRankings ?? true,
         };
       },
     }

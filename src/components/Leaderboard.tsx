@@ -19,6 +19,12 @@ import {
 } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { MenuSelect } from "@/components/ui/MenuSelect";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import { getDraftPickContext, getNextOpenPickIndex } from "@/lib/draft";
 import { useStore } from "@/store";
 import { POSITION_ORDER } from "@/lib/eligibility";
@@ -93,8 +99,12 @@ const DEFAULT_BATTING_STATS = ["R", "HR", "RBI", "SB", "AVG"];
 const DEFAULT_PITCHING_STATS = ["W", "SV", "SO_P", "ERA", "WHIP"];
 const EMPTY_DRAFT_HISTORY: DraftState["history"] = [];
 const AUTO_ACTION_TOAST_DELAY_MS = 650;
+const OWNERSHIP_BADGE_CLASSNAME =
+	"inline-flex select-none rounded-sm border px-1.5 text-[10px] font-bold uppercase tracking-wider";
 const KEEPER_BADGE_CLASSNAME =
-	"rounded-sm border border-[#dc2626]/25 bg-[#dc2626]/5 px-1.5 text-[10px] font-bold uppercase tracking-wider text-[#dc2626]/85 dark:border-[#ef4444]/25 dark:bg-[#ef4444]/5 dark:text-[#ef4444]/85";
+	`${OWNERSHIP_BADGE_CLASSNAME} border-[#dc2626]/25 bg-[#dc2626]/5 text-[#dc2626]/85 dark:border-[#ef4444]/25 dark:bg-[#ef4444]/5 dark:text-[#ef4444]/85`;
+const DRAFTED_BADGE_CLASSNAME =
+	`${OWNERSHIP_BADGE_CLASSNAME} border-[#111111]/20 bg-[#111111]/[0.04] text-[#111111]/60 dark:border-[#333333] dark:bg-[#e5e5e5]/[0.04] dark:text-[#e5e5e5]/55`;
 
 const formatCountingStat = (value: number | null) =>
 	value === null || Number.isNaN(value) ? (
@@ -969,26 +979,44 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					<div className="flex items-center gap-2 min-w-0">
 						<span
 							className={
-								row.original.isDrafted
+								isDraftMode && row.original.isDrafted
 									? "text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30 line-through truncate"
 									: row.original.isKeeper
-							? "text-[10px] font-bold uppercase tracking-widest text-[#111111] dark:text-[#e5e5e5] truncate"
-							: "text-[10px] font-bold uppercase tracking-widest truncate"
-					}
-					title={row.original.player.Name}
-				>
-					{abbreviateName(row.original.player.Name)}
-				</span>
+										? "text-[10px] font-bold uppercase tracking-widest text-[#111111] dark:text-[#e5e5e5] truncate"
+										: "text-[10px] font-bold uppercase tracking-widest truncate"
+							}
+							title={row.original.player.Name}
+						>
+							{abbreviateName(row.original.player.Name)}
+						</span>
 						<div className="ml-auto flex shrink-0 items-center gap-1">
 							{row.original.isDrafted && (
-								<span className="border border-[#111111]/20 dark:border-[#333333] px-1.5 text-[10px] font-bold uppercase tracking-wider text-[#111111]/60 dark:text-[#e5e5e5]/50 rounded-sm">
-									{resolveTeamLabel(row.original.draftedTeamIndex)}
-								</span>
+								<TooltipProvider delayDuration={140}>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<span className={DRAFTED_BADGE_CLASSNAME} tabIndex={0}>
+												D
+											</span>
+										</TooltipTrigger>
+										<TooltipContent side="top" align="end">
+											{resolveTeamLabel(row.original.draftedTeamIndex)}
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
 							)}
 							{row.original.isKeeper && (
-								<span className={KEEPER_BADGE_CLASSNAME}>
-									K
-								</span>
+								<TooltipProvider delayDuration={140}>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<span className={KEEPER_BADGE_CLASSNAME} tabIndex={0}>
+												K
+											</span>
+										</TooltipTrigger>
+										<TooltipContent side="top" align="end">
+											{resolveTeamLabel(row.original.keeperTeamIndex)}
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
 							)}
 						</div>
 					</div>
@@ -1579,6 +1607,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		return baseColumns;
 		}, [
 			playerView,
+			isDraftMode,
 			leagueSettings,
 			battingStatIds,
 			pitchingStatIds,
@@ -1666,7 +1695,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								className={`border-b border-[#111111]/10 dark:border-[#333333]/60 ${
 									isDraftMode && !row.isDrafted && !row.isKeeper ? "cursor-pointer" : ""
 								} ${
-									row.isDrafted
+									isDraftMode && row.isDrafted
 										? "bg-[#111111]/[0.03] text-[#111111]/30 dark:bg-[#e5e5e5]/[0.03] dark:text-[#e5e5e5]/20"
 										: row.isKeeper
 											? "bg-[#dc2626]/[0.04] dark:bg-[#ef4444]/[0.04]"

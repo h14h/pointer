@@ -577,4 +577,36 @@ describe("Leaderboard", () => {
 			}),
 		);
 	});
+
+	it("keeps drafted rows readable in non-draft mode and shows ownership in a badge tooltip", async () => {
+		const user = userEvent.setup();
+		mockStore({
+			leagues: [
+				{
+					...createLeague(),
+					draftState: {
+						format: "snake",
+						draftedByTeam: { "batter-mike": "1" },
+						keeperByTeam: {},
+						keeperSlotByPlayer: {},
+						pickIndex: 1,
+						history: [],
+					},
+				},
+			],
+		});
+
+		render(<Leaderboard />);
+
+		const nameCell = screen.getByText("M. Trout");
+		expect(nameCell.className).not.toContain("line-through");
+		expect(nameCell.className).not.toContain("text-[#111111]/40");
+
+		const draftedBadge = screen.getByText("D");
+		expect(draftedBadge).toHaveTextContent("D");
+		expect(draftedBadge).toHaveAttribute("tabindex", "0");
+
+		await user.hover(draftedBadge);
+		expect(await screen.findByRole("tooltip")).toHaveTextContent("Team 2");
+	});
 });

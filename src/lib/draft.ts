@@ -14,6 +14,8 @@ export type ReservedKeeperPick = {
   slotIndex: number;
 };
 
+export type KeeperRoundMoveDirection = "earlier" | "later";
+
 export function getDraftPickContext(
   leagueSize: number,
   pickIndex: number,
@@ -60,8 +62,14 @@ export function countManualDraftPicks(state: DraftState): number {
   return state.history.length;
 }
 
+export function hasManualDraftActivity(state: DraftState): boolean {
+  return Object.keys(state.draftedByTeam).some(
+    (playerId) => state.keeperByTeam[playerId] === undefined
+  );
+}
+
 export function hasDraftActivity(state: DraftState): boolean {
-  return Object.keys(state.draftedByTeam).length > 0 || Object.keys(state.keeperByTeam).length > 0;
+  return hasManualDraftActivity(state) || Object.keys(state.keeperByTeam).length > 0;
 }
 
 export function getPickIndexForTeamRound(
@@ -79,6 +87,56 @@ export function getPickIndexForTeamRound(
     ? safeLeagueSize - safeTeamIndex
     : safeTeamIndex + 1;
   return (safeRound - 1) * safeLeagueSize + (pickInRound - 1);
+}
+
+export function findNextAvailableKeeperRound({
+  leagueSize,
+  currentRound,
+  teamIndex,
+  direction,
+  occupiedRounds,
+  minRound = 1,
+  maxRound,
+  pickIndex,
+  format = "snake",
+}: {
+  leagueSize: number;
+  currentRound: number;
+  teamIndex: number;
+  direction: KeeperRoundMoveDirection;
+  occupiedRounds: Iterable<number>;
+  minRound?: number;
+  maxRound: number;
+  pickIndex: number;
+  format?: DraftFormat;
+}): number | null {
+  const safeCurrentRound = Math.max(1, Math.floor(currentRound));
+  const safeMinRound = Math.max(1, Math.floor(minRound));
+  const safeMaxRound = Math.max(safeMinRound, Math.floor(maxRound));
+  const occupied = new Set(
+    Array.from(occupiedRounds)
+      .map((round) => Math.floor(round))
+      .filter((round) => round >= safeMinRound && round <= safeMaxRound)
+  );
+  const increment = direction === "earlier" ? -1 : 1;
+  let candidateRound = safeCurrentRound + increment;
+
+  while (candidateRound >= safeMinRound && candidateRound <= safeMaxRound) {
+    if (!occupied.has(candidateRound)) {
+      const candidatePickIndex = getPickIndexForTeamRound(
+        leagueSize,
+        candidateRound,
+        teamIndex,
+        format
+      );
+      if (candidatePickIndex !== null && candidatePickIndex >= pickIndex) {
+        return candidateRound;
+      }
+    }
+    candidateRound += increment;
+  }
+
+  return null;
 }
 
 export function getReservedKeeperPicks(state: DraftState): ReservedKeeperPick[] {

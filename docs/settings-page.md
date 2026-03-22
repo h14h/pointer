@@ -39,11 +39,17 @@ Desktop renders a left sidebar section navigator; mobile renders a top segmented
 
 **Draft section.** Uses a single ordered list of team cards to manage league size, team names, team add/remove, drag-drop order, keeper assignment from the active projection group, keeper cost rounds, and Reset Draft. Team order remains draft order, and keeper editing lives alongside each team rather than in a separate section below.
 
-**Draft setup lock.** Once draft activity exists, draft order, add/remove, and league-size controls are disabled with an explanatory notice. Team renaming remains allowed because it does not remap ownership, and keeper add/remove stays available so users can correct keeper state mid-draft.
+**Draft setup lock.** Once manual draft picks exist, draft order, add/remove, and league-size controls are disabled with an explanatory notice. Keeper-only state does not lock structure, so teams can still be reordered or resized before the live draft begins. The same notice owns the `Reset Draft` action, but only when there are manual picks to clear, so the recovery path appears only when it is immediately usable. Team renaming remains allowed because it does not remap ownership, and keeper add/remove stays available so users can correct keeper state mid-draft.
 
-**Keeper setup.** Keepers are assigned per team from the currently active projection group through a compact add control inside each team's keeper panel. Each keeper renders in its own row for clearer editing, can be assigned a cost round that maps to that team's natural snake-draft slot, and shows a computed overall-pick label. Assigned keepers appear in the team card, immediately become unavailable on the leaderboard, and reserved keeper slots are skipped by the live draft board.
+**Keeper setup.** Keepers are assigned per team from the currently active projection group through a compact add control inside each team's keeper panel. New keepers land in the next open slot for that team. Existing keeper rows behave like numeric slot editors: the `Rd` input commits an explicit requested round, while the adjacent earlier/later controls move only that keeper to the nearest open round in that direction, skipping occupied rounds. Invalid, occupied, out-of-range, or already-passed slots are rejected with a toast and the input reverts. Rows stay in place while the user types and reorder only after a successful committed round change. Each keeper row shows its computed `Pick N` label inside the same control cluster. Assigned keepers appear in the team card, immediately become unavailable on the leaderboard, and reserved keeper slots are skipped by the live draft board.
 
-**Reset Draft behavior.** Reset Draft only clears in-progress manual draft picks for the currently selected league. Keeper assignments and their reserved slots remain intact. The control is disabled when there are no manual picks to reset.
+**Behavior scenarios.** Complex Draft-section behaviors should be captured in short Given/When/Then scenarios in both the spec and the UI tests. For keeper round editing, the canonical example is one team with keepers in rounds 5 and 6:
+- Given Alpha is round 5 and Beta is round 6, when I click Alpha's later arrow, then Alpha moves to round 7 and Beta stays round 6
+- Given Alpha is round 5 and Beta is round 6, when I click Beta's earlier arrow, then Beta moves to round 4 and Alpha stays round 5
+- Given Alpha is round 5 and Beta is round 6, when I commit Alpha to round 6, then the edit is rejected, Alpha reverts to round 5, and a toast explains the conflict
+- Given the draft cursor has already passed a keeper slot, when I move or edit a keeper into that slot, then the change is rejected and the current assignment remains unchanged
+
+**Reset Draft behavior.** Reset Draft only clears in-progress manual draft picks for the currently selected league. Keeper assignments and their reserved slots remain intact. The control is hidden when there are no manual picks to reset.
 
 **Auto-save on commit.** There is no global Save button. Updates are persisted as each field commits.
 
@@ -52,6 +58,7 @@ Desktop renders a left sidebar section navigator; mobile renders a top segmented
 - Team count constrained to 2–20
 - Empty team names normalize to `Team {n}` on commit
 - Roster values remain non-negative integers
-- Team-order edits are blocked once picks or keepers exist
+- Team-order edits are blocked once manual draft picks exist
 - Keeper assignment depends on a selected or default projection group
 - Keeper cost rounds cannot reserve a slot that has already passed or that is already reserved by another keeper
+- Keeper arrow controls move to the nearest open round rather than swapping or pushing other keepers

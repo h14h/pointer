@@ -15,6 +15,7 @@ All UI components: [Leaderboard](leaderboard.md), [CSV Upload Workflow](csv-uplo
 - **Storage key:** `"pointer-storage"`
 - **Version:** 6
 - **Middleware:** Zustand `persist` to `localStorage`
+- **Hydration strategy:** `skipHydration: true` with a client-only `StoreHydrator` mounted from the root layout. The store uses deterministic SSR defaults so server HTML matches the client's pre-rehydration render before persisted league state is applied.
 
 Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure, wrapping single-league data in a `League` object (v4→v5), and converting the old `activeTeamIndex` draft cursor into the snake-draft session shape (v5→v6). Legacy drafted and keeper ownership is preserved; `history` starts empty because prior pick chronology is unknowable.
 
@@ -36,7 +37,7 @@ Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (
 
 **Weekly start limit normalization.** `weeklyStartLimit` is normalized to a positive integer or `null`. `0`, negative values, and non-finite values are treated as "no cap".
 
-**Draft setup lock.** League resize, add/remove team, and reorder operations are allowed only while draft ownership is empty. Once drafted players or keepers exist, setup edits that would remap ownership are blocked.
+**Draft setup lock.** League resize, add/remove team, and reorder operations are blocked only once manual draft picks exist. Keeper-only state does not lock structure, so reserved keepers can be configured before the live draft and the team order can still be finalized afterward.
 
 **Active group fallback.** Removing the active projection group falls back to the first remaining group's ID, or `null`. A stale `activeProjectionGroupId` is never left behind.
 
