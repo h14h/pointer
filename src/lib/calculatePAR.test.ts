@@ -98,9 +98,11 @@ function createBatter(
 
 function createPitcher(
   id: string,
-  options: { isSP: boolean; isRP: boolean },
+  options: { isSP: boolean; isRP: boolean; G?: number; GS?: number },
   projectedPoints: number
 ): RankedPlayer {
+  const games = options.G ?? 30;
+  const gamesStarted = options.GS ?? (options.isSP ? 30 : 0);
   const pitcher: PitcherPlayer = {
     Name: `Player${id}`,
     Team: "TST",
@@ -111,8 +113,8 @@ function createPitcher(
     QS: 20,
     CG: 2,
     ShO: 1,
-    G: 30,
-    GS: options.isSP ? 30 : 0,
+    G: games,
+    GS: gamesStarted,
     SV: options.isRP ? 20 : 0,
     HLD: options.isRP ? 10 : 0,
     BS: 0,
@@ -163,12 +165,25 @@ function createBatterPool(count: number, eligiblePositions: Position[], start = 
 
 function createPitcherPool(
   count: number,
-  options: { isSP: boolean; isRP: boolean },
+  options: { isSP: boolean; isRP: boolean; G?: number; GS?: number },
   start = 500
 ): RankedPlayer[] {
   return Array.from({ length: count }, (_, index) =>
     createPitcher(String(index + 1), options, start - index)
   );
+}
+
+function withPitcherIdentity(player: RankedPlayer, prefix: string, index: number): RankedPlayer {
+  return {
+    ...player,
+    player: {
+      ...player.player,
+      _id: `${prefix}-${index + 1}`,
+      Name: `${prefix.toUpperCase()}${index + 1}`,
+      PlayerId: `${prefix}-${index + 1}`,
+      MLBAMID: `${prefix}-${index + 1}`,
+    } as PitcherPlayer,
+  };
 }
 
 function expectReplacementBoundary(result: RankedPlayer[], replacementRank: number) {
@@ -319,6 +334,282 @@ describe("calculatePAR", () => {
       const cappedReliever = capped.find(player => player.player.Name === "RP20");
 
       expect(cappedReliever?.par ?? 0).toBeGreaterThan(uncappedReliever?.par ?? 0);
+    });
+
+    it("treats RP-eligible projected starters as start-consuming in capped leagues", () => {
+      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
+      const projectedStarters = createPitcherPool(40, { isSP: false, isRP: true, G: 30, GS: 24 }, 420).map(
+        (player, index) => withPitcherIdentity(player, "rs", index)
+      );
+      const projectedRelievers = createPitcherPool(40, { isSP: false, isRP: true, G: 30, GS: 0 }, 420).map(
+        (player, index) => withPitcherIdentity(player, "rr", index)
+      );
+      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) =>
+        withPitcherIdentity(player, "rp", index)
+      );
+      const starterHeavyPlayers = [...starters, ...projectedStarters, ...relievers];
+      const relieverHeavyPlayers = [...starters, ...projectedRelievers, ...relievers];
+
+      const starterHeavy = calculatePAR(
+        starterHeavyPlayers,
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      );
+      const relieverHeavy = calculatePAR(
+        relieverHeavyPlayers,
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      );
+
+      const starterHeavyReliever = starterHeavy.find(player => player.player.Name === "RP20");
+      const relieverHeavyReliever = relieverHeavy.find(player => player.player.Name === "RP20");
+
+      expect(starterHeavyReliever?.par ?? 0).toBeGreaterThan(relieverHeavyReliever?.par ?? 0);
+    });
+
+    it("discounts PAR for RP-only pitchers who project entirely as starters", () => {
+      const projectedStarter = createPitcher("rp-starter", { isSP: false, isRP: true, G: 30, GS: 30 }, 360);
+      const projectedReliever = createPitcher("rp-reliever", { isSP: false, isRP: true, G: 30, GS: 0 }, 360);
+      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
+      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) =>
+        withPitcherIdentity(player, "rp", index)
+      );
+
+      const capped = calculatePAR(
+        [...starters, projectedStarter, projectedReliever, ...relievers],
+        createLeagueSettings({ SP: 2, RP: 2, P: 5 }, 12, { weeklyStartLimit: 12 })
+      );
+
+      const starterPar = capped.find(player => player.player.Name === "Playerrp-starter");
+      const relieverPar = capped.find(player => player.player.Name === "Playerrp-reliever");
+
+      expect(starterPar?.par ?? 0).toBeLessThan(relieverPar?.par ?? 0);
+    });
+
+    it("discounts RP-slot PAR for SP/RP-eligible pitchers who project mostly as starters", () => {
+      const dualRoleStarter = createPitcher("dual-starter", { isSP: true, isRP: true, G: 30, GS: 24 }, 360);
+      const dualRoleReliever = createPitcher("dual-reliever", { isSP: true, isRP: true, G: 30, GS: 0 }, 360);
+      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
+      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) =>
+        withPitcherIdentity(player, "rp", index)
+      );
+
+      const capped = calculatePAR(
+        [...starters, dualRoleStarter, dualRoleReliever, ...relievers],
+        createLeagueSettings({ SP: 2, RP: 2, P: 5 }, 12, { weeklyStartLimit: 12 })
+      );
+
+      const starterPar = capped.find(player => player.player.Name === "Playerdual-starter");
+      const relieverPar = capped.find(player => player.player.Name === "Playerdual-reliever");
+
+      expect(starterPar?.par ?? 0).toBeLessThan(relieverPar?.par ?? 0);
+    });
+
+    it("treats SP-eligible pitchers with zero projected GS as relief-only for capped-start demand", () => {
+      const zeroGsSwingmen = createPitcherPool(140, { isSP: true, isRP: false, G: 40, GS: 0 }, 500).map(
+        (player, index) => withPitcherIdentity(player, "sp0", index)
+      );
+      const actualStarters = createPitcherPool(140, { isSP: true, isRP: false, G: 40, GS: 30 }, 500).map(
+        (player, index) => withPitcherIdentity(player, "sp1", index)
+      );
+      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) =>
+        withPitcherIdentity(player, "rp", index)
+      );
+      const zeroGsResult = calculatePAR(
+        [...zeroGsSwingmen, ...relievers],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      );
+      const starterResult = calculatePAR(
+        [...actualStarters, ...relievers],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      );
+
+      const zeroGsReliever = zeroGsResult.find(player => player.player.Name === "RP20");
+      const starterReliever = starterResult.find(player => player.player.Name === "RP20");
+
+      expect(zeroGsReliever?.par ?? 0).toBeLessThan(starterReliever?.par ?? 0);
+    });
+
+    it("splits swingman supply proportionally between starter and reliever replacement", () => {
+      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
+      const relieverLikeSwingmen = createPitcherPool(60, { isSP: true, isRP: true, G: 40, GS: 0 }, 410).map(
+        (player, index) => withPitcherIdentity(player, "swr", index)
+      );
+      const balancedSwingmen = createPitcherPool(60, { isSP: true, isRP: true, G: 40, GS: 8 }, 410).map(
+        (player, index) => withPitcherIdentity(player, "sw", index)
+      );
+      const starterLikeSwingmen = createPitcherPool(60, { isSP: true, isRP: true, G: 40, GS: 40 }, 410).map(
+        (player, index) => withPitcherIdentity(player, "sws", index)
+      );
+      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) =>
+        withPitcherIdentity(player, "rp", index)
+      );
+      const relieverLikeResult = calculatePAR(
+        [...starters, ...relieverLikeSwingmen, ...relievers],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      );
+      const balancedResult = calculatePAR(
+        [...starters, ...balancedSwingmen, ...relievers],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      );
+      const starterLikeResult = calculatePAR(
+        [...starters, ...starterLikeSwingmen, ...relievers],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      );
+
+      const relieverLikeReliever = relieverLikeResult.find(player => player.player.Name === "RP20");
+      const balancedReliever = balancedResult.find(player => player.player.Name === "RP20");
+      const starterLikeReliever = starterLikeResult.find(player => player.player.Name === "RP20");
+
+      expect(balancedReliever?.par ?? 0).toBeGreaterThan(relieverLikeReliever?.par ?? 0);
+      expect(balancedReliever?.par ?? 0).toBeLessThan(starterLikeReliever?.par ?? 0);
+    });
+
+    it("uses two-way pitching GS when weighting capped-start replacement", () => {
+      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
+      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) =>
+        withPitcherIdentity(player, "rp", index)
+      );
+      const baseTwoWay = {
+        player: {
+          _type: "two-way" as const,
+          _id: "tw-1",
+          Name: "TwoWayStarter",
+          Team: "TST",
+          PlayerId: "tw-1",
+          MLBAMID: "tw-1",
+          ADP: null,
+          _battingStats: {
+            G: 120,
+            PA: 450,
+            AB: 400,
+            H: 110,
+            "1B": 70,
+            "2B": 18,
+            "3B": 4,
+            HR: 18,
+            R: 65,
+            RBI: 68,
+            BB: 35,
+            IBB: 1,
+            SO: 90,
+            HBP: 3,
+            SF: 4,
+            SH: 0,
+            GDP: 7,
+            SB: 8,
+            CS: 2,
+            AVG: 0.275,
+            OBP: 0.336,
+            SLG: 0.442,
+            OPS: 0.778,
+            ISO: 0.167,
+            BABIP: 0.301,
+            "wRC+": 108,
+            WAR: 2.8,
+          },
+          _pitchingStats: {
+            W: 8,
+            L: 4,
+            QS: 15,
+            CG: 1,
+            ShO: 0,
+            G: 25,
+            GS: 20,
+            SV: 0,
+            HLD: 0,
+            BS: 0,
+            IP: 140,
+            H: 120,
+            R: 55,
+            ER: 50,
+            HR: 14,
+            BB: 42,
+            IBB: 2,
+            HBP: 4,
+            SO: 145,
+            ERA: 3.21,
+            WHIP: 1.16,
+            "K/9": 9.3,
+            "BB/9": 2.7,
+            FIP: 3.35,
+            WAR: 3.1,
+          },
+          eligibility: {
+            positionGames: {
+              C: 0, "1B": 0, "2B": 0, "3B": 0, SS: 0, LF: 0, CF: 0, RF: 0, DH: 0,
+            },
+            eligiblePositions: [],
+            isSP: false,
+            isRP: true,
+            sourceSeason: 2024,
+            updatedAt: "",
+          },
+        },
+        projectedPoints: 430,
+        par: 0,
+        isDrafted: false,
+        isKeeper: false,
+      } satisfies RankedPlayer;
+      const twoWayStarters = Array.from({ length: 20 }, (_, index) => ({
+        ...baseTwoWay,
+        player: {
+          ...baseTwoWay.player,
+          _id: `tws-${index + 1}`,
+          Name: `TwoWayStarter${index + 1}`,
+          PlayerId: `tws-${index + 1}`,
+          MLBAMID: `tws-${index + 1}`,
+        },
+        projectedPoints: 430 - index,
+      })) satisfies RankedPlayer[];
+      const twoWayRelievers = Array.from({ length: 20 }, (_, index) => ({
+        ...baseTwoWay,
+        player: {
+          ...baseTwoWay.player,
+          _id: `twr-${index + 1}`,
+          Name: `TwoWayReliever${index + 1}`,
+          PlayerId: `twr-${index + 1}`,
+          MLBAMID: `twr-${index + 1}`,
+          _pitchingStats: {
+            ...baseTwoWay.player._pitchingStats,
+            GS: 0,
+          },
+        },
+        projectedPoints: 430 - index,
+      })) satisfies RankedPlayer[];
+
+      const starterResult = calculatePAR(
+        [...starters, ...twoWayStarters, ...relievers],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      );
+      const relieverResult = calculatePAR(
+        [...starters, ...twoWayRelievers, ...relievers],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      );
+
+      const starterReliever = starterResult.find(player => player.player.Name === "RP20");
+      const relieverReliever = relieverResult.find(player => player.player.Name === "RP20");
+
+      expect(starterReliever?.par ?? 0).toBeGreaterThan(relieverReliever?.par ?? 0);
+    });
+
+    it("does not round replacement-adjacent mixed-role pitchers up to zero from tiny weighted slot shares", () => {
+      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
+      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) =>
+        withPitcherIdentity(player, "rp", index)
+      );
+      const fringeDualRole = createPitcher(
+        "fringe-dual",
+        { isSP: true, isRP: true, G: 30, GS: 3 },
+        5
+      );
+
+      const capped = calculatePAR(
+        [...starters, fringeDualRole, ...relievers],
+        createLeagueSettings({ SP: 2, RP: 2, P: 5 }, 12, { weeklyStartLimit: 12 })
+      );
+
+      const fringePar = capped.find(player => player.player.Name === "Playerfringe-dual");
+
+      expect(fringePar?.par ?? 0).toBeLessThan(0);
     });
   });
 

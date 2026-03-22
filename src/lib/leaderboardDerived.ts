@@ -15,6 +15,8 @@ import type {
 
 export type PlayerView = "all" | "batters" | "pitchers";
 export type DraftFilter = "all" | "available" | "drafted" | "keepers";
+const MIN_BATTER_PA = 10;
+const MIN_PITCHER_IP = 5;
 
 export type LeaderboardRow = RankedPlayer & {
   searchText: string;
@@ -98,6 +100,24 @@ function getPlayersForView(
   return [...pitchers];
 }
 
+function meetsBatterProjectionMinimum(player: Player): boolean {
+  if (player._type === "batter") return player.PA >= MIN_BATTER_PA;
+  if (player._type === "two-way") return player._battingStats.PA >= MIN_BATTER_PA;
+  return false;
+}
+
+function meetsPitcherProjectionMinimum(player: Player): boolean {
+  if (player._type === "pitcher") return player.IP >= MIN_PITCHER_IP;
+  if (player._type === "two-way") return player._pitchingStats.IP >= MIN_PITCHER_IP;
+  return false;
+}
+
+function meetsProjectionMinimumForView(player: Player, view: PlayerView): boolean {
+  if (view === "batters") return meetsBatterProjectionMinimum(player);
+  if (view === "pitchers") return meetsPitcherProjectionMinimum(player);
+  return meetsBatterProjectionMinimum(player) || meetsPitcherProjectionMinimum(player);
+}
+
 export function formatEligibilityForLeaderboard(player: Player): string {
   const eligibility = player.eligibility;
   if (!eligibility) return "-";
@@ -144,7 +164,8 @@ export function buildBaseRankedPlayers({
   if (!activeGroup) return [];
 
   const useBaseballIp = getUseBaseballIp(activeGroup);
-  const allPlayersForPar = getPlayersForView(activeGroup, "all", mergeTwoWayRankings);
+  const allPlayersForPar = getPlayersForView(activeGroup, "all", mergeTwoWayRankings)
+    .filter((player) => meetsProjectionMinimumForView(player, "all"));
   const parRankedPlayers = calculatePAR(
     allPlayersForPar.map((player) => ({
       player,
@@ -164,7 +185,8 @@ export function buildBaseRankedPlayers({
   const parByPlayerId = new Map(
     parRankedPlayers.map((rankedPlayer) => [rankedPlayer.player._id, rankedPlayer.par])
   );
-  const viewPlayers = getPlayersForView(activeGroup, playerView, mergeTwoWayRankings);
+  const viewPlayers = getPlayersForView(activeGroup, playerView, mergeTwoWayRankings)
+    .filter((player) => meetsProjectionMinimumForView(player, playerView));
 
   return viewPlayers.map((player) => ({
     player,

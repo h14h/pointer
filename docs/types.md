@@ -23,7 +23,7 @@
 
 **Position vs RosterSlot.** `Position` is the 9 fielding positions (C through DH). `RosterSlot` extends this with group slots (OF, CI, MI, IF, UTIL), pitcher slots (SP, RP, P), and special slots (IL, NA). Position is used for eligibility; RosterSlot is used for roster configuration.
 
-**Weekly start limit is league-level metadata.** `LeagueSettings.weeklyStartLimit` is optional and independent from roster slots. It does not change point scoring directly; it exists so PAR can reduce effective SP demand and raise RP demand in capped-start leagues.
+**Weekly start limit is league-level metadata.** `LeagueSettings.weeklyStartLimit` is optional and independent from roster slots. It does not change point scoring directly; it exists so PAR can reduce effective SP demand and raise RP demand in capped-start leagues, using projected pitcher role shares from `GS`/`G` rather than SP/RP eligibility alone.
 
 ## Multi-League
 

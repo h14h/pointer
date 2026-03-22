@@ -320,8 +320,8 @@ function createProjectionGroup(): ProjectionGroup {
 				Team: "LAD",
 				_battingStats: {
 					G: 0,
-					PA: 0,
-					AB: 0,
+					PA: 550,
+					AB: 500,
 					H: 120,
 					"1B": 60,
 					"2B": 20,
@@ -478,6 +478,155 @@ describe("leaderboardDerived", () => {
 		expect(pitcherRow).toBeDefined();
 		expect(allRow!.projectedPoints).toBeGreaterThan(batterRow!.projectedPoints);
 		expect(allRow!.projectedPoints).toBeGreaterThan(pitcherRow!.projectedPoints);
+	});
+
+	it("filters out fringe hitters and pitchers below minimum projection thresholds", () => {
+		const group = createProjectionGroup();
+		group.batters.push(
+			createBatter({
+				_id: "batter-fringe",
+				Name: "Fringe Batter",
+				PA: 9,
+				eligibility: {
+					positionGames: { C: 0, "1B": 0, "2B": 0, "3B": 0, SS: 0, LF: 0, CF: 10, RF: 0, DH: 0 },
+					eligiblePositions: ["CF"],
+					isSP: false,
+					isRP: false,
+					sourceSeason: 2025,
+					updatedAt: "2026-03-22T00:00:00.000Z",
+				},
+			})
+		);
+		group.pitchers.push(
+			createPitcher({
+				_id: "pitcher-fringe",
+				Name: "Fringe Pitcher",
+				IP: 4.2,
+				eligibility: {
+					positionGames: { C: 0, "1B": 0, "2B": 0, "3B": 0, SS: 0, LF: 0, CF: 0, RF: 0, DH: 0 },
+					eligiblePositions: [],
+					isSP: false,
+					isRP: true,
+					sourceSeason: 2025,
+					updatedAt: "2026-03-22T00:00:00.000Z",
+				},
+			})
+		);
+
+		const rows = buildBaseRankedPlayers({
+			activeGroup: group,
+			playerView: "all",
+			scoringSettings: createScoringSettings(),
+			leagueSettings: createLeagueSettings(),
+			draftState: createDraftState(),
+			mergeTwoWayRankings: true,
+		});
+
+		expect(rows.map((row) => row.player._id)).not.toContain("batter-fringe");
+		expect(rows.map((row) => row.player._id)).not.toContain("pitcher-fringe");
+	});
+
+	it("keeps two-way players in all view when either batting or pitching clears the minimum", () => {
+		const group = createProjectionGroup();
+		group.twoWayPlayers.push(
+			createTwoWay({
+				_id: "two-way-bat-only",
+				Name: "Bat Side Only",
+				_battingStats: {
+					...createTwoWay({})._battingStats,
+					PA: 15,
+					H: 5,
+					"1B": 5,
+				},
+				_pitchingStats: {
+					...createTwoWay({})._pitchingStats,
+					IP: 2,
+				},
+				eligibility: {
+					positionGames: { C: 0, "1B": 0, "2B": 0, "3B": 0, SS: 0, LF: 0, CF: 0, RF: 0, DH: 20 },
+					eligiblePositions: ["DH"],
+					isSP: true,
+					isRP: false,
+					sourceSeason: 2025,
+					updatedAt: "2026-03-22T00:00:00.000Z",
+				},
+			}),
+			createTwoWay({
+				_id: "two-way-pitch-only",
+				Name: "Pitch Side Only",
+				_battingStats: {
+					...createTwoWay({})._battingStats,
+					PA: 4,
+				},
+				_pitchingStats: {
+					...createTwoWay({})._pitchingStats,
+					IP: 12,
+					GS: 2,
+					SO: 12,
+				},
+				eligibility: {
+					positionGames: { C: 0, "1B": 0, "2B": 0, "3B": 0, SS: 0, LF: 0, CF: 0, RF: 0, DH: 0 },
+					eligiblePositions: [],
+					isSP: true,
+					isRP: false,
+					sourceSeason: 2025,
+					updatedAt: "2026-03-22T00:00:00.000Z",
+				},
+			}),
+			createTwoWay({
+				_id: "two-way-fringe",
+				Name: "Fringe Two Way",
+				_battingStats: {
+					...createTwoWay({})._battingStats,
+					PA: 4,
+				},
+				_pitchingStats: {
+					...createTwoWay({})._pitchingStats,
+					IP: 2,
+				},
+				eligibility: {
+					positionGames: { C: 0, "1B": 0, "2B": 0, "3B": 0, SS: 0, LF: 0, CF: 0, RF: 0, DH: 0 },
+					eligiblePositions: [],
+					isSP: true,
+					isRP: false,
+					sourceSeason: 2025,
+					updatedAt: "2026-03-22T00:00:00.000Z",
+				},
+			})
+		);
+
+		const allRows = buildBaseRankedPlayers({
+			activeGroup: group,
+			playerView: "all",
+			scoringSettings: createScoringSettings(),
+			leagueSettings: createLeagueSettings(),
+			draftState: createDraftState(),
+			mergeTwoWayRankings: true,
+		});
+		const batterRows = buildBaseRankedPlayers({
+			activeGroup: group,
+			playerView: "batters",
+			scoringSettings: createScoringSettings(),
+			leagueSettings: createLeagueSettings(),
+			draftState: createDraftState(),
+			mergeTwoWayRankings: true,
+		});
+		const pitcherRows = buildBaseRankedPlayers({
+			activeGroup: group,
+			playerView: "pitchers",
+			scoringSettings: createScoringSettings(),
+			leagueSettings: createLeagueSettings(),
+			draftState: createDraftState(),
+			mergeTwoWayRankings: true,
+		});
+
+		expect(allRows.map((row) => row.player._id)).toContain("two-way-bat-only");
+		expect(allRows.map((row) => row.player._id)).toContain("two-way-pitch-only");
+		expect(allRows.map((row) => row.player._id)).not.toContain("two-way-fringe");
+		expect(batterRows.map((row) => row.player._id)).toContain("two-way-bat-only");
+		expect(batterRows.map((row) => row.player._id)).not.toContain("two-way-pitch-only");
+		expect(pitcherRows.map((row) => row.player._id)).toContain("two-way-pitch-only");
+		expect(pitcherRows.map((row) => row.player._id)).not.toContain("two-way-bat-only");
 	});
 
 	it("matches accented names when the search input omits accents", () => {

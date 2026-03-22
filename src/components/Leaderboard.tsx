@@ -113,6 +113,12 @@ const formatCountingStat = (value: number | null) =>
 		<span className="font-mono">{Math.round(value)}</span>
 	);
 
+export function formatParForDisplay(par: number): string {
+	const roundedPar = Math.round(par);
+	if (roundedPar > 0) return `+${roundedPar}`;
+	return `${roundedPar}`;
+}
+
 function abbreviateName(name: string): string {
 	const parts = name.trim().split(/\s+/);
 	if (parts.length === 1) return parts[0].toUpperCase();
@@ -1084,7 +1090,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				size: 80,
 				cell: ({ row }) => {
 					const val = Math.round(row.original.par);
-					const formatted = val >= 0 ? `+${val}` : `${val}`;
+					const formatted = formatParForDisplay(row.original.par);
 					return (
 						<span
 							className={`font-mono text-xs ${

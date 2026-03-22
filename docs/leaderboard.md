@@ -33,6 +33,8 @@ The child consumes a three-phase pipeline:
 
 This keeps replacement levels stable when the user changes table-local filters, draft filters, or the visible player view.
 
+**Minimum projection thresholds.** Before PAR and leaderboard rows are built, the pipeline drops fringe projections that are too small to be meaningful in draft prep. Hitters need at least `10 PA`, pitchers need at least `5 IP`, and two-way players stay in the `"all"` view if either side clears its threshold. In view-specific tabs, the threshold is applied only to that side of the player's projection.
+
 **Two-way merging edge case:** When merging is off but the group only has `twoWayPlayers` (no separate batters/pitchers), two-way players are still shown. `canMergeTwoWay` requires `activeGroup` to be non-null and both batter and pitcher ID sources to be non-null and non-generated.
 
 ## PAR Column

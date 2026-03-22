@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Leaderboard } from "@/components/Leaderboard";
+import { Leaderboard, formatParForDisplay } from "@/components/Leaderboard";
 import type {
 	BatterPlayer,
 	DraftState,
@@ -275,6 +275,8 @@ function createProjectionGroup(totalBatters = 3): ProjectionGroup {
 			_id: "batter-mike",
 			Name: "Mike Trout",
 			Team: "LAA",
+			PA: 620,
+			AB: 540,
 			HR: 40,
 			R: 100,
 			RBI: 95,
@@ -293,6 +295,8 @@ function createProjectionGroup(totalBatters = 3): ProjectionGroup {
 			_id: "batter-corey",
 			Name: "Corey Seager",
 			Team: "TEX",
+			PA: 610,
+			AB: 530,
 			HR: 30,
 			R: 85,
 			RBI: 88,
@@ -315,6 +319,8 @@ function createProjectionGroup(totalBatters = 3): ProjectionGroup {
 				_id: `batter-${index}`,
 				Name: `Filler ${index}`,
 				Team: "AAA",
+				PA: 120,
+				AB: 100,
 				HR: 1,
 				R: 5,
 				RBI: 5,
@@ -367,8 +373,8 @@ function createProjectionGroup(totalBatters = 3): ProjectionGroup {
 				Team: "LAD",
 				_battingStats: {
 					G: 0,
-					PA: 0,
-					AB: 0,
+					PA: 550,
+					AB: 500,
 					H: 120,
 					"1B": 60,
 					"2B": 20,
@@ -465,6 +471,14 @@ describe("Leaderboard", () => {
 	afterEach(() => {
 		cleanup();
 		vi.useRealTimers();
+	});
+
+	it("formats rounded zero PAR without a plus sign", () => {
+		expect(formatParForDisplay(0)).toBe("0");
+		expect(formatParForDisplay(0.4)).toBe("0");
+		expect(formatParForDisplay(-0.4)).toBe("0");
+		expect(formatParForDisplay(1.2)).toBe("+1");
+		expect(formatParForDisplay(-1.2)).toBe("-1");
 	});
 
 	it("keeps rank numbers from the pre-search sorted leaderboard", async () => {

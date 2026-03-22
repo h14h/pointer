@@ -2,6 +2,7 @@ import type { Player, RankedPlayer, LeagueSettings, RosterSlot, Position } from 
 
 type SlotType = RosterSlot;
 const AVERAGE_STARTS_PER_ROSTERED_SP_PER_WEEK = 2;
+type PitchingUsage = { G: number; GS: number };
 
 const SLOT_POSITION_MAP: Record<SlotType, Position[]> = {
   C: ["C"],
@@ -170,15 +171,57 @@ function getReplacementLevelFromRemainingPool(
   return remainingEligiblePlayers[0].projectedPoints;
 }
 
-function getRoleBasedReplacementLevel(
+function getProjectedPitchingGames(player: Player): PitchingUsage | null {
+  if (player._type === "pitcher") {
+    return { G: player.G, GS: player.GS };
+  }
+  if (player._type === "two-way") {
+    return { G: player._pitchingStats.G, GS: player._pitchingStats.GS };
+  }
+  return null;
+}
+
+function getStarterShare(player: Player): number {
+  const usage = getProjectedPitchingGames(player);
+  if (!usage) return 0;
+
+  const games = Math.max(0, usage.G);
+  const gamesStarted = Math.max(0, usage.GS);
+
+  if (games <= 0) return gamesStarted > 0 ? 1 : 0;
+
+  return Math.min(Math.max(gamesStarted / games, 0), 1);
+}
+
+function getRelieverShare(player: Player): number {
+  return 1 - getStarterShare(player);
+}
+
+function getWeightedRoleReplacementLevel(
   rankedPlayers: RankedPlayerForPAR[],
-  rosteredCount: number,
-  predicate: (player: Player) => boolean
+  targetRoleDemand: number,
+  getRoleShare: (player: Player) => number
 ): number {
-  const eligiblePlayers = getSortedPlayers(rankedPlayers).filter(rp => predicate(rp.player));
+  const eligiblePlayers = getSortedPlayers(rankedPlayers).filter(rp =>
+    getProjectedPitchingGames(rp.player) !== null
+  );
+
   if (eligiblePlayers.length === 0) return 0;
-  if (rosteredCount < 0) return eligiblePlayers[0].projectedPoints;
-  return eligiblePlayers[rosteredCount]?.projectedPoints ?? 0;
+  if (targetRoleDemand <= 0) return eligiblePlayers[0].projectedPoints;
+
+  let cumulativeRoleShare = 0;
+
+  for (const rankedPlayer of eligiblePlayers) {
+    const roleShare = Math.max(0, getRoleShare(rankedPlayer.player));
+    if (roleShare <= 0) continue;
+
+    cumulativeRoleShare += roleShare;
+    if (cumulativeRoleShare > targetRoleDemand) {
+      return rankedPlayer.projectedPoints;
+    }
+  }
+
+  return 0;
 }
 
 function getPitcherReplacementLevelsWithStartLimit(
@@ -205,15 +248,15 @@ function getPitcherReplacementLevelsWithStartLimit(
   const reliefLikeSlotsPerTeam =
     perTeamRpSlots + Math.max(0, perTeamPitcherFlexSlots - cappedFlexibleSpSlotsPerTeam);
 
-  const spReplacement = getRoleBasedReplacementLevel(
+  const spReplacement = getWeightedRoleReplacementLevel(
     rankedPlayers,
     cappedTotalSpSlotsPerTeam * settings.leagueSize,
-    player => player.eligibility?.isSP === true
+    getStarterShare
   );
-  const rpReplacement = getRoleBasedReplacementLevel(
+  const rpReplacement = getWeightedRoleReplacementLevel(
     rankedPlayers,
     reliefLikeSlotsPerTeam * settings.leagueSize,
-    player => player.eligibility?.isRP === true
+    getRelieverShare
   );
 
   return {
@@ -252,18 +295,32 @@ function computeBatterPAR(
 function computePitcherPAR(
   player: Player,
   projectedPoints: number,
-  replacementLevels: Record<SlotType, number>
+  replacementLevels: Record<SlotType, number>,
+  settings: LeagueSettings
 ): number {
   const eligibleSlots = getEligibleSlotTypes(player).filter(isPitcherSlot);
   if (eligibleSlots.length === 0) return 0;
 
-  let maxPar = Number.NEGATIVE_INFINITY;
-  for (const slot of eligibleSlots) {
-    if (!(slot in replacementLevels)) continue;
-    const par = computePlayerPARForSlot(projectedPoints, slot, replacementLevels);
-    if (par > maxPar) maxPar = par;
+  const useWeightedRolePar = (settings.weeklyStartLimit ?? 0) > 0;
+  const slotPars = Object.fromEntries(
+    eligibleSlots
+      .filter(slot => slot in replacementLevels)
+      .map(slot => [slot, computePlayerPARForSlot(projectedPoints, slot, replacementLevels)])
+  ) as Partial<Record<SlotType, number>>;
+
+  if (Object.keys(slotPars).length === 0) return 0;
+
+  if (!useWeightedRolePar) {
+    return Math.max(...Object.values(slotPars));
   }
-  return maxPar === Number.NEGATIVE_INFINITY ? 0 : maxPar;
+
+  const starterShare = getStarterShare(player);
+  const relieverShare = getRelieverShare(player);
+  const blendedPar =
+    starterShare * (slotPars.SP ?? slotPars.P ?? 0)
+    + relieverShare * (slotPars.RP ?? slotPars.P ?? 0);
+
+  return Math.round(blendedPar * 10) / 10;
 }
 
 export function calculatePAR(
@@ -320,12 +377,12 @@ export function calculatePAR(
 
     if (player._type === "two-way") {
       const battingPar = computeBatterPAR(player, projectedPoints, replacementLevels);
-      const pitchingPar = computePitcherPAR(player, projectedPoints, replacementLevels);
+      const pitchingPar = computePitcherPAR(player, projectedPoints, replacementLevels, settings);
       par = Math.max(battingPar, pitchingPar);
     } else if (player._type === "batter") {
       par = computeBatterPAR(player, projectedPoints, replacementLevels);
     } else {
-      par = computePitcherPAR(player, projectedPoints, replacementLevels);
+      par = computePitcherPAR(player, projectedPoints, replacementLevels, settings);
     }
 
     return {
