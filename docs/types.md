@@ -26,3 +26,12 @@
 **League ID generation.** IDs are generated via `crypto.randomUUID()` to ensure uniqueness across imports/exports.
 
 **updatedAt timestamp.** Each `League` carries an `updatedAt` field (Unix ms) that updates whenever the league's settings or draft state change. This is used for display purposes in the leagues list.
+
+## RankedPlayer
+
+`RankedPlayer` extends a `Player` with calculated fields for display in the leaderboard:
+
+- `projectedPoints` — computed from `ScoringSettings` weights and counting stats
+- `par` — Points Above Replacement, computed from `projectedPoints` minus the replacement level for the player's best eligible slot
+
+See [Replacement Value (PAR)](paring-value.md) for full PAR calculation details.

@@ -221,6 +221,7 @@ export interface League {
 export interface RankedPlayer {
   player: Player;
   projectedPoints: number;
+  par: number;
   isDrafted: boolean;
   isKeeper: boolean;
   draftedTeamIndex?: number;

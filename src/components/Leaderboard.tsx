@@ -22,6 +22,7 @@ import {
 } from "@tanstack/react-table";
 import { useStore } from "@/store";
 import { calculatePlayerPoints } from "@/lib/calculatePoints";
+import { calculatePAR } from "@/lib/calculatePAR";
 import { POSITION_ORDER } from "@/lib/eligibility";
 import { isValidBaseballIp } from "@/lib/ipMath";
 import type {
@@ -635,13 +636,12 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		[toggleDraftedForTeam, activeTeamIndex],
 	);
 
-	// Calculate points and create ranked players
-	const rankedPlayers = useMemo(() => {
+	const getPlayersForView = useCallback((view: PlayerView) => {
 		let players: Player[] = [];
 		const useMergedTwoWay =
 			canMergeTwoWay && mergeTwoWayRankings && twoWayPlayers.length > 0;
 
-		if (playerView === "all") {
+		if (view === "all") {
 			if (useMergedTwoWay) {
 				players = [
 					...batters.filter((player) => !twoWayIds.has(player._id)),
@@ -657,7 +657,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			} else {
 				players = [...batters, ...pitchers];
 			}
-		} else if (playerView === "batters") {
+		} else if (view === "batters") {
 			if (useMergedTwoWay) {
 				players = [
 					...batters.filter((player) => !twoWayIds.has(player._id)),
@@ -681,6 +681,49 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			}
 		}
 
+		return players;
+	}, [
+		batters,
+		pitchers,
+		twoWayPlayers,
+		canMergeTwoWay,
+		mergeTwoWayRankings,
+		twoWayIds,
+	]);
+
+	const allPlayersForPar = useMemo(() => getPlayersForView("all"), [getPlayersForView]);
+
+	const parRankedPlayers = useMemo(() => {
+		const parInputPlayers = allPlayersForPar.map((player) => ({
+			player,
+			projectedPoints: calculatePlayerPoints(
+				player,
+				scoringSettings,
+				"all",
+				useBaseballIp,
+			),
+			par: 0,
+			isDrafted: false,
+			isKeeper: false,
+		})) as RankedPlayer[];
+
+		return calculatePAR(parInputPlayers, leagueSettings);
+	}, [
+		allPlayersForPar,
+		scoringSettings,
+		leagueSettings,
+		useBaseballIp,
+	]);
+
+	const parByPlayerId = useMemo(
+		() => new Map(parRankedPlayers.map((rankedPlayer) => [rankedPlayer.player._id, rankedPlayer.par])),
+		[parRankedPlayers],
+	);
+
+	// Calculate view-specific points while reusing stable PAR values from the full player pool.
+	const rankedPlayers = useMemo(() => {
+		const players = getPlayersForView(playerView);
+
 		return players.map((player) => ({
 			player,
 			projectedPoints: calculatePlayerPoints(
@@ -689,6 +732,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				playerView,
 				useBaseballIp,
 			),
+			par: parByPlayerId.get(player._id) ?? 0,
 			isDrafted: draftState.draftedByTeam[player._id] !== undefined,
 			isKeeper: draftState.keeperByTeam[player._id] !== undefined,
 			draftedTeamIndex:
@@ -699,19 +743,15 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				draftState.keeperByTeam[player._id] !== undefined
 					? Number(draftState.keeperByTeam[player._id])
 					: undefined,
-		}));
+		})) as RankedPlayer[];
 	}, [
-		batters,
-		pitchers,
-		twoWayPlayers,
+		getPlayersForView,
+		playerView,
 		scoringSettings,
+		useBaseballIp,
+		parByPlayerId,
 		draftState.draftedByTeam,
 		draftState.keeperByTeam,
-		playerView,
-		canMergeTwoWay,
-		mergeTwoWayRankings,
-		twoWayIds,
-		useBaseballIp,
 	]);
 
 	// Filter by draft status in draft mode
@@ -863,6 +903,28 @@ const LeaderboardTable = memo(function LeaderboardTable({
 						{Math.round(row.original.projectedPoints)}
 					</span>
 				),
+			},
+			{
+				accessorKey: "par",
+				header: "PAR",
+				size: 80,
+				cell: ({ row }) => {
+					const val = Math.round(row.original.par);
+					const formatted = val >= 0 ? `+${val}` : `${val}`;
+					return (
+						<span
+							className={`font-mono text-xs ${
+								val > 0
+									? "text-green-600 dark:text-green-400"
+									: val < 0
+										? "text-red-600 dark:text-red-400"
+										: "text-[#111111]/40 dark:text-[#e5e5e5]/40"
+							}`}
+						>
+							{formatted}
+						</span>
+					);
+				},
 			},
 		];
 

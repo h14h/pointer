@@ -10,6 +10,7 @@
 
 ## Dependents
 - [Leaderboard](leaderboard.md) — uses `calculatePlayerPoints` for ranking
+- [Replacement Value (PAR)](paring-value.md) — uses `projectedPoints` as input for PAR calculation
 - [State](state.md) — default scoring settings use ESPN preset values
 - [Settings Page](settings-page.md) — scoring section uses `scoringPresets` and `presetNames` for preset application
 

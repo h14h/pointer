@@ -6,6 +6,7 @@
 ## Dependencies
 - [State](state.md) — all major state slices
 - [Scoring](scoring.md) — `calculatePlayerPoints`
+- [Replacement Value (PAR)](paring-value.md) — `calculatePAR`
 - [Eligibility](eligibility.md) — `POSITION_ORDER`
 - [Utilities](utilities.md) — `isValidBaseballIp`
 - TanStack React Table (external) — table engine
@@ -20,13 +21,20 @@ Split into two components:
 
 ## Ranking Pipeline
 
-The `rankedPlayers` memo in the child is the core computation:
-1. Select players from the active projection group based on `playerView` (all/batters/pitchers)
-2. Optionally merge two-way players (when `canMergeTwoWay && mergeTwoWayRankings`) — deduplicates via a `twoWayIds` Set so two-way players replace their separate batter/pitcher entries
-3. Calculate `projectedPoints` for each player via `calculatePlayerPoints`
-4. Annotate each player with draft/keeper status and team index from `draftState`
+The child computes rankings in two stages:
+1. Build a stable full-player pool from the active projection group, with optional two-way merging
+2. Calculate `projectedPoints` for that full pool in `"all"` mode and run `calculatePAR` once to establish replacement values from the complete roster universe
+3. Build the current `playerView` subset (all/batters/pitchers)
+4. Recalculate `projectedPoints` for display in the current view and attach the already-computed PAR by player ID
+5. Annotate each player with draft/keeper status and team index from `draftState`
+
+This keeps replacement levels stable when the user changes table-local filters, draft filters, or the visible player view.
 
 **Two-way merging edge case:** When merging is off but the group only has `twoWayPlayers` (no separate batters/pitchers), two-way players are still shown. `canMergeTwoWay` requires `activeGroup` to be non-null and both batter and pitcher ID sources to be non-null and non-generated.
+
+## PAR Column
+
+PAR is displayed as a sortable column after the Points column. Format: whole numbers with a `+` prefix for positive values (for example `+15`, `-9`). Color coding: green (positive), red (negative), muted gray (zero).
 
 ## Baseball IP Detection
 
