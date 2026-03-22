@@ -6,6 +6,7 @@ import {
 	useCallback,
 	useDeferredValue,
 	useEffect,
+	useRef,
 	memo,
 	startTransition,
 	type Dispatch,
@@ -16,7 +17,9 @@ import {
 	type SortingState,
 	type ColumnDef,
 } from "@tanstack/react-table";
+import { toast } from "sonner";
 import { MenuSelect } from "@/components/ui/MenuSelect";
+import { getDraftPickContext, getNextOpenPickIndex } from "@/lib/draft";
 import { useStore } from "@/store";
 import { POSITION_ORDER } from "@/lib/eligibility";
 import { useDebouncedCallback } from "@/lib/useDebounce";
@@ -88,6 +91,10 @@ const STORAGE_KEYS = {
 
 const DEFAULT_BATTING_STATS = ["R", "HR", "RBI", "SB", "AVG"];
 const DEFAULT_PITCHING_STATS = ["W", "SV", "SO_P", "ERA", "WHIP"];
+const EMPTY_DRAFT_HISTORY: DraftState["history"] = [];
+const AUTO_ACTION_TOAST_DELAY_MS = 650;
+const KEEPER_BADGE_CLASSNAME =
+	"rounded-sm border border-[#dc2626]/25 bg-[#dc2626]/5 px-1.5 text-[10px] font-bold uppercase tracking-wider text-[#dc2626]/85 dark:border-[#ef4444]/25 dark:bg-[#ef4444]/5 dark:text-[#ef4444]/85";
 
 const formatCountingStat = (value: number | null) =>
 	value === null || Number.isNaN(value) ? (
@@ -210,8 +217,8 @@ export function Leaderboard() {
 		activeProjectionGroupId,
 		setActiveProjectionGroup,
 		isDraftMode,
-		toggleDraftedForTeam,
-		toggleKeeperForTeam,
+		draftPlayer,
+		undoLastDraftPick,
 		mergeTwoWayRankings,
 		leagues,
 		activeLeagueId,
@@ -221,8 +228,8 @@ export function Leaderboard() {
 			activeProjectionGroupId: state.activeProjectionGroupId,
 			setActiveProjectionGroup: state.setActiveProjectionGroup,
 			isDraftMode: state.isDraftMode,
-			toggleDraftedForTeam: state.toggleDraftedForTeam,
-			toggleKeeperForTeam: state.toggleKeeperForTeam,
+			draftPlayer: state.draftPlayer,
+			undoLastDraftPick: state.undoLastDraftPick,
 			mergeTwoWayRankings: state.mergeTwoWayRankings,
 			leagues: state.leagues,
 			activeLeagueId: state.activeLeagueId,
@@ -232,10 +239,49 @@ export function Leaderboard() {
 	const scoringSettings = activeLeague?.scoringSettings;
 	const leagueSettings = activeLeague?.leagueSettings;
 	const draftState = activeLeague?.draftState;
+	const draftHistory = draftState?.history ?? EMPTY_DRAFT_HISTORY;
+	const lastDraftPick = draftHistory.at(-1) ?? null;
+	const keeperByTeam = draftState?.keeperByTeam ?? {};
+	const currentOpenPickIndex = draftState
+		? getNextOpenPickIndex(
+			leagueSettings.leagueSize,
+			draftState.pickIndex ?? 0,
+			draftState.format ?? "snake",
+			draftState,
+		)
+		: 0;
+	const currentPickContext = draftState
+		? getDraftPickContext(
+			leagueSettings.leagueSize,
+			currentOpenPickIndex,
+			draftState.format ?? "snake",
+		)
+		: null;
+	const currentTeamName = currentPickContext
+		? leagueSettings.teamNames[currentPickContext.teamIndex] ??
+			`Team ${currentPickContext.teamIndex + 1}`
+		: null;
 	const currentGroupId =
 		activeProjectionGroupId ?? projectionGroups[0]?.id ?? null;
+	const activeGroup =
+		projectionGroups.find((group) => group.id === currentGroupId) ??
+		projectionGroups[0] ??
+		null;
+	const allPlayersById = useMemo(
+		() =>
+			new Map(
+				[
+					...(activeGroup?.batters ?? []),
+					...(activeGroup?.pitchers ?? []),
+					...(activeGroup?.twoWayPlayers ?? []),
+				].map((player) => [player._id, player]),
+			),
+		[activeGroup],
+	);
 	const deferredGroupId = useDeferredValue(currentGroupId);
 	const isSwitchingGroups = deferredGroupId !== currentGroupId;
+	const previousOpenPickIndexRef = useRef<number | null>(null);
+	const autoActionToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [appliedGlobalFilter, setAppliedGlobalFilter] = useState("");
 	const [playerView, setPlayerView] = useState<PlayerView>("all");
@@ -376,6 +422,142 @@ export function Leaderboard() {
 			setAppliedSelectedPositions(new Set(nextValues));
 		});
 	}, 120);
+	const handleUndoLastPick = useCallback(() => {
+		if (!lastDraftPick) return;
+		const playerName =
+			allPlayersById.get(lastDraftPick.playerId)?.Name ?? "Draft pick";
+		const teamName =
+			leagueSettings.teamNames[lastDraftPick.teamIndex] ?? `Team ${lastDraftPick.teamIndex + 1}`;
+		undoLastDraftPick();
+		toast("Pick undone", {
+			description: `${playerName} • ${teamName} • Pick ${lastDraftPick.overallPick}`,
+			duration: 2200,
+		});
+	}, [allPlayersById, lastDraftPick, leagueSettings, undoLastDraftPick]);
+	useEffect(() => {
+		if (!isDraftMode || !draftState) {
+			if (autoActionToastTimeoutRef.current) {
+				clearTimeout(autoActionToastTimeoutRef.current);
+				autoActionToastTimeoutRef.current = null;
+			}
+			previousOpenPickIndexRef.current = null;
+			return;
+		}
+
+		const previousOpenPickIndex = previousOpenPickIndexRef.current;
+		const skippedKeeperEntries = Object.entries(draftState.keeperSlotByPlayer)
+			.filter(([playerId, slotIndex]) => {
+				if (slotIndex === null || slotIndex === undefined) return false;
+				if (draftState.keeperByTeam[playerId] === undefined) return false;
+				if (previousOpenPickIndex === null) {
+					return slotIndex < currentOpenPickIndex;
+				}
+				if (currentOpenPickIndex > previousOpenPickIndex) {
+					return slotIndex > previousOpenPickIndex && slotIndex < currentOpenPickIndex;
+				}
+				if (currentOpenPickIndex < previousOpenPickIndex) {
+					return slotIndex >= currentOpenPickIndex && slotIndex < previousOpenPickIndex;
+				}
+				return false;
+			})
+			.map(([playerId, slotIndex]) => ({
+				playerId,
+				slotIndex: slotIndex as number,
+			}))
+			.sort((left, right) => left.slotIndex - right.slotIndex);
+
+		if (skippedKeeperEntries.length > 0) {
+			const [firstSkippedKeeper] = skippedKeeperEntries;
+			const skippedPlayerName =
+				allPlayersById.get(firstSkippedKeeper.playerId)?.Name ?? "Keeper";
+			const skippedTeamIndexRaw =
+				draftState.keeperByTeam[firstSkippedKeeper.playerId];
+			const skippedTeamIndex =
+				skippedTeamIndexRaw === undefined
+					? null
+					: Number.parseInt(skippedTeamIndexRaw, 10);
+			const skippedTeamName =
+				skippedTeamIndex !== null && Number.isFinite(skippedTeamIndex)
+					? leagueSettings.teamNames[skippedTeamIndex] ??
+						`Team ${skippedTeamIndex + 1}`
+					: null;
+			const skippedPickLabel = `Pick ${firstSkippedKeeper.slotIndex + 1}`;
+			if (autoActionToastTimeoutRef.current) {
+				clearTimeout(autoActionToastTimeoutRef.current);
+			}
+			if (currentOpenPickIndex > (previousOpenPickIndex ?? -1)) {
+				autoActionToastTimeoutRef.current = setTimeout(() => {
+					toast(
+						skippedKeeperEntries.length === 1 ? (
+							<div className="flex items-center gap-2">
+								<span>{skippedPlayerName}</span>
+								<span className={KEEPER_BADGE_CLASSNAME}>K</span>
+							</div>
+						) : (
+							"Auto-advanced"
+						),
+						{
+							description:
+								skippedKeeperEntries.length === 1
+									? skippedTeamName
+										? `${skippedTeamName} • ${skippedPickLabel}`
+										: skippedPickLabel
+									: `${skippedKeeperEntries.length} keeper slots skipped • Now on Pick ${currentOpenPickIndex + 1}`,
+						},
+					);
+					autoActionToastTimeoutRef.current = null;
+				}, AUTO_ACTION_TOAST_DELAY_MS);
+			} else if (
+				previousOpenPickIndex !== null &&
+				currentOpenPickIndex < previousOpenPickIndex
+			) {
+				autoActionToastTimeoutRef.current = setTimeout(() => {
+					toast("Auto-rewound", {
+						description:
+							skippedKeeperEntries.length === 1
+								? `${skippedPlayerName} • ${skippedPickLabel}`
+								: `Cursor moved back across ${skippedKeeperEntries.length} keeper slots`,
+					});
+					autoActionToastTimeoutRef.current = null;
+				}, AUTO_ACTION_TOAST_DELAY_MS);
+			}
+		}
+
+		previousOpenPickIndexRef.current = currentOpenPickIndex;
+		return () => {
+			if (autoActionToastTimeoutRef.current) {
+				clearTimeout(autoActionToastTimeoutRef.current);
+				autoActionToastTimeoutRef.current = null;
+			}
+		};
+	}, [allPlayersById, currentOpenPickIndex, draftState, isDraftMode, leagueSettings]);
+	const handleDraftPlayerFromBoard = useCallback(
+		(player: RankedPlayer) => {
+			if (!isDraftMode) return;
+			if (player.isDrafted || player.isKeeper) return;
+			const pickLabel = currentPickContext ? `Pick ${currentPickContext.overallPick}` : null;
+			const receivingTeamName =
+				currentTeamName ??
+				(currentPickContext
+					? leagueSettings.teamNames[currentPickContext.teamIndex] ??
+						`Team ${currentPickContext.teamIndex + 1}`
+					: null);
+			draftPlayer(player.player._id);
+			toast(player.player.Name, {
+				description: receivingTeamName
+					? `${receivingTeamName}${pickLabel ? ` • ${pickLabel}` : ""}`
+					: pickLabel ?? "",
+				duration: 2600,
+			});
+		},
+		[
+			isDraftMode,
+			currentPickContext,
+			currentTeamName,
+			leagueSettings,
+			draftPlayer,
+		],
+	);
 	const tableNode = (
 		<div className="relative">
 			{(isSwitchingGroups || isApplyingFilters) && (
@@ -389,9 +571,7 @@ export function Leaderboard() {
 				draftState={draftState}
 				isDraftMode={isDraftMode}
 				mergeTwoWayRankings={mergeTwoWayRankings}
-				toggleDraftedForTeam={toggleDraftedForTeam}
-				toggleKeeperForTeam={toggleKeeperForTeam}
-				activeTeamIndex={draftState.activeTeamIndex}
+				onDraftPlayer={handleDraftPlayerFromBoard}
 				playerView={deferredPlayerView}
 				globalFilter={appliedGlobalFilter}
 				draftFilter={draftFilter}
@@ -408,6 +588,37 @@ export function Leaderboard() {
 		<div className="flex flex-col font-sans">
 			{/* Filters */}
 			<div className="mb-6 border-b border-[#111111]/10 dark:border-[#333333] pb-5">
+				{isDraftMode && currentPickContext ? (
+					<div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#111111]/[0.03] px-4 py-3 dark:bg-[#e5e5e5]/[0.04]">
+						<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+							<div>
+								<div className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/45 dark:text-[#e5e5e5]/35">
+									On The Clock
+								</div>
+								<div className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+									{currentTeamName}
+								</div>
+							</div>
+							<div className="text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+								Pick {currentPickContext.overallPick}
+							</div>
+							<div className="text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+								Round {currentPickContext.round}, Pick {currentPickContext.pickInRound}
+							</div>
+							<div className="text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+								{draftHistory.length} drafted, {Object.keys(keeperByTeam).length} keepers
+							</div>
+						</div>
+						<button
+							type="button"
+							onClick={handleUndoLastPick}
+							disabled={draftHistory.length === 0}
+							className="inline-flex min-h-8 items-center justify-center rounded-sm border border-[#111111]/20 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/60 transition-colors hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-30 dark:border-[#333333] dark:text-[#e5e5e5]/55 dark:hover:bg-[#1a1a1a]"
+						>
+							Undo Last Pick
+						</button>
+					</div>
+				) : null}
 				<div className="flex flex-wrap items-center gap-3">
 					<input
 						type="text"
@@ -489,7 +700,7 @@ export function Leaderboard() {
 
 					{isDraftMode && (
 						<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30">
-							Click to draft, right-click for keeper
+							Tap an available player to make the current pick
 						</span>
 					)}
 
@@ -624,9 +835,7 @@ type LeaderboardTableProps = {
 	draftState: DraftState;
 	isDraftMode: boolean;
 	mergeTwoWayRankings: boolean;
-	toggleDraftedForTeam: (playerId: string, teamIndex: number) => void;
-	toggleKeeperForTeam: (playerId: string, teamIndex: number) => void;
-	activeTeamIndex: number;
+	onDraftPlayer: (player: RankedPlayer) => void;
 	playerView: PlayerView;
 	globalFilter: string;
 	draftFilter: DraftFilter;
@@ -647,9 +856,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	draftState,
 	isDraftMode,
 	mergeTwoWayRankings,
-	toggleDraftedForTeam,
-	toggleKeeperForTeam,
-	activeTeamIndex,
+	onDraftPlayer,
 	playerView,
 	globalFilter,
 	draftFilter,
@@ -670,12 +877,6 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "projectedPoints", desc: true },
 	]);
-	// Memoize toggle handler to prevent column regeneration
-	const handleToggleDrafted = useCallback(
-		(playerId: string) => toggleDraftedForTeam(playerId, activeTeamIndex),
-		[toggleDraftedForTeam, activeTeamIndex],
-	);
-
 	const rankedPlayers = useMemo(
 		() =>
 			buildBaseRankedPlayers({
@@ -766,15 +967,6 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				meta: { className: "max-w-[120px]" },
 				cell: ({ row }) => (
 					<div className="flex items-center gap-2 min-w-0">
-						{isDraftMode && (
-							<input
-								type="checkbox"
-								checked={row.original.isDrafted || row.original.isKeeper}
-								onChange={() => handleToggleDrafted(row.original.player._id)}
-								className="h-3.5 w-3.5 rounded-sm border-[#111111]/30 dark:border-[#333333] accent-[#dc2626] dark:accent-[#ef4444]"
-								onClick={(e) => e.stopPropagation()}
-							/>
-						)}
 						<span
 							className={
 								row.original.isDrafted
@@ -787,16 +979,18 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				>
 					{abbreviateName(row.original.player.Name)}
 				</span>
-						{row.original.isDrafted && (
-							<span className="border border-[#111111]/20 dark:border-[#333333] px-1.5 text-[10px] font-bold uppercase tracking-wider text-[#111111]/60 dark:text-[#e5e5e5]/50 rounded-sm">
-								{resolveTeamLabel(row.original.draftedTeamIndex)}
-							</span>
-						)}
-						{row.original.isKeeper && (
-							<span className="border border-[#dc2626]/30 dark:border-[#ef4444]/30 bg-[#dc2626]/5 dark:bg-[#ef4444]/5 px-1.5 text-[10px] font-bold uppercase tracking-wider text-[#dc2626] dark:text-[#ef4444] rounded-sm">
-								{resolveTeamLabel(row.original.keeperTeamIndex) ?? "K"}
-							</span>
-						)}
+						<div className="ml-auto flex shrink-0 items-center gap-1">
+							{row.original.isDrafted && (
+								<span className="border border-[#111111]/20 dark:border-[#333333] px-1.5 text-[10px] font-bold uppercase tracking-wider text-[#111111]/60 dark:text-[#e5e5e5]/50 rounded-sm">
+									{resolveTeamLabel(row.original.draftedTeamIndex)}
+								</span>
+							)}
+							{row.original.isKeeper && (
+								<span className={KEEPER_BADGE_CLASSNAME}>
+									K
+								</span>
+							)}
+						</div>
 					</div>
 				),
 			},
@@ -1385,8 +1579,6 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		return baseColumns;
 		}, [
 			playerView,
-			isDraftMode,
-			handleToggleDrafted,
 			leagueSettings,
 			battingStatIds,
 			pitchingStatIds,
@@ -1408,16 +1600,11 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	const handleRowClick = useCallback(
 		(player: RankedPlayer) => {
 			if (!isDraftMode) return;
-			handleToggleDrafted(player.player._id);
+			if (player.isDrafted || player.isKeeper) return;
+			onDraftPlayer(player);
 		},
-		[isDraftMode, handleToggleDrafted],
+		[isDraftMode, onDraftPlayer],
 	);
-
-	const handleRowContextMenu = (e: React.MouseEvent, player: RankedPlayer) => {
-		if (!isDraftMode) return;
-		e.preventDefault();
-		toggleKeeperForTeam(player.player._id, activeTeamIndex);
-	};
 
 	if (
 		!activeGroup ||
@@ -1476,14 +1663,13 @@ const LeaderboardTable = memo(function LeaderboardTable({
 							<tr
 								key={row.player._id}
 								onClick={() => handleRowClick(row)}
-								onContextMenu={(e) => handleRowContextMenu(e, row)}
 								className={`border-b border-[#111111]/10 dark:border-[#333333]/60 ${
-									isDraftMode ? "cursor-pointer" : ""
+									isDraftMode && !row.isDrafted && !row.isKeeper ? "cursor-pointer" : ""
 								} ${
 									row.isDrafted
-										? "text-[#111111]/30 dark:text-[#e5e5e5]/20"
+										? "bg-[#111111]/[0.03] text-[#111111]/30 dark:bg-[#e5e5e5]/[0.03] dark:text-[#e5e5e5]/20"
 										: row.isKeeper
-											? "bg-[#dc2626]/[0.03] dark:bg-[#ef4444]/[0.03]"
+											? "bg-[#dc2626]/[0.04] dark:bg-[#ef4444]/[0.04]"
 										: "hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
 								}`}
 							>

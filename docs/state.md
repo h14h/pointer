@@ -13,20 +13,30 @@ All UI components: [Leaderboard](leaderboard.md), [CSV Upload Workflow](csv-uplo
 ## Persistence
 
 - **Storage key:** `"pointer-storage"`
-- **Version:** 5
+- **Version:** 6
 - **Middleware:** Zustand `persist` to `localStorage`
 
-Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure, and wrapping single-league data in a `League` object (v4→v5).
+Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure, wrapping single-league data in a `League` object (v4→v5), and converting the old `activeTeamIndex` draft cursor into the snake-draft session shape (v5→v6). Legacy drafted and keeper ownership is preserved; `history` starts empty because prior pick chronology is unknowable.
 
 ## Key Invariants
 
-**Drafted/keeper mutual exclusivity.** `toggleDraftedForTeam` removes the player from keepers; `toggleKeeperForTeam` removes from drafted. A player cannot be both.
+**Drafted/keeper mutual exclusivity.** `draftPlayer` refuses keepers, and `setKeeperForTeam` removes any drafted assignment for the same player. A player cannot be both.
+
+**Snake draft as source of truth.** Current team, overall pick, and round context are derived from `pickIndex`, league size, and `format: "snake"`. No component owns its own draft-order math.
+
+**Keeper reservations consume draft slots.** `keeperSlotByPlayer` can reserve specific snake-draft slots for keepers. The live draft cursor skips reserved keeper slots automatically, so the board always points at the next open manual pick.
+
+**Keeper edits can rewind a pre-draft cursor.** When keeper reservations change before any manual picks have been made, the live cursor is recomputed from slot 1 rather than treated as monotonic. This prevents stale early-slot reservations from leaving the draft "on the clock" at the wrong overall pick after a keeper is moved to a later round.
+
+**Manual picks only in history.** `history` contains only manual picks. `pickIndex` is now the next draft slot cursor rather than a simple manual-pick count, because keeper reservations may consume slots without creating history entries. Undo removes only the latest manual draft pick and restores its original slot index.
+
+**Reset preserves keeper setup.** `resetDraft` operates on the active league only and clears only manual draft progress: `draftedByTeam`, `history`, and the live pick cursor. Keeper ownership and reserved keeper slots remain intact, and the cursor rewinds to the first open non-keeper slot.
 
 **League size clamping.** Size is clamped to [2, 20] on every write via `normalizeLeagueSettings`. Team names are padded with `"Team {n}"` or truncated to match.
 
 **Weekly start limit normalization.** `weeklyStartLimit` is normalized to a positive integer or `null`. `0`, negative values, and non-finite values are treated as "no cap".
 
-**Draft state pruning on resize.** When league settings change, draft picks assigned to team indices ≥ the new league size are removed. The active team index is also clamped.
+**Draft setup lock.** League resize, add/remove team, and reorder operations are allowed only while draft ownership is empty. Once drafted players or keepers exist, setup edits that would remap ownership are blocked.
 
 **Active group fallback.** Removing the active projection group falls back to the first remaining group's ID, or `null`. A stale `activeProjectionGroupId` is never left behind.
 
@@ -43,7 +53,7 @@ The store has ~25 actions organized into:
 - **Projection management** — add, remove, set active, clear groups
 - **Scoring** — full replacement or single-weight updates (operates on active league)
 - **League settings** — settings replacement (with normalization), individual setters for size/names/roster (operates on active league)
-- **Draft** — toggle drafted/keeper, set mode, reset (active league only), clear all
+- **Draft** — start session, draft player, undo last pick, assign/remove keepers with optional reserved rounds, reset (active league only), clear all
 - **Eligibility** — apply eligibility map to a projection group
 
 ## Default Values
@@ -56,6 +66,6 @@ Default scoring uses ESPN-style weights. Default league is 12 teams with a stand
 
 **Shared projections.** Projection groups are shared across all leagues — uploading projections once makes them available for all leagues.
 
-**Per-league draft state.** Each league maintains its own `draftState`. Switching leagues preserves each league's drafted/keeper players independently.
+**Per-league draft state.** Each league maintains its own `draftState`. Switching leagues preserves each league's drafted players, keeper assignments, and live pick cursor independently.
 
 **`clearAllData` behavior.** Clears all projections. Leagues and their draft states are preserved — only the draft picks and keepers are reset to empty.

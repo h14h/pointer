@@ -89,9 +89,12 @@ function createLeagueSettings(): LeagueSettings {
 
 function createDraftState(): DraftState {
 	return {
+		format: "snake",
 		draftedByTeam: {},
 		keeperByTeam: {},
-		activeTeamIndex: 0,
+		keeperSlotByPlayer: {},
+		pickIndex: 0,
+		history: [],
 	};
 }
 

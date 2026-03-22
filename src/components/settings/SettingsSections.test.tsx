@@ -93,6 +93,10 @@ describe("settings sections", () => {
   const updatePitchingScoringSpy = vi.fn();
   const setLeagueSettingsSpy = vi.fn();
   const setMergeTwoWayRankingsSpy = vi.fn();
+  const setKeeperForTeamSpy = vi.fn();
+  const removeKeeperSpy = vi.fn();
+  const resetDraftSpy = vi.fn();
+  const canEditDraftSetupSpy = vi.fn(() => true);
 
   const createLeague = () => ({
     id: "league-1",
@@ -100,38 +104,48 @@ describe("settings sections", () => {
     scoringSettings: createScoringSettings(),
     leagueSettings: createLeagueSettings(),
     draftState: {
+      format: "snake",
       draftedByTeam: {},
       keeperByTeam: {},
-      activeTeamIndex: 0,
+      keeperSlotByPlayer: {},
+      pickIndex: 0,
+      history: [],
     },
     updatedAt: Date.now(),
   });
 
+  const createStoreState = () => ({
+    leagues: [createLeague()],
+    activeLeagueId: "league-1",
+    setScoringSettings: setScoringSettingsSpy,
+    updateBattingScoring: updateBattingScoringSpy,
+    updatePitchingScoring: updatePitchingScoringSpy,
+    setLeagueSettings: setLeagueSettingsSpy,
+    projectionGroups: [
+      {
+        id: "group-1",
+        name: "Main Group",
+        createdAt: "2026-02-11T00:00:00.000Z",
+        batters: [],
+        pitchers: [],
+        twoWayPlayers: [],
+        batterIdSource: "MLBAMID",
+        pitcherIdSource: "MLBAMID",
+      },
+    ],
+    activeProjectionGroupId: "group-1",
+    setKeeperForTeam: setKeeperForTeamSpy,
+    removeKeeper: removeKeeperSpy,
+    resetDraft: resetDraftSpy,
+    canEditDraftSetup: canEditDraftSetupSpy,
+    mergeTwoWayRankings: true,
+    setMergeTwoWayRankings: setMergeTwoWayRankingsSpy,
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
-    useStoreMock.mockReturnValue({
-      leagues: [createLeague()],
-      activeLeagueId: "league-1",
-      setScoringSettings: setScoringSettingsSpy,
-      updateBattingScoring: updateBattingScoringSpy,
-      updatePitchingScoring: updatePitchingScoringSpy,
-      setLeagueSettings: setLeagueSettingsSpy,
-      projectionGroups: [
-        {
-          id: "group-1",
-          name: "Main Group",
-          createdAt: "2026-02-11T00:00:00.000Z",
-          batters: [],
-          pitchers: [],
-          twoWayPlayers: [],
-          batterIdSource: "MLBAMID",
-          pitcherIdSource: "MLBAMID",
-        },
-      ],
-      activeProjectionGroupId: "group-1",
-      mergeTwoWayRankings: true,
-      setMergeTwoWayRankings: setMergeTwoWayRankingsSpy,
-    });
+    canEditDraftSetupSpy.mockReturnValue(true);
+    useStoreMock.mockReturnValue(createStoreState());
   });
 
   afterEach(() => {
@@ -217,12 +231,379 @@ describe("settings sections", () => {
     const removeTeamLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
     expect(removeTeamLeagueSettings.teamNames.length).toBe(11);
 
-    const [teamNameInput] = screen.getAllByRole("textbox");
+    const teamNameInput = screen.getByLabelText("Team 1 name");
     await user.clear(teamNameInput);
     await user.keyboard("My Team");
     await user.tab();
 
     const renameLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
     expect(renameLeagueSettings.teamNames[0]).toBe("My Team");
+  });
+
+  it("locks risky draft setup edits once picks or keepers exist", async () => {
+    const user = userEvent.setup();
+    canEditDraftSetupSpy.mockReturnValue(false);
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      leagues: [
+        {
+          ...createLeague(),
+          draftState: {
+            format: "snake",
+            draftedByTeam: { "player-1": "0" },
+            keeperByTeam: {},
+            keeperSlotByPlayer: {},
+            pickIndex: 1,
+            history: [],
+          },
+        },
+      ],
+      canEditDraftSetup: canEditDraftSetupSpy,
+    });
+
+    render(<DraftSection />);
+
+    expect(screen.getByText(/team order, add\/remove, and league size are locked/i)).toBeVisible();
+    expect(screen.getByLabelText("League size")).toBeDisabled();
+
+    await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
+    expect(setLeagueSettingsSpy).not.toHaveBeenCalled();
+  });
+
+  it("assigns and removes keepers from the draft section", async () => {
+    const user = userEvent.setup();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            {
+              _type: "batter",
+              _id: "keeper-1",
+              Name: "Mookie Betts",
+              Team: "LAD",
+              PlayerId: "9",
+              MLBAMID: "9",
+              G: 0,
+              PA: 0,
+              AB: 0,
+              H: 0,
+              "1B": 0,
+              "2B": 0,
+              "3B": 0,
+              HR: 0,
+              R: 0,
+              RBI: 0,
+              BB: 0,
+              IBB: 0,
+              SO: 0,
+              HBP: 0,
+              SF: 0,
+              SH: 0,
+              GDP: 0,
+              SB: 0,
+              CS: 0,
+              AVG: 0.25,
+              OBP: 0.3,
+              SLG: 0.4,
+              OPS: 0.7,
+              ISO: 0.15,
+              BABIP: 0.3,
+              "wRC+": 100,
+              WAR: 0,
+              ADP: null,
+            },
+            {
+              _type: "batter",
+              _id: "batter-1",
+              Name: "Mike Trout",
+              Team: "LAA",
+              PlayerId: "1",
+              MLBAMID: "1",
+              G: 0,
+              PA: 0,
+              AB: 0,
+              H: 0,
+              "1B": 0,
+              "2B": 0,
+              "3B": 0,
+              HR: 0,
+              R: 0,
+              RBI: 0,
+              BB: 0,
+              IBB: 0,
+              SO: 0,
+              HBP: 0,
+              SF: 0,
+              SH: 0,
+              GDP: 0,
+              SB: 0,
+              CS: 0,
+              AVG: 0.25,
+              OBP: 0.3,
+              SLG: 0.4,
+              OPS: 0.7,
+              ISO: 0.15,
+              BABIP: 0.3,
+              "wRC+": 100,
+              WAR: 0,
+              ADP: null,
+            },
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+      leagues: [
+        {
+          ...createLeague(),
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0" },
+            keeperSlotByPlayer: { "keeper-1": 0 },
+            pickIndex: 0,
+            history: [],
+          },
+        },
+      ],
+    });
+
+    render(<DraftSection />);
+
+    await user.type(screen.getByLabelText("Search keepers for Team 1"), "mike");
+    await user.click(screen.getByRole("button", { name: /Mike Trout/i }));
+    expect(setKeeperForTeamSpy).toHaveBeenCalledWith("batter-1", 0, 2);
+    expect(screen.getAllByText("Pick 24").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "Remove keeper Mookie Betts" }));
+    expect(removeKeeperSpy).toHaveBeenCalledWith("keeper-1");
+  });
+
+  it("matches accented keeper names when the search omits accents", async () => {
+    const user = userEvent.setup();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            {
+              _type: "batter",
+              _id: "accented-1",
+              Name: "José Berríos",
+              Team: "TOR",
+              PlayerId: "11",
+              MLBAMID: "11",
+              G: 0,
+              PA: 0,
+              AB: 0,
+              H: 0,
+              "1B": 0,
+              "2B": 0,
+              "3B": 0,
+              HR: 0,
+              R: 0,
+              RBI: 0,
+              BB: 0,
+              IBB: 0,
+              SO: 0,
+              HBP: 0,
+              SF: 0,
+              SH: 0,
+              GDP: 0,
+              SB: 0,
+              CS: 0,
+              AVG: 0.25,
+              OBP: 0.3,
+              SLG: 0.4,
+              OPS: 0.7,
+              ISO: 0.15,
+              BABIP: 0.3,
+              "wRC+": 100,
+              WAR: 0,
+              ADP: null,
+            },
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+    });
+
+    render(<DraftSection />);
+
+    await user.type(screen.getByLabelText("Search keepers for Team 1"), "jose berrios");
+    expect(screen.getByRole("button", { name: /José Berríos/i })).toBeVisible();
+  });
+
+  it("sorts keeper search results by projected points", async () => {
+    const user = userEvent.setup();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      projectionGroups: [
+        {
+          id: "group-1",
+          name: "Main Group",
+          createdAt: "2026-02-11T00:00:00.000Z",
+          batters: [
+            {
+              _type: "batter",
+              _id: "batter-low",
+              Name: "Aaron Contact",
+              Team: "SEA",
+              PlayerId: "21",
+              MLBAMID: "21",
+              G: 0,
+              PA: 0,
+              AB: 0,
+              H: 0,
+              "1B": 5,
+              "2B": 0,
+              "3B": 0,
+              HR: 0,
+              R: 0,
+              RBI: 0,
+              BB: 0,
+              IBB: 0,
+              SO: 0,
+              HBP: 0,
+              SF: 0,
+              SH: 0,
+              GDP: 0,
+              SB: 0,
+              CS: 0,
+              AVG: 0.25,
+              OBP: 0.3,
+              SLG: 0.4,
+              OPS: 0.7,
+              ISO: 0.15,
+              BABIP: 0.3,
+              "wRC+": 100,
+              WAR: 0,
+              ADP: null,
+            },
+            {
+              _type: "batter",
+              _id: "batter-high",
+              Name: "Aaron Power",
+              Team: "ATL",
+              PlayerId: "22",
+              MLBAMID: "22",
+              G: 0,
+              PA: 0,
+              AB: 0,
+              H: 0,
+              "1B": 0,
+              "2B": 0,
+              "3B": 0,
+              HR: 10,
+              R: 0,
+              RBI: 0,
+              BB: 0,
+              IBB: 0,
+              SO: 0,
+              HBP: 0,
+              SF: 0,
+              SH: 0,
+              GDP: 0,
+              SB: 0,
+              CS: 0,
+              AVG: 0.25,
+              OBP: 0.3,
+              SLG: 0.4,
+              OPS: 0.7,
+              ISO: 0.15,
+              BABIP: 0.3,
+              "wRC+": 100,
+              WAR: 0,
+              ADP: null,
+            },
+          ],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+        },
+      ],
+    });
+
+    render(<DraftSection />);
+
+    await user.type(screen.getByLabelText("Search keepers for Team 1"), "aaron");
+
+    const resultButtons = screen.getAllByRole("button", { name: /Aaron/i });
+    expect(resultButtons[0]).toHaveTextContent("Aaron Power");
+    expect(resultButtons[1]).toHaveTextContent("Aaron Contact");
+  });
+
+  it("resets the draft from the draft settings view", async () => {
+    const user = userEvent.setup();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      leagues: [
+        {
+          ...createLeague(),
+          draftState: {
+            format: "snake",
+            draftedByTeam: { "player-1": "0" },
+            keeperByTeam: { "keeper-1": "0" },
+            keeperSlotByPlayer: { "keeper-1": 0 },
+            pickIndex: 1,
+            history: [
+              {
+                playerId: "player-1",
+                teamIndex: 0,
+                slotIndex: 1,
+                overallPick: 2,
+                round: 1,
+                pickInRound: 2,
+                timestamp: 1,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<DraftSection />);
+
+    await user.click(screen.getByRole("button", { name: "Reset Draft" }));
+    expect(screen.getByRole("dialog")).toBeVisible();
+
+    await user.click(screen.getAllByRole("button", { name: "Reset Draft" })[1]);
+    expect(resetDraftSpy).toHaveBeenCalled();
+  });
+
+  it("disables reset draft when no manual picks exist", () => {
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      leagues: [
+        {
+          ...createLeague(),
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "0" },
+            keeperSlotByPlayer: { "keeper-1": 0 },
+            pickIndex: 1,
+            history: [],
+          },
+        },
+      ],
+    });
+
+    render(<DraftSection />);
+
+    expect(screen.getByRole("button", { name: "Reset Draft" })).toBeDisabled();
   });
 });

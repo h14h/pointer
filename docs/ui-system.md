@@ -9,6 +9,7 @@
 - `src/components/ui/PageContainer.tsx`
 - `src/components/ui/Panel.tsx`
 - `src/components/ui/SectionHeader.tsx`
+- `src/components/ui/sonner.tsx`
 - `src/components/ui/Toggle.tsx`
 - `src/components/ui/cx.ts`
 
@@ -46,6 +47,7 @@ The initial primitive set is intentionally small:
 - **`FieldLabel`** standardizes uppercase meta labels used above fields and grouped controls.
 - **`Panel`** provides a reusable container for muted or bordered surfaces without forcing full card abstraction.
 - **`DialogShell`** centralizes destructive-confirmation modal structure and close affordances.
+- **`Toaster`** mounts the shared Sonner toast surface used for lightweight confirmation and undo flows, and follows the app's system light/dark mode behavior.
 
 These primitives are meant to carry the repeated visual recipes. Feature components still own structure and behavior.
 
@@ -83,6 +85,19 @@ Tailwind utilities remain the main composition tool. The system does not try to 
 - If a control needs custom behavior but should look standard, compose the shared primitive around that behavior rather than restyling from scratch.
 - Do not change radius, letter-spacing, type scale, or border strength in feature code unless the work explicitly calls for a visual redesign.
 - If a one-off visual treatment survives more than one use, extract it.
+
+## Alignment Rule For Variable-Length Text
+
+When a row mixes text with unpredictable length and small status or metadata elements, do not let the metadata float based on text length.
+
+- Treat the row as two zones: a flexible left content block and a right-aligned status/actions block.
+- Keep player names, labels, and other truncating text in the left block with `min-w-0` and truncation as needed.
+- Push badges, short status tokens, counts, and controls into a trailing cluster using `ml-auto` and `shrink-0` so their horizontal position stays stable across rows.
+- If a textual value needs to align numerically across rows, reserve width explicitly with `min-w-*` and use `font-mono tabular-nums`.
+- If auxiliary text belongs conceptually with the primary label, keep it in the same block, but still reserve width or separate zones so neighboring controls do not drift.
+- Prefer consistent columns or anchored edge alignment over visually centering each row independently.
+
+This rule applies throughout the app: leaderboard status badges, keeper rows, draft context labels, and any future compact row UI with mixed text lengths.
 
 ## Extraction Threshold
 

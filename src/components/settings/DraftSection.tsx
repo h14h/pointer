@@ -1,19 +1,77 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { NumericInput } from "@/components/NumericInput";
+import { Button } from "@/components/ui/Button";
 import { normalizeLeagueSettingsDraft } from "@/components/settings/constants";
+import { calculatePlayerPoints } from "@/lib/calculatePoints";
+import { getDraftPickContext, getPickIndexForTeamRound } from "@/lib/draft";
+import { matchesPlayerSearch } from "@/lib/playerSearch";
 import { useStore } from "@/store";
+import type { Player, ProjectionGroup } from "@/types";
 
 type DropEdge = { index: number; side: "before" | "after" } | null;
 
+function getActiveGroup(
+  projectionGroups: ProjectionGroup[],
+  activeProjectionGroupId: string | null
+) {
+  return (
+    projectionGroups.find((group) => group.id === activeProjectionGroupId) ??
+    projectionGroups[0] ??
+    null
+  );
+}
+
+function getAllPlayers(activeGroup: ProjectionGroup | null): Player[] {
+  if (!activeGroup) return [];
+  return [...activeGroup.batters, ...activeGroup.pitchers, ...activeGroup.twoWayPlayers];
+}
+
 export function DraftSection() {
-  const { leagues, activeLeagueId, setLeagueSettings } = useStore();
+  const {
+    leagues,
+    activeLeagueId,
+    setLeagueSettings,
+    projectionGroups,
+    activeProjectionGroupId,
+    setKeeperForTeam,
+    removeKeeper,
+    resetDraft,
+    canEditDraftSetup,
+  } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
   const leagueSettings = activeLeague?.leagueSettings;
+  const draftState = activeLeague?.draftState;
+  const activeGroup = getActiveGroup(projectionGroups, activeProjectionGroupId);
+  const allPlayers = useMemo(() => getAllPlayers(activeGroup), [activeGroup]);
+  const keeperSlotByPlayer = draftState?.keeperSlotByPlayer ?? {};
+  const hasInProgressDraft =
+    Object.keys(draftState?.draftedByTeam ?? {}).filter(
+      (playerId) => draftState?.keeperByTeam?.[playerId] === undefined
+    ).length > 0;
+  const setupUnlocked =
+    typeof canEditDraftSetup === "function"
+      ? canEditDraftSetup()
+      : Object.keys(draftState?.draftedByTeam ?? {}).length === 0 &&
+        Object.keys(draftState?.keeperByTeam ?? {}).length === 0;
+
   const teamNameDraftByIndexRef = useRef<Record<number, string>>({});
   const [draggingTeamIndex, setDraggingTeamIndex] = useState<number | null>(null);
   const [dropEdge, setDropEdge] = useState<DropEdge>(null);
+  const [keeperSearchByTeam, setKeeperSearchByTeam] = useState<Record<number, string>>({});
+  const [keeperRoundDraftByTeam, setKeeperRoundDraftByTeam] = useState<Record<number, number>>({});
+  const [expandedTeamIndex, setExpandedTeamIndex] = useState<number | null>(0);
+  const [isResetOpen, setIsResetOpen] = useState(false);
+
+  const keeperEntries = Object.entries(draftState.keeperByTeam)
+    .map(([playerId, teamIndex]) => ({
+      player: allPlayers.find((candidate) => candidate._id === playerId) ?? null,
+      playerId,
+      teamIndex: Number(teamIndex),
+      slotIndex: keeperSlotByPlayer[playerId] ?? null,
+    }))
+    .filter((entry) => entry.player !== null);
 
   const commitLeagueSettings = (nextNames: string[]) => {
     const next = normalizeLeagueSettingsDraft({
@@ -25,6 +83,7 @@ export function DraftSection() {
   };
 
   const handleLeagueSizeCommit = (value: number) => {
+    if (!setupUnlocked) return;
     const clampedSize = Math.min(20, Math.max(2, Math.round(value || 0)));
     const nextNames = [...leagueSettings.teamNames];
     if (nextNames.length < clampedSize) {
@@ -34,29 +93,36 @@ export function DraftSection() {
     } else if (nextNames.length > clampedSize) {
       nextNames.length = clampedSize;
     }
-
     commitLeagueSettings(nextNames);
   };
 
   const handleAddTeamBelow = (index: number) => {
-    if (leagueSettings.teamNames.length >= 20) return;
+    if (!setupUnlocked || leagueSettings.teamNames.length >= 20) return;
     const nextNames = [...leagueSettings.teamNames];
     nextNames.splice(index + 1, 0, `Team ${nextNames.length + 1}`);
     commitLeagueSettings(nextNames);
+    setExpandedTeamIndex(index + 1);
   };
 
   const handleRemoveTeamAt = (index: number) => {
-    if (leagueSettings.teamNames.length <= 2) return;
+    if (!setupUnlocked || leagueSettings.teamNames.length <= 2) return;
     const nextNames = leagueSettings.teamNames.filter((_, teamIndex) => teamIndex !== index);
     commitLeagueSettings(nextNames);
+    setExpandedTeamIndex((current) => {
+      if (current === null) return null;
+      if (current === index) return Math.max(0, index - 1);
+      if (current > index) return current - 1;
+      return current;
+    });
   };
 
   const handleMoveTeamToIndex = (from: number, to: number) => {
-    if (from === to) return;
+    if (!setupUnlocked || from === to) return;
     const nextNames = [...leagueSettings.teamNames];
     const [moved] = nextNames.splice(from, 1);
     nextNames.splice(to, 0, moved);
     commitLeagueSettings(nextNames);
+    setExpandedTeamIndex(to);
   };
 
   const finalizeTeamName = (index: number, value: string) => {
@@ -66,6 +132,7 @@ export function DraftSection() {
   };
 
   const computeDropTarget = (event: React.DragEvent, index: number) => {
+    if (!setupUnlocked) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const midpoint = rect.top + rect.height / 2;
     const side = event.clientY < midpoint ? "before" : "after";
@@ -75,24 +142,85 @@ export function DraftSection() {
   const resolveInsertIndex = (): number | null => {
     if (draggingTeamIndex === null || dropEdge === null) return null;
     const target = dropEdge.side === "before" ? dropEdge.index : dropEdge.index + 1;
-    // If dragging from before the target, account for the removal shifting indices
     if (draggingTeamIndex < target) return target - 1;
     if (draggingTeamIndex > target) return target;
-    return null; // same position, no-op
+    return null;
   };
 
   const lineVariant = (index: number, side: "before" | "after"): "active" | "noop" | null => {
     if (draggingTeamIndex === null || dropEdge === null) return null;
     if (dropEdge.side !== side || dropEdge.index !== index) return null;
-    // Determine if this edge is a no-op (adjacent to the dragged item)
-    if (side === "before" && (index === draggingTeamIndex || index === draggingTeamIndex + 1)) return "noop";
-    if (side === "after" && (index === draggingTeamIndex || index === draggingTeamIndex - 1)) return "noop";
+    if (side === "before" && (index === draggingTeamIndex || index === draggingTeamIndex + 1)) {
+      return "noop";
+    }
+    if (side === "after" && (index === draggingTeamIndex || index === draggingTeamIndex - 1)) {
+      return "noop";
+    }
     return "active";
+  };
+
+  const getKeeperCandidatesForTeam = (teamIndex: number) => {
+    const search = keeperSearchByTeam[teamIndex] ?? "";
+    if (search.trim().length === 0) return [];
+    return allPlayers
+      .filter((player) => draftState.draftedByTeam[player._id] === undefined)
+      .filter((player) => draftState.keeperByTeam[player._id] === undefined)
+      .filter((player) => matchesPlayerSearch(player, search))
+      .sort((left, right) => {
+        const pointDelta =
+          calculatePlayerPoints(right, activeLeague.scoringSettings) -
+          calculatePlayerPoints(left, activeLeague.scoringSettings);
+        if (pointDelta !== 0) return pointDelta;
+        return left.Name.localeCompare(right.Name);
+      })
+      .slice(0, 6);
+  };
+
+  const getNextAvailableKeeperRound = (teamIndex: number) => {
+    let round = 1;
+    while (round < 200) {
+      const pickIndex = getPickIndexForTeamRound(
+        leagueSettings.leagueSize,
+        round,
+        teamIndex,
+        draftState.format
+      );
+      const isReserved = Object.entries(keeperSlotByPlayer).some(
+        ([playerId, slotIndex]) =>
+          draftState.keeperByTeam[playerId] !== undefined && slotIndex === pickIndex
+      );
+      if (
+        pickIndex !== null &&
+        !isReserved &&
+        pickIndex >= draftState.pickIndex
+      ) {
+        return round;
+      }
+      round += 1;
+    }
+    return 1;
+  };
+
+  const getKeeperRoundValue = (entry: { teamIndex: number; slotIndex: number | null }) => {
+    if (entry.slotIndex === null) return getNextAvailableKeeperRound(entry.teamIndex);
+    return getDraftPickContext(leagueSettings.leagueSize, entry.slotIndex, draftState.format).round;
+  };
+
+  const getKeeperCostLabel = (teamIndex: number, round: number | null) => {
+    if (round === null) return "No slot assigned";
+    const pickIndex = getPickIndexForTeamRound(
+      leagueSettings.leagueSize,
+      round,
+      teamIndex,
+      draftState.format
+    );
+    if (pickIndex === null) return "Invalid slot";
+    const context = getDraftPickContext(leagueSettings.leagueSize, pickIndex, draftState.format);
+    return `Pick ${context.overallPick}`;
   };
 
   return (
     <div className="font-sans">
-      {/* Section header */}
       <div className="mb-8">
         <h2
           className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
@@ -101,11 +229,17 @@ export function DraftSection() {
           Draft
         </h2>
         <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
-          Configure league size and team draft order.
+          Manage draft order and keepers in one place, team by team.
         </p>
       </div>
 
-      {/* League size */}
+      {!setupUnlocked ? (
+        <div className="mb-6 rounded-lg border border-[#dc2626]/20 bg-[#dc2626]/[0.04] p-4 text-sm text-[#111111]/70 dark:border-[#ef4444]/20 dark:bg-[#ef4444]/[0.05] dark:text-[#e5e5e5]/65">
+          Team order, add/remove, and league size are locked because draft activity already exists.
+          Team names and keeper assignments can still be edited on the fly.
+        </div>
+      ) : null}
+
       <div className="mb-8 rounded-lg bg-[#111111]/[0.02] p-4 dark:bg-[#e5e5e5]/[0.03]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -113,7 +247,7 @@ export function DraftSection() {
               League Size
             </div>
             <p className="mt-0.5 text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38">
-              Shrinking removes trailing teams.
+              Structural team changes lock once draft activity begins.
             </p>
           </div>
           <NumericInput
@@ -125,122 +259,148 @@ export function DraftSection() {
             value={leagueSettings.leagueSize}
             onCommit={handleLeagueSizeCommit}
             inputClassName="w-14"
+            disabled={!setupUnlocked}
           />
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button
+            variant="destructiveGhost"
+            size="sm"
+            onClick={() => setIsResetOpen(true)}
+            disabled={!hasInProgressDraft}
+          >
+            Reset Draft
+          </Button>
         </div>
       </div>
 
-      {/* Team list header */}
       <div className="mb-3 flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
-          Teams ({leagueSettings.teamNames.length})
+          Team Setup And Keepers ({leagueSettings.teamNames.length})
         </span>
         <span className="text-[10px] text-[#111111]/45 dark:text-[#e5e5e5]/38">
-          Drag to reorder
+          {setupUnlocked ? "Drag to reorder teams" : "Team structure locked, keeper edits still available"}
         </span>
       </div>
 
-      {/* Team list */}
-      <div className="grid">
-        {leagueSettings.teamNames.map((name, index) => (
-          <div
-            key={`team-${index}`}
-            className="relative border-b border-[#111111]/[0.10] last:border-0 dark:border-[#e5e5e5]/[0.08]"
-            onDragOver={(event) => {
-              event.preventDefault();
-              computeDropTarget(event, index);
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              const insertAt = resolveInsertIndex();
-              if (draggingTeamIndex !== null && insertAt !== null) {
-                handleMoveTeamToIndex(draggingTeamIndex, insertAt);
-              }
-              setDraggingTeamIndex(null);
-              setDropEdge(null);
-            }}
-          >
-            {/* Drop indicator line — before */}
-            {lineVariant(index, "before") !== null && (
-              <div className="absolute left-6 right-0 top-0 z-10 flex -translate-y-1/2 items-center sm:left-7">
-                <div className={`h-2 w-2 shrink-0 rounded-full ${
-                  lineVariant(index, "before") === "active"
-                    ? "bg-[#dc2626] dark:bg-[#ef4444]"
-                    : "bg-[#111111]/35 dark:bg-[#e5e5e5]/30"
-                }`} />
-                <div className={`h-[2px] flex-1 ${
-                  lineVariant(index, "before") === "active"
-                    ? "bg-[#dc2626] dark:bg-[#ef4444]"
-                    : "bg-[#111111]/35 dark:bg-[#e5e5e5]/30"
-                }`} />
-              </div>
-            )}
+      <div className="grid gap-3">
+        {leagueSettings.teamNames.map((name, index) => {
+          const teamKeepers = keeperEntries
+            .filter((entry) => entry.teamIndex === index)
+            .sort((left, right) => getKeeperRoundValue(left) - getKeeperRoundValue(right));
+          const keeperCandidates = expandedTeamIndex === index ? getKeeperCandidatesForTeam(index) : [];
+          const keeperSearch = keeperSearchByTeam[index] ?? "";
 
+          return (
             <div
-              className={`grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-2 py-1 sm:gap-3 ${
-                draggingTeamIndex === index ? "opacity-30" : ""
-              }`}
+              key={`team-${index}`}
+              className="relative rounded-xl border border-[#111111]/10 bg-white/90 p-4 dark:border-[#333333] dark:bg-[#1a1a1a]/85"
+              onDragOver={(event) => {
+                event.preventDefault();
+                computeDropTarget(event, index);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const insertAt = resolveInsertIndex();
+                if (draggingTeamIndex !== null && insertAt !== null) {
+                  handleMoveTeamToIndex(draggingTeamIndex, insertAt);
+                }
+                setDraggingTeamIndex(null);
+                setDropEdge(null);
+              }}
             >
-              {/* Order number — static, outside the draggable area */}
-              <span className="text-center text-xs font-bold tabular-nums text-[#111111]/45 dark:text-[#e5e5e5]/38">
-                {index + 1}
-              </span>
+              {lineVariant(index, "before") !== null && (
+                <div className="absolute left-5 right-5 top-0 z-10 flex -translate-y-1/2 items-center">
+                  <div className={`h-2 w-2 shrink-0 rounded-full ${
+                    lineVariant(index, "before") === "active"
+                      ? "bg-[#dc2626] dark:bg-[#ef4444]"
+                      : "bg-[#111111]/35 dark:bg-[#e5e5e5]/30"
+                  }`} />
+                  <div className={`h-[2px] flex-1 ${
+                    lineVariant(index, "before") === "active"
+                      ? "bg-[#dc2626] dark:bg-[#ef4444]"
+                      : "bg-[#111111]/35 dark:bg-[#e5e5e5]/30"
+                  }`} />
+                </div>
+              )}
 
-              {/* Draggable row */}
-              <div
-                draggable
-                onDragStart={(event) => {
-                  event.dataTransfer.effectAllowed = "move";
-                  setDraggingTeamIndex(index);
-                }}
-                onDragEnd={() => {
-                  setDraggingTeamIndex(null);
-                  setDropEdge(null);
-                }}
-                className="group flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-[#111111]/[0.02] sm:gap-3 sm:px-3 dark:hover:bg-[#e5e5e5]/[0.02]"
-              >
-                {/* Drag handle */}
-                <span className="flex shrink-0 cursor-grab touch-none select-none rounded p-1.5 text-[#111111]/45 transition-colors hover:bg-[#111111]/[0.05] hover:text-[#111111]/60 active:cursor-grabbing dark:text-[#e5e5e5]/38 dark:hover:bg-[#e5e5e5]/[0.05] dark:hover:text-[#e5e5e5]/55">
-                  <svg viewBox="0 0 16 10" className="h-2.5 w-4" fill="currentColor">
-                    <circle cx="2" cy="1" r="1.25" />
-                    <circle cx="8" cy="1" r="1.25" />
-                    <circle cx="14" cy="1" r="1.25" />
-                    <circle cx="2" cy="5" r="1.25" />
-                    <circle cx="8" cy="5" r="1.25" />
-                    <circle cx="14" cy="5" r="1.25" />
-                    <circle cx="2" cy="9" r="1.25" />
-                    <circle cx="8" cy="9" r="1.25" />
-                    <circle cx="14" cy="9" r="1.25" />
-                  </svg>
-                </span>
+              <div className="flex flex-wrap items-start gap-3">
+                <div
+                  draggable={setupUnlocked}
+                  onDragStart={(event) => {
+                    if (!setupUnlocked) return;
+                    event.dataTransfer.effectAllowed = "move";
+                    setDraggingTeamIndex(index);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingTeamIndex(null);
+                    setDropEdge(null);
+                  }}
+                  className={`flex items-center gap-2 rounded-lg px-2 py-1 ${
+                    setupUnlocked ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed"
+                  } ${draggingTeamIndex === index ? "opacity-30" : ""}`}
+                >
+                  <span className="min-w-7 text-center text-xs font-bold tabular-nums text-[#111111]/45 dark:text-[#e5e5e5]/38">
+                    {index + 1}
+                  </span>
+                  <span className={`flex shrink-0 select-none rounded p-1.5 ${
+                    setupUnlocked
+                      ? "text-[#111111]/45 transition-colors hover:bg-[#111111]/[0.05] hover:text-[#111111]/60 dark:text-[#e5e5e5]/38 dark:hover:bg-[#e5e5e5]/[0.05] dark:hover:text-[#e5e5e5]/55"
+                      : "text-[#111111]/25 dark:text-[#e5e5e5]/20"
+                  }`}>
+                    <svg viewBox="0 0 16 10" className="h-2.5 w-4" fill="currentColor">
+                      <circle cx="2" cy="1" r="1.25" />
+                      <circle cx="8" cy="1" r="1.25" />
+                      <circle cx="14" cy="1" r="1.25" />
+                      <circle cx="2" cy="5" r="1.25" />
+                      <circle cx="8" cy="5" r="1.25" />
+                      <circle cx="14" cy="5" r="1.25" />
+                      <circle cx="2" cy="9" r="1.25" />
+                      <circle cx="8" cy="9" r="1.25" />
+                      <circle cx="14" cy="9" r="1.25" />
+                    </svg>
+                  </span>
+                </div>
 
-                {/* Name input */}
-                <input
-                  type="text"
-                  defaultValue={name}
-                  onChange={(event) => {
-                    teamNameDraftByIndexRef.current[index] = event.target.value;
-                  }}
-                  onBlur={(event) => {
-                    const value = teamNameDraftByIndexRef.current[index] ?? event.target.value;
-                    finalizeTeamName(index, value);
-                    delete teamNameDraftByIndexRef.current[index];
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.currentTarget.blur();
-                    }
-                  }}
-                  className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm text-[#111111] transition-colors focus:border-[#111111]/15 focus:bg-white focus:outline-none dark:text-[#e5e5e5] dark:focus:border-[#333333] dark:focus:bg-[#1a1a1a]"
-                />
+                <div className="min-w-[12rem] flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      aria-label={`Team ${index + 1} name`}
+                      defaultValue={name}
+                      onChange={(event) => {
+                        teamNameDraftByIndexRef.current[index] = event.target.value;
+                      }}
+                      onBlur={(event) => {
+                        const value = teamNameDraftByIndexRef.current[index] ?? event.target.value;
+                        finalizeTeamName(index, value);
+                        delete teamNameDraftByIndexRef.current[index];
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-[#111111] transition-colors focus:border-[#111111]/15 focus:bg-white focus:outline-none dark:text-[#e5e5e5] dark:focus:border-[#333333] dark:focus:bg-[#111111]"
+                    />
+                  </div>
 
-                {/* Actions */}
-                <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38">
+                    <span>{teamKeepers.length} keepers</span>
+                    <span className="min-w-[4.5rem] font-mono tabular-nums">
+                      {getKeeperCostLabel(index, keeperRoundDraftByTeam[index] ?? getNextAvailableKeeperRound(index))}
+                    </span>
+                    {!setupUnlocked ? <span>Draft order locked</span> : null}
+                  </div>
+                </div>
+
+                <div className="ml-auto flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => handleAddTeamBelow(index)}
-                    disabled={leagueSettings.teamNames.length >= 20}
+                    disabled={!setupUnlocked || leagueSettings.teamNames.length >= 20}
                     aria-label={`Add team below ${name}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#111111]/45 transition-colors hover:bg-[#111111]/[0.05] hover:text-[#111111]/65 disabled:cursor-not-allowed disabled:opacity-30 dark:text-[#e5e5e5]/38 dark:hover:bg-[#e5e5e5]/[0.05] dark:hover:text-[#e5e5e5]/55"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#111111]/45 transition-colors hover:bg-[#111111]/[0.05] hover:text-[#111111]/65 disabled:cursor-not-allowed disabled:opacity-30 dark:text-[#e5e5e5]/38 dark:hover:bg-[#e5e5e5]/[0.05] dark:hover:text-[#e5e5e5]/55"
                   >
                     <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
                       <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" />
@@ -249,9 +409,9 @@ export function DraftSection() {
                   <button
                     type="button"
                     onClick={() => handleRemoveTeamAt(index)}
-                    disabled={leagueSettings.teamNames.length <= 2}
+                    disabled={!setupUnlocked || leagueSettings.teamNames.length <= 2}
                     aria-label={`Remove ${name}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#dc2626]/60 transition-colors hover:bg-[#dc2626]/[0.06] hover:text-[#dc2626] disabled:cursor-not-allowed disabled:opacity-30 dark:text-[#ef4444]/50 dark:hover:bg-[#ef4444]/[0.06] dark:hover:text-[#ef4444]"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#dc2626]/60 transition-colors hover:bg-[#dc2626]/[0.06] hover:text-[#dc2626] disabled:cursor-not-allowed disabled:opacity-30 dark:text-[#ef4444]/50 dark:hover:bg-[#ef4444]/[0.06] dark:hover:text-[#ef4444]"
                   >
                     <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
                       <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
@@ -259,26 +419,233 @@ export function DraftSection() {
                   </button>
                 </div>
               </div>
-            </div>
 
-            {/* Drop indicator line — after */}
-            {lineVariant(index, "after") !== null && (
-              <div className="absolute bottom-0 left-6 right-0 z-10 flex translate-y-1/2 items-center sm:left-7">
-                <div className={`h-2 w-2 shrink-0 rounded-full ${
-                  lineVariant(index, "after") === "active"
-                    ? "bg-[#dc2626] dark:bg-[#ef4444]"
-                    : "bg-[#111111]/35 dark:bg-[#e5e5e5]/30"
-                }`} />
-                <div className={`h-[2px] flex-1 ${
-                  lineVariant(index, "after") === "active"
-                    ? "bg-[#dc2626] dark:bg-[#ef4444]"
-                    : "bg-[#111111]/35 dark:bg-[#e5e5e5]/30"
-                }`} />
+              <div className="mt-4 rounded-lg bg-[#111111]/[0.03] p-3 dark:bg-[#e5e5e5]/[0.04]">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
+                      Keepers
+                    </div>
+                    <p className="mt-0.5 text-xs text-[#111111]/40 dark:text-[#e5e5e5]/34">
+                      One row per keeper for quick edits.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedTeamIndex((current) => (current === index ? null : index))
+                    }
+                    aria-label={`${expandedTeamIndex === index ? "Hide" : "Add"} keeper for ${name}`}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#111111]/15 text-[#111111]/55 transition-colors hover:bg-white hover:text-[#111111] dark:border-[#333333] dark:text-[#e5e5e5]/50 dark:hover:bg-[#111111] dark:hover:text-[#e5e5e5]"
+                  >
+                    {expandedTeamIndex === index ? (
+                      <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                        <path d="M3 8a.75.75 0 0 1 .75-.75h8.5a.75.75 0 0 1 0 1.5h-8.5A.75.75 0 0 1 3 8Z" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                        <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                <div className="grid gap-2">
+                  {teamKeepers.length > 0 ? (
+                    teamKeepers.map((entry) => (
+                      <div
+                        key={entry.playerId}
+                        className="flex min-w-0 w-full items-center gap-3 rounded-xl border border-[#dc2626]/20 bg-[#dc2626]/[0.05] px-3 py-2 text-xs text-[#111111]/75 dark:border-[#ef4444]/20 dark:bg-[#ef4444]/[0.08] dark:text-[#e5e5e5]/70"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-semibold">{entry.player?.Name}</div>
+                          <div className="flex min-w-0 items-center gap-2 text-[#111111]/45 dark:text-[#e5e5e5]/38">
+                            <span className="truncate">{entry.player?.Team}</span>
+                            <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-[#dc2626]/80 dark:text-[#ef4444]/80 font-mono tabular-nums">
+                              {entry.slotIndex === null
+                                ? "No slot assigned"
+                                : getKeeperCostLabel(entry.teamIndex, getKeeperRoundValue(entry))}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-auto flex shrink-0 items-center justify-end">
+                          <NumericInput
+                            aria-label={`Keeper round for ${entry.player?.Name ?? entry.playerId}`}
+                            value={getKeeperRoundValue(entry)}
+                            onCommit={(nextRound) =>
+                              setKeeperForTeam(entry.playerId, entry.teamIndex, nextRound)
+                            }
+                            min={1}
+                            increment={1}
+                            inputClassName="w-10 text-sm"
+                            className="gap-1"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeKeeper(entry.playerId)}
+                          aria-label={`Remove keeper ${entry.player?.Name ?? entry.playerId}`}
+                          className="text-[10px] font-bold uppercase tracking-widest text-[#dc2626] dark:text-[#ef4444]"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-sm text-[#111111]/40 dark:text-[#e5e5e5]/32">
+                      No keepers assigned.
+                    </span>
+                  )}
+                </div>
+
+                {expandedTeamIndex === index ? (
+                  <div className="mt-3 border-t border-[#111111]/10 pt-3 dark:border-[#333333]">
+                    {activeGroup ? (
+                      <>
+                        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                          <input
+                            type="text"
+                            aria-label={`Search keepers for ${name}`}
+                            value={keeperSearch}
+                            onChange={(event) =>
+                              setKeeperSearchByTeam((current) => ({
+                                ...current,
+                                [index]: event.target.value,
+                              }))
+                            }
+                            placeholder={`Search available players for ${name}`}
+                            className="w-full rounded-sm border border-[#111111]/20 bg-white px-3 py-2 text-sm text-[#111111] placeholder:text-[#111111]/35 focus:border-[#dc2626] focus:outline-none dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5] dark:placeholder:text-[#e5e5e5]/30 dark:focus:border-[#ef4444]"
+                          />
+                          <div className="flex items-center gap-3">
+                            <NumericInput
+                              aria-label={`Keeper round for ${name}`}
+                              value={keeperRoundDraftByTeam[index] ?? getNextAvailableKeeperRound(index)}
+                              onCommit={(nextRound) =>
+                                setKeeperRoundDraftByTeam((current) => ({
+                                  ...current,
+                                  [index]: nextRound,
+                                }))
+                              }
+                              min={1}
+                              increment={1}
+                              inputClassName="w-10 text-sm"
+                              className="gap-1"
+                            />
+                            <span className="min-w-[4.5rem] text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38 font-mono tabular-nums">
+                              {getKeeperCostLabel(
+                                index,
+                                keeperRoundDraftByTeam[index] ?? getNextAvailableKeeperRound(index)
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {keeperCandidates.map((player) => (
+                            <button
+                              key={player._id}
+                              type="button"
+                              onClick={() => {
+                                setKeeperForTeam(
+                                  player._id,
+                                  index,
+                                  keeperRoundDraftByTeam[index] ?? getNextAvailableKeeperRound(index)
+                                );
+                                setKeeperSearchByTeam((current) => ({
+                                  ...current,
+                                  [index]: "",
+                                }));
+                              }}
+                              className="inline-flex items-center gap-2 rounded-full border border-[#111111]/15 bg-white px-3 py-2 text-left text-xs text-[#111111]/75 transition-colors hover:border-[#dc2626]/30 hover:bg-[#dc2626]/[0.04] dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5]/70 dark:hover:border-[#ef4444]/30 dark:hover:bg-[#ef4444]/[0.05]"
+                            >
+                              <span className="font-semibold text-[#111111] dark:text-[#e5e5e5]">
+                                {player.Name}
+                              </span>
+                              <span className="text-[#111111]/45 dark:text-[#e5e5e5]/38">{player.Team}</span>
+                            </button>
+                          ))}
+                        </div>
+                        {keeperCandidates.length === 0 ? (
+                          <p className="mt-3 text-sm text-[#111111]/45 dark:text-[#e5e5e5]/38">
+                            {allPlayers.length === 0
+                              ? "Upload projections to assign keepers."
+                              : keeperSearch.trim().length === 0
+                                ? "Type to search for an available keeper."
+                                : "No available players match this search and cost slot."}
+                          </p>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className="text-sm text-[#111111]/45 dark:text-[#e5e5e5]/38">
+                        Upload or select a projection set before assigning keepers.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
               </div>
-            )}
-          </div>
-        ))}
+
+              {lineVariant(index, "after") !== null && (
+                <div className="absolute bottom-0 left-5 right-5 z-10 flex translate-y-1/2 items-center">
+                  <div className={`h-2 w-2 shrink-0 rounded-full ${
+                    lineVariant(index, "after") === "active"
+                      ? "bg-[#dc2626] dark:bg-[#ef4444]"
+                      : "bg-[#111111]/35 dark:bg-[#e5e5e5]/30"
+                  }`} />
+                  <div className={`h-[2px] flex-1 ${
+                    lineVariant(index, "after") === "active"
+                      ? "bg-[#dc2626] dark:bg-[#ef4444]"
+                      : "bg-[#111111]/35 dark:bg-[#e5e5e5]/30"
+                  }`} />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {isResetOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111111]/20 dark:bg-black/60">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-reset-draft-title"
+            className="relative mx-0 h-full w-full max-w-none rounded-none border-l-4 border-l-[#dc2626] border-y border-r border-y-[#111111]/10 border-r-[#111111]/10 bg-white p-8 dark:border-l-[#ef4444] dark:border-y-[#333333] dark:border-r-[#333333] dark:bg-[#111111] sm:mx-4 sm:h-auto sm:max-w-md sm:rounded-sm"
+          >
+            <button
+              type="button"
+              onClick={() => setIsResetOpen(false)}
+              aria-label="Close reset draft modal"
+              className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center text-[#111111]/50 transition-colors hover:text-[#111111] dark:text-[#e5e5e5]/40 dark:hover:text-[#e5e5e5]"
+            >
+              <span className="text-xl leading-none font-sans">&times;</span>
+            </button>
+            <h2
+              id="settings-reset-draft-title"
+              className="mb-3 pr-10 text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
+              style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+            >
+              Reset all draft picks?
+            </h2>
+            <p className="mb-8 text-sm leading-relaxed text-[#111111]/60 dark:text-[#e5e5e5]/50">
+              This clears only the in-progress drafted picks for the current league. Keeper assignments
+              stay in place, and projection data is unchanged.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setIsResetOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  resetDraft();
+                  setIsResetOpen(false);
+                }}
+              >
+                Reset Draft
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { calculatePAR } from "@/lib/calculatePAR";
 import { calculatePlayerPoints } from "@/lib/calculatePoints";
 import { POSITION_ORDER } from "@/lib/eligibility";
 import { isValidBaseballIp } from "@/lib/ipMath";
+import { buildPlayerSearchText, normalizePlayerSearchText } from "@/lib/playerSearch";
 import type {
   DraftState,
   LeagueSettings,
@@ -36,13 +37,6 @@ type FilterRankedPlayersArgs = {
   draftFilter: DraftFilter;
   search: string;
 };
-
-function normalizeLeaderboardSearchText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
 
 function getPlayersForView(
   activeGroup: ProjectionGroup | null,
@@ -191,6 +185,7 @@ export function buildBaseRankedPlayers({
       draftState.keeperByTeam[player._id] !== undefined
         ? Number(draftState.keeperByTeam[player._id])
         : undefined,
+    keeperSlotIndex: draftState.keeperSlotByPlayer?.[player._id] ?? null,
   }));
 }
 
@@ -204,7 +199,7 @@ export function buildFilterMetadata(rows: RankedPlayer[]): LeaderboardRow[] {
 
     return {
       ...row,
-      searchText: normalizeLeaderboardSearchText(`${row.player.Name} ${row.player.Team}`),
+      searchText: buildPlayerSearchText(row.player),
       positionTokens,
     };
   });
@@ -217,7 +212,7 @@ export function filterRankedPlayers({
   draftFilter,
   search,
 }: FilterRankedPlayersArgs): LeaderboardRow[] {
-  const trimmedSearch = normalizeLeaderboardSearchText(search.trim());
+  const trimmedSearch = normalizePlayerSearchText(search.trim());
 
   return rows.filter((row) => {
     if (selectedPositions.size > 0) {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Leaderboard } from "@/components/Leaderboard";
 import type {
@@ -14,12 +14,19 @@ import type {
 } from "@/types";
 
 const useStoreMock = vi.fn();
+const { toastSpy } = vi.hoisted(() => ({
+	toastSpy: vi.fn(),
+}));
 
 vi.mock("@/store", () => ({
 	useStore: (selector?: (state: ReturnType<typeof useStoreMock>) => unknown) => {
 		const state = useStoreMock();
 		return selector ? selector(state) : state;
 	},
+}));
+
+vi.mock("sonner", () => ({
+	toast: toastSpy,
 }));
 
 function createScoringSettings(): ScoringSettings {
@@ -95,9 +102,12 @@ function createLeagueSettings(): LeagueSettings {
 
 function createDraftState(): DraftState {
 	return {
+		format: "snake",
 		draftedByTeam: {},
 		keeperByTeam: {},
-		activeTeamIndex: 0,
+		keeperSlotByPlayer: {},
+		pickIndex: 0,
+		history: [],
 	};
 }
 
@@ -438,8 +448,8 @@ function createStoreState() {
 		activeProjectionGroupId: "group-1",
 		setActiveProjectionGroup: vi.fn(),
 		isDraftMode: false,
-		toggleDraftedForTeam: vi.fn(),
-		toggleKeeperForTeam: vi.fn(),
+		draftPlayer: vi.fn(),
+		undoLastDraftPick: vi.fn(),
 		mergeTwoWayRankings: true,
 		leagues: [league],
 		activeLeagueId: league.id,
@@ -454,6 +464,7 @@ describe("Leaderboard", () => {
 
 	afterEach(() => {
 		cleanup();
+		vi.useRealTimers();
 	});
 
 	it("keeps rank numbers from the pre-search sorted leaderboard", async () => {
@@ -503,14 +514,12 @@ describe("Leaderboard", () => {
 		expect(screen.queryByRole("columnheader", { name: "AVG" })).toBeNull();
 	});
 
-	it("preserves draft interactions after the refactor", async () => {
+	it("drafts the current player with a single click in draft mode", async () => {
 		const user = userEvent.setup();
-		const toggleDraftedForTeam = vi.fn();
-		const toggleKeeperForTeam = vi.fn();
+		const draftPlayer = vi.fn();
 		mockStore({
 			isDraftMode: true,
-			toggleDraftedForTeam,
-			toggleKeeperForTeam,
+			draftPlayer,
 		});
 		render(<Leaderboard />);
 
@@ -518,9 +527,54 @@ describe("Leaderboard", () => {
 		expect(row).not.toBeNull();
 
 		await user.click(row as HTMLTableRowElement);
-		fireEvent.contextMenu(row as HTMLTableRowElement);
 
-		expect(toggleDraftedForTeam).toHaveBeenCalledWith("batter-mike", 0);
-		expect(toggleKeeperForTeam).toHaveBeenCalledWith("batter-mike", 0);
+		expect(draftPlayer).toHaveBeenCalledWith("batter-mike");
+		expect(toastSpy).toHaveBeenCalledWith(
+			"Mike Trout",
+			expect.objectContaining({
+				description: "Team 1 • Pick 1",
+				duration: 2600,
+			}),
+		);
+	});
+
+	it("shows an auto-advance toast when draft mode skips an opening keeper slot", async () => {
+		vi.useFakeTimers();
+		mockStore({
+			isDraftMode: true,
+			leagues: [
+				{
+					...createLeague(),
+					draftState: {
+						format: "snake",
+						draftedByTeam: {},
+						keeperByTeam: { "batter-mike": "0" },
+						keeperSlotByPlayer: { "batter-mike": 0 },
+						pickIndex: 0,
+						history: [],
+					},
+				},
+			],
+		});
+
+		render(<Leaderboard />);
+
+		expect(toastSpy).not.toHaveBeenCalled();
+		await act(async () => {
+			vi.advanceTimersByTime(700);
+		});
+		const [toastTitle, toastOptions] = toastSpy.mock.calls[0] ?? [];
+		expect(toastTitle).toBeTruthy();
+		expect((toastTitle as { props: { children: Array<{ props: { children: string } }> } }).props.children[0].props.children).toBe(
+			"Mike Trout",
+		);
+		expect((toastTitle as { props: { children: Array<{ props: { children: string } }> } }).props.children[1].props.children).toBe(
+			"K",
+		);
+		expect(toastOptions).toEqual(
+			expect.objectContaining({
+				description: "Team 1 • Pick 1",
+			}),
+		);
 	});
 });

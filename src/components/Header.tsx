@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { MenuSelect } from "@/components/ui/MenuSelect";
 import { Toggle } from "@/components/ui/Toggle";
 import { useStore } from "@/store";
 
@@ -19,52 +18,27 @@ export function Header({ onOpenUpload }: HeaderProps) {
     leagues,
     activeLeagueId,
     setActiveLeague,
-    setActiveTeamIndex,
-    advanceActiveTeam,
-    resetDraft,
     clearAllData,
   } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
-  const leagueSettings = activeLeague?.leagueSettings;
-  const draftStateForLeague = activeLeague?.draftState;
   const pathname = usePathname();
   const isSettingsPage = pathname === "/settings";
   const [isClearOpen, setIsClearOpen] = useState(false);
-  const [isResetOpen, setIsResetOpen] = useState(false);
   const [isLeagueOpen, setIsLeagueOpen] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (isResetOpen) setIsResetOpen(false);
         if (isClearOpen) setIsClearOpen(false);
       }
     };
-    if (isResetOpen || isClearOpen) {
+    if (isClearOpen) {
       document.addEventListener("keydown", handleEscape);
       return () => document.removeEventListener("keydown", handleEscape);
     }
-  }, [isResetOpen, isClearOpen]);
-
-  const activeTeamIndex = draftStateForLeague?.activeTeamIndex ?? 0;
-  const activeTeamName =
-    leagueSettings?.teamNames[activeTeamIndex] ?? `Team ${activeTeamIndex + 1}`;
+  }, [isClearOpen]);
   const settingsHref = isSettingsPage ? "/" : "/settings?section=scoring";
   const settingsTitle = isSettingsPage ? "Back to leaderboard" : "Settings";
-
-  const draftedEntries = Object.entries(draftStateForLeague?.draftedByTeam ?? {});
-  const keeperEntries = Object.entries(draftStateForLeague?.keeperByTeam ?? {});
-  const draftedCount = draftedEntries.length;
-  const keeperCount = keeperEntries.length;
-  const teamDraftedCount = draftedEntries.filter(
-    ([, teamIndex]) => Number(teamIndex) === activeTeamIndex
-  ).length;
-  const teamKeeperCount = keeperEntries.filter(
-    ([, teamIndex]) => Number(teamIndex) === activeTeamIndex
-  ).length;
-  const rosterTotal =
-    Object.values(leagueSettings.roster.positions).reduce((sum, value) => sum + value, 0) +
-    leagueSettings.roster.bench;
 
   return (
     <>
@@ -173,85 +147,8 @@ export function Header({ onOpenUpload }: HeaderProps) {
               </Link>
             </div>
           </div>
-
-          {isDraftMode && (
-            <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-[#111111]/20 dark:border-[#333333] pt-4 font-sans text-sm text-[#111111] dark:text-[#e5e5e5]">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
-                  Active Team
-                </span>
-                <MenuSelect
-                  value={activeTeamIndex}
-                  onChange={setActiveTeamIndex}
-                  ariaLabel="Active team"
-                  triggerClassName="px-2 py-1 text-sm normal-case tracking-normal"
-                  menuClassName="min-w-[10rem]"
-                  options={leagueSettings.teamNames.map((name, index) => ({
-                    value: index,
-                    label: name,
-                  }))}
-                />
-                <Button variant="secondary" size="sm" onClick={advanceActiveTeam} className="px-2 py-1">
-                  Next
-                </Button>
-              </div>
-
-              <div className="text-[#111111]/70 dark:text-[#e5e5e5]/60">
-                {activeTeamName}: {teamDraftedCount + teamKeeperCount}/{rosterTotal}
-                {teamKeeperCount > 0 && ` (K ${teamKeeperCount})`}
-              </div>
-
-              <div className="text-[#111111]/50 dark:text-[#e5e5e5]/40">
-                League: {draftedCount} drafted
-                {keeperCount > 0 && `, ${keeperCount} keepers`}
-              </div>
-
-              <Button
-                variant="destructiveGhost"
-                size="sm"
-                onClick={() => setIsResetOpen(true)}
-                className="ml-auto hover:underline"
-              >
-                Reset Draft
-              </Button>
-            </div>
-          )}
         </div>
       </header>
-      {isResetOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111111]/20 dark:bg-black/60">
-          <div role="dialog" aria-modal="true" aria-labelledby="v4-reset-title" className="relative mx-0 h-full w-full max-w-none rounded-none border-l-4 border-l-[#dc2626] dark:border-l-[#ef4444] border-y border-r border-y-[#111111]/10 dark:border-y-[#333333] border-r-[#111111]/10 dark:border-r-[#333333] bg-white dark:bg-[#111111] p-8 overflow-y-auto sm:mx-4 sm:h-auto sm:max-w-md sm:rounded-sm">
-            <button
-              type="button"
-              onClick={() => setIsResetOpen(false)}
-              aria-label="Close reset modal"
-              className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center text-[#111111]/50 dark:text-[#e5e5e5]/40 hover:text-[#111111] dark:hover:text-[#e5e5e5] transition-colors"
-            >
-              <span className="text-xl leading-none font-sans">&times;</span>
-            </button>
-            <h2 id="v4-reset-title" className="mb-3 pr-10 text-xl font-bold text-[#111111] dark:text-[#e5e5e5]" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-              Reset all draft picks?
-            </h2>
-            <p className="mb-8 font-sans text-sm leading-relaxed text-[#111111]/60 dark:text-[#e5e5e5]/50">
-              This clears drafted players and keepers, but leaves projection data intact.
-            </p>
-            <div className="flex justify-end gap-3 font-sans">
-              <Button variant="ghost" onClick={() => setIsResetOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  resetDraft();
-                  setIsResetOpen(false);
-                }}
-              >
-                Reset Draft
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
       {isClearOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111111]/20 dark:bg-black/60">
           <div role="dialog" aria-modal="true" aria-labelledby="v4-clear-title" className="relative mx-0 h-full w-full max-w-none rounded-none border-l-4 border-l-[#dc2626] dark:border-l-[#ef4444] border-y border-r border-y-[#111111]/10 dark:border-y-[#333333] border-r-[#111111]/10 dark:border-r-[#333333] bg-white dark:bg-[#111111] p-8 overflow-y-auto sm:mx-4 sm:h-auto sm:max-w-md sm:rounded-sm">

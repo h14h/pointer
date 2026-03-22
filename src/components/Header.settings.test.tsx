@@ -61,7 +61,7 @@ describe("Header settings navigation", () => {
               bench: 3,
             },
           },
-          draftState: { draftedByTeam: {}, keeperByTeam: {}, activeTeamIndex: 0 },
+          draftState: { format: "snake", draftedByTeam: {}, keeperByTeam: {}, keeperSlotByPlayer: {}, pickIndex: 0, history: [] },
           scoringSettings: {
             name: "Default",
             batting: { R: 1, H: 0, "1B": 1, "2B": 2, "3B": 3, HR: 4, RBI: 1, SB: 1, CS: -1, BB: 1, SO: -1, HBP: 1, SF: 0, GDP: 0 },
@@ -72,8 +72,7 @@ describe("Header settings navigation", () => {
       ],
       activeLeagueId: "league-1",
       setActiveLeague: vi.fn(),
-      setActiveTeamIndex: vi.fn(),
-      advanceActiveTeam: vi.fn(),
+      undoLastDraftPick: vi.fn(),
       resetDraft: vi.fn(),
       clearAllData: vi.fn(),
     });
@@ -102,5 +101,65 @@ describe("Header settings navigation", () => {
     expect(settingsLink).toHaveAttribute("href", "/");
     expect(settingsLink).toHaveAttribute("title", "Back to leaderboard");
     expect(settingsLink.className).toContain("bg-[#dc2626]");
+  });
+
+  it("keeps the header focused on global controls even in draft mode", () => {
+    usePathnameMock.mockReturnValue("/");
+    useStoreMock.mockReturnValue({
+      ...useStoreMock.mock.results.at(-1)?.value,
+      isDraftMode: true,
+      leagues: [
+        {
+          id: "league-1",
+          name: "My League",
+          leagueSettings: {
+            leagueSize: 12,
+            teamNames: Array.from({ length: 12 }, (_, index) => `Team ${index + 1}`),
+            roster: {
+              positions: {
+                C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1, LF: 0, CF: 0, RF: 0, DH: 0,
+                CI: 0, MI: 0, IF: 0, OF: 3, UTIL: 1, SP: 0, RP: 0, P: 7, IL: 0, NA: 0,
+              },
+              bench: 3,
+            },
+          },
+          draftState: {
+            format: "snake",
+            draftedByTeam: { "player-1": "0" },
+            keeperByTeam: { "player-2": "0" },
+            keeperSlotByPlayer: { "player-2": 24 },
+            pickIndex: 1,
+            history: [
+              {
+                playerId: "player-1",
+                teamIndex: 0,
+                slotIndex: 0,
+                overallPick: 1,
+                round: 1,
+                pickInRound: 1,
+                timestamp: 1,
+              },
+            ],
+          },
+          scoringSettings: {
+            name: "Default",
+            batting: { R: 1, H: 0, "1B": 1, "2B": 2, "3B": 3, HR: 4, RBI: 1, SB: 1, CS: -1, BB: 1, SO: -1, HBP: 1, SF: 0, GDP: 0 },
+            pitching: { IP: 3, W: 5, L: -5, QS: 3, CG: 0, ShO: 0, SV: 5, BS: -3, HLD: 2, SO: 1, H: -1, ER: -2, HR: -1, BB: -1, HBP: -1 },
+          },
+          updatedAt: Date.now(),
+        },
+      ],
+      activeLeagueId: "league-1",
+      setActiveLeague: vi.fn(),
+      resetDraft: vi.fn(),
+      clearAllData: vi.fn(),
+      setDraftMode: vi.fn(),
+    });
+
+    render(<Header onOpenUpload={onOpenUpload} />);
+
+    expect(screen.queryByText("On The Clock")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Undo Last Pick" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Reset Draft" })).toBeNull();
   });
 });
