@@ -81,6 +81,7 @@ const defaultLeagueSettings: LeagueSettings = {
   leagueSize: 12,
   teamNames: Array.from({ length: 12 }, (_, i) => `Team ${i + 1}`),
   roster: defaultRosterSettings,
+  weeklyStartLimit: null,
 };
 
 const createDefaultLeague = (name = "My League"): League => ({
@@ -126,6 +127,10 @@ const normalizeLeagueSettings = (settings: LeagueSettings): LeagueSettings => {
       positions,
       bench: Number.isFinite(roster.bench) ? roster.bench : defaultRosterSettings.bench,
     },
+    weeklyStartLimit:
+      Number.isFinite(settings.weeklyStartLimit) && (settings.weeklyStartLimit ?? 0) > 0
+        ? Math.round(settings.weeklyStartLimit as number)
+        : null,
   };
 };
 

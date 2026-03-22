@@ -206,6 +206,7 @@ export interface LeagueSettings {
   leagueSize: number;
   teamNames: string[];
   roster: RosterSettings;
+  weeklyStartLimit?: number | null;
 }
 
 export interface League {

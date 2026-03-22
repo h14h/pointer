@@ -1,6 +1,7 @@
 import type { Player, RankedPlayer, LeagueSettings, RosterSlot, Position } from "@/types";
 
 type SlotType = RosterSlot;
+const AVERAGE_STARTS_PER_ROSTERED_SP_PER_WEEK = 2;
 
 const SLOT_POSITION_MAP: Record<SlotType, Position[]> = {
   C: ["C"],
@@ -169,6 +170,59 @@ function getReplacementLevelFromRemainingPool(
   return remainingEligiblePlayers[0].projectedPoints;
 }
 
+function getRoleBasedReplacementLevel(
+  rankedPlayers: RankedPlayerForPAR[],
+  rosteredCount: number,
+  predicate: (player: Player) => boolean
+): number {
+  const eligiblePlayers = getSortedPlayers(rankedPlayers).filter(rp => predicate(rp.player));
+  if (eligiblePlayers.length === 0) return 0;
+  if (rosteredCount < 0) return eligiblePlayers[0].projectedPoints;
+  return eligiblePlayers[rosteredCount]?.projectedPoints ?? 0;
+}
+
+function getPitcherReplacementLevelsWithStartLimit(
+  rankedPlayers: RankedPlayerForPAR[],
+  settings: LeagueSettings
+): Partial<Record<SlotType, number>> {
+  const weeklyStartLimit = settings.weeklyStartLimit ?? null;
+  if (weeklyStartLimit === null || weeklyStartLimit <= 0) return {};
+
+  const perTeamSpSlots = settings.roster.positions.SP ?? 0;
+  const perTeamRpSlots = settings.roster.positions.RP ?? 0;
+  const perTeamPitcherFlexSlots = settings.roster.positions.P ?? 0;
+
+  if (perTeamSpSlots + perTeamPitcherFlexSlots === 0) return {};
+
+  const cappedTotalSpSlotsPerTeam = Math.max(
+    perTeamSpSlots,
+    Math.min(
+      perTeamSpSlots + perTeamPitcherFlexSlots,
+      Math.ceil(weeklyStartLimit / AVERAGE_STARTS_PER_ROSTERED_SP_PER_WEEK)
+    )
+  );
+  const cappedFlexibleSpSlotsPerTeam = Math.max(0, cappedTotalSpSlotsPerTeam - perTeamSpSlots);
+  const reliefLikeSlotsPerTeam =
+    perTeamRpSlots + Math.max(0, perTeamPitcherFlexSlots - cappedFlexibleSpSlotsPerTeam);
+
+  const spReplacement = getRoleBasedReplacementLevel(
+    rankedPlayers,
+    cappedTotalSpSlotsPerTeam * settings.leagueSize,
+    player => player.eligibility?.isSP === true
+  );
+  const rpReplacement = getRoleBasedReplacementLevel(
+    rankedPlayers,
+    reliefLikeSlotsPerTeam * settings.leagueSize,
+    player => player.eligibility?.isRP === true
+  );
+
+  return {
+    SP: spReplacement,
+    RP: rpReplacement,
+    P: Math.max(spReplacement, rpReplacement),
+  };
+}
+
 function computePlayerPARForSlot(
   projectedPoints: number,
   slot: SlotType,
@@ -237,6 +291,15 @@ export function calculatePAR(
       settings,
       assignedPlayerIds
     );
+  }
+
+  const pitcherReplacementLevels = getPitcherReplacementLevelsWithStartLimit(
+    rankedPlayers,
+    settings
+  );
+  for (const [slot, replacement] of Object.entries(pitcherReplacementLevels)) {
+    if (replacement === undefined) continue;
+    replacementLevels[slot as SlotType] = replacement;
   }
 
   if (typeof window !== "undefined") {

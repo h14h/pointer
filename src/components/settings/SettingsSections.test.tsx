@@ -59,6 +59,7 @@ function createLeagueSettings(): LeagueSettings {
   return {
     leagueSize: 12,
     teamNames: Array.from({ length: 12 }, (_, index) => `Team ${index + 1}`),
+    weeklyStartLimit: null,
     roster: {
       positions: {
         C: 1,
@@ -152,7 +153,7 @@ describe("settings sections", () => {
 
   it("commits roster slot and bench updates", async () => {
     const user = userEvent.setup();
-    render(<RosterSection />);
+    const { rerender } = render(<RosterSection />);
 
     const lfInput = screen.getByLabelText("Roster LF");
     await user.click(lfInput);
@@ -171,6 +172,37 @@ describe("settings sections", () => {
 
     const benchLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
     expect(benchLeagueSettings.roster.bench).toBe(9);
+
+    const weeklyStartLimitInput = screen.getByLabelText("Weekly Start Limit");
+    expect(weeklyStartLimitInput).toBeDisabled();
+
+    const weeklyStartLimitToggle = screen.getByRole("switch", {
+      name: "Enable weekly start limit",
+    });
+    await user.click(weeklyStartLimitToggle);
+
+    const enabledWeeklyStartLimitLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    expect(enabledWeeklyStartLimitLeagueSettings.weeklyStartLimit).toBe(12);
+
+    useStoreMock.mockReturnValue({
+      ...useStoreMock.mock.results.at(-1)?.value,
+      leagues: [
+        {
+          ...createLeague(),
+          leagueSettings: enabledWeeklyStartLimitLeagueSettings,
+        },
+      ],
+    });
+    rerender(<RosterSection />);
+
+    expect(screen.getByLabelText("Weekly Start Limit")).not.toBeDisabled();
+    await user.click(screen.getByLabelText("Weekly Start Limit"));
+    await user.clear(screen.getByLabelText("Weekly Start Limit"));
+    await user.keyboard("14");
+    await user.tab();
+
+    const weeklyStartLimitLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    expect(weeklyStartLimitLeagueSettings.weeklyStartLimit).toBe(14);
   });
 
   it("applies draft controls for team management", async () => {

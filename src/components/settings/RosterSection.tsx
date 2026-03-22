@@ -1,5 +1,6 @@
 "use client";
 
+import { NumericInput } from "@/components/NumericInput";
 import { useStore } from "@/store";
 import { NumericInputGroup, NumericInputRow } from "@/components/NumericInputGroup";
 import {
@@ -39,6 +40,22 @@ export function RosterSection() {
         ...leagueSettings.roster,
         bench: Math.max(0, Math.round(value || 0)),
       },
+    };
+    setLeagueSettings(next);
+  };
+
+  const commitWeeklyStartLimit = (value: number) => {
+    const next = {
+      ...leagueSettings,
+      weeklyStartLimit: value > 0 ? Math.round(value || 0) : null,
+    };
+    setLeagueSettings(next);
+  };
+
+  const toggleWeeklyStartLimit = () => {
+    const next = {
+      ...leagueSettings,
+      weeklyStartLimit: leagueSettings.weeklyStartLimit == null ? 12 : null,
     };
     setLeagueSettings(next);
   };
@@ -113,6 +130,73 @@ export function RosterSection() {
 
         {/* Right column: battery + reserves */}
         <div className="grid content-start gap-6">
+          <div>
+            <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
+              Pitcher Usage
+            </div>
+            <div className="rounded-lg bg-[#dc2626]/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] dark:bg-[#ef4444]/[0.08]">
+              <div className="flex items-start justify-between gap-4">
+                <div className="max-w-[22rem]">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold text-[#111111] dark:text-[#e5e5e5]">
+                      Weekly start limit
+                    </div>
+                    <div className="group relative">
+                      <button
+                        type="button"
+                        aria-label="Weekly start limit help"
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#111111]/15 text-[11px] font-bold text-[#111111]/45 transition-colors hover:border-[#111111]/25 hover:text-[#111111]/70 focus-visible:border-[#111111]/25 focus-visible:text-[#111111]/70 focus-visible:outline-none dark:border-[#e5e5e5]/15 dark:text-[#e5e5e5]/45 dark:hover:border-[#e5e5e5]/25 dark:hover:text-[#e5e5e5]/70 dark:focus-visible:border-[#e5e5e5]/25 dark:focus-visible:text-[#e5e5e5]/70"
+                      >
+                        ?
+                      </button>
+                      <div className="pointer-events-none absolute left-0 top-7 z-10 w-64 rounded-md border border-[#111111]/10 bg-[#fffaf5] px-3 py-2 text-xs leading-5 text-[#111111]/80 opacity-0 shadow-[0_10px_30px_rgba(17,17,17,0.12)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 dark:border-[#e5e5e5]/10 dark:bg-[#202020] dark:text-[#e5e5e5]/78 dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                        Use this only for leagues that cap pitcher starts per matchup. It shifts
+                        some flexible pitcher demand from SP toward RP in PAR.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={leagueSettings.weeklyStartLimit != null}
+                  aria-label="Enable weekly start limit"
+                  onClick={toggleWeeklyStartLimit}
+                  className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition-colors ${
+                    leagueSettings.weeklyStartLimit != null
+                      ? "border-[#dc2626]/60 bg-[#dc2626]"
+                      : "border-[#111111]/15 bg-white/80 dark:border-[#e5e5e5]/15 dark:bg-[#1f1f1f]"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform dark:bg-[#f5f5f5] ${
+                      leagueSettings.weeklyStartLimit != null ? "translate-x-[22px]" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#111111]/10 pt-4 dark:border-[#e5e5e5]/10">
+                <div className="text-sm font-semibold text-[#111111]/65 dark:text-[#e5e5e5]/55">
+                  Starts per week
+                </div>
+                <NumericInput
+                  aria-label="Weekly Start Limit"
+                  min={1}
+                  value={leagueSettings.weeklyStartLimit ?? 12}
+                  disabled={leagueSettings.weeklyStartLimit == null}
+                  onCommit={commitWeeklyStartLimit}
+                  units="starts"
+                  className="gap-3"
+                  inputClassName={`w-12 text-sm sm:w-14 ${
+                    leagueSettings.weeklyStartLimit == null
+                      ? "text-[#111111]/35 dark:text-[#e5e5e5]/30"
+                      : ""
+                  }`}
+                />
+              </div>
+            </div>
+          </div>
+
           <NumericInputGroup label="Pitchers">
             {pitcherSlots.map((key) => (
               <NumericInputRow

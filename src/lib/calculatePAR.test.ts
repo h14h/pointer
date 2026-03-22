@@ -16,11 +16,13 @@ const ALL_ROSTER_SLOTS: RosterSlot[] = [
 
 function createLeagueSettings(
   positions: Partial<Record<RosterSlot, number>>,
-  leagueSize = 12
+  leagueSize = 12,
+  options?: { weeklyStartLimit?: number | null }
 ): LeagueSettings {
   return {
     leagueSize,
     teamNames: Array.from({ length: leagueSize }, (_, i) => `Team ${i + 1}`),
+    weeklyStartLimit: options?.weeklyStartLimit ?? null,
     roster: {
       positions: Object.fromEntries(
         ALL_ROSTER_SLOTS.map(slot => [slot, positions[slot] ?? 0])
@@ -271,6 +273,52 @@ describe("calculatePAR", () => {
       const result = calculatePAR(players, settings);
 
       expectReplacementBoundary(result, 97);
+    });
+
+    it("reduces SP PAR in P-only leagues when a weekly start limit caps usable starter volume", () => {
+      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
+      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) => ({
+        ...player,
+        player: {
+          ...player.player,
+          _id: `rp-${index + 1}`,
+          Name: `RP${index + 1}`,
+          PlayerId: `rp-${index + 1}`,
+          MLBAMID: `rp-${index + 1}`,
+        },
+      }));
+      const players = [...starters, ...relievers];
+
+      const uncapped = calculatePAR(players, createLeagueSettings({ P: 9 }));
+      const capped = calculatePAR(players, createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 }));
+
+      const uncappedStarter = uncapped.find(player => player.player.Name === "Player90");
+      const cappedStarter = capped.find(player => player.player.Name === "Player90");
+
+      expect(cappedStarter?.par ?? 0).toBeLessThan(uncappedStarter?.par ?? 0);
+    });
+
+    it("increases RP PAR in P-only leagues when a weekly start limit shifts flexible slots toward relievers", () => {
+      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
+      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) => ({
+        ...player,
+        player: {
+          ...player.player,
+          _id: `rp-${index + 1}`,
+          Name: `RP${index + 1}`,
+          PlayerId: `rp-${index + 1}`,
+          MLBAMID: `rp-${index + 1}`,
+        },
+      }));
+      const players = [...starters, ...relievers];
+
+      const uncapped = calculatePAR(players, createLeagueSettings({ P: 9 }));
+      const capped = calculatePAR(players, createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 }));
+
+      const uncappedReliever = uncapped.find(player => player.player.Name === "RP20");
+      const cappedReliever = capped.find(player => player.player.Name === "RP20");
+
+      expect(cappedReliever?.par ?? 0).toBeGreaterThan(uncappedReliever?.par ?? 0);
     });
   });
 

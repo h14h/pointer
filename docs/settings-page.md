@@ -30,7 +30,7 @@ Desktop renders a left sidebar section navigator; mobile renders a top segmented
 
 **Scoring section.** Displays batting and pitching stats simultaneously in a two-column layout (batting left, pitching right; stacked on mobile with batting first). Stats are organized into semantic sub-groups (e.g., Hits, Run Production, Decisions, Relief) using `NumericInputGroup`, matching the roster section's visual grouping pattern. Keeps preset apply behavior, merge two-way toggle, and debounced numeric scoring updates.
 
-**Roster section.** Keeps per-slot and reserve numeric controls with immediate commit-to-store behavior on input commit. Uses the shared `NumericInputGroup` and `NumericInputRow` components.
+**Roster section.** Keeps per-slot and reserve numeric controls with immediate commit-to-store behavior on input commit. Weekly start limits live in a separate `Pitcher Usage` callout with an explicit toggle plus a numeric input that is disabled until the rule is enabled. Uses the shared `NumericInputGroup` and `NumericInputRow` components for standard roster slots.
 
 **Shared numeric input groups.** Both Scoring and Roster sections use `NumericInputGroup` (label bar + rounded background container) and `NumericInputRow` (label + NumericInput in a bordered row) from `src/components/NumericInputGroup.tsx` to maintain consistent visual grouping.
 

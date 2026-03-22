@@ -24,6 +24,8 @@ Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (
 
 **League size clamping.** Size is clamped to [2, 20] on every write via `normalizeLeagueSettings`. Team names are padded with `"Team {n}"` or truncated to match.
 
+**Weekly start limit normalization.** `weeklyStartLimit` is normalized to a positive integer or `null`. `0`, negative values, and non-finite values are treated as "no cap".
+
 **Draft state pruning on resize.** When league settings change, draft picks assigned to team indices ≥ the new league size are removed. The active team index is also clamped.
 
 **Active group fallback.** Removing the active projection group falls back to the first remaining group's ID, or `null`. A stale `activeProjectionGroupId` is never left behind.
@@ -46,7 +48,7 @@ The store has ~25 actions organized into:
 
 ## Default Values
 
-Default scoring uses ESPN-style weights. Default league is 12 teams with a standard roster (C, 1B, 2B, 3B, SS, 3×OF, UTIL, 7×P, 3 bench). `mergeTwoWayRankings` defaults to `true`.
+Default scoring uses ESPN-style weights. Default league is 12 teams with a standard roster (C, 1B, 2B, 3B, SS, 3×OF, UTIL, 7×P, 3 bench) and no weekly start cap. `mergeTwoWayRankings` defaults to `true`.
 
 ## Multi-League Behavior
 

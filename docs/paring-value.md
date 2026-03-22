@@ -19,7 +19,7 @@
 
 **Formula:** `PAR = projectedPoints - replacementLevel`
 
-**Replacement level** is the projected points of the worst-starting player at a given position. It's computed from league roster settings, not from the actual drafted roster (PAR is a static pre-draft value).
+**Replacement level** is the projected points of the best waiver-wire player at a given position after the league's active roster demand is satisfied. It's computed from league roster settings, not from the actual drafted roster (PAR is a static pre-draft value).
 
 ## Slot-Based Replacement Logic
 
@@ -48,6 +48,18 @@ Replacement is computed from a single global starter allocation. The system fill
 | **P** | SP, RP | Best unrostered pitcher after the full roster is filled |
 
 **Skipped slots:** If a slot has 0 allocated positions (e.g., LF/CF/RF in most ESPN/Yahoo configs), it is not used for replacement calculation. Players eligible only at skipped slots use the parent pooled slot instead (OF for outfielders, P for pitchers).
+
+## Weekly Start Limits
+
+When `leagueSettings.weeklyStartLimit` is set, pitcher replacement uses a first-pass role split instead of treating every `P` slot as unconstrained SP demand.
+
+- The model estimates how many SP slots a team can realistically use from flexible `P` slots with `ceil(weeklyStartLimit / 2)`.
+- Explicit `SP` slots are always preserved; the cap only reduces the SP share of flexible `P` slots.
+- Any remaining flexible `P` demand is treated as RP-like demand.
+- `SP` and `RP` replacement levels are computed from those capped role demands, even in leagues with `P` slots but no explicit `SP`/`RP` slots.
+- `P` replacement becomes `max(SP replacement, RP replacement)`, representing the best pitcher likely left after the capped role mix is filled.
+
+This is intentionally a draft-oriented approximation rather than a full weekly lineup simulation. It pushes marginal SP down and RP up in capped-start formats without trying to predict streaming behavior.
 
 ## Player PAR Selection
 
@@ -82,8 +94,10 @@ The replacement threshold is computed once at PAR calculation time, using the st
 
 **Global allocation.** All replacement levels come from the same final rostered universe. This keeps pooled slots aligned with their component positions, so `MI` reflects the better of the available `2B`/`SS` leftovers, `CI` reflects the better of `1B`/`3B`, and `UTIL` reflects the best hitter actually left on the waiver wire after the whole starting lineup is filled.
 
+**Start-limit approximation.** Weekly start limits make marginal SP less scarce than raw `P` slot counts suggest. The first-pass model converts part of flexible `P` demand into RP-like demand using a simple `2 starts per rostered SP per week` heuristic. This keeps the behavior explainable and stable enough for draft prep.
+
 **Zero-slot positions are skipped.** Positions with zero allocated roster slots (e.g., individual LF/CF/RF in most league configs, or individual IF in standard configs) do not contribute to replacement calculation. This prevents players who are only eligible at those positions from appearing to have artificially high PAR. Instead, those players are evaluated using the parent pooled slot (OF for outfielders, P for pitchers).
 
 **Max PAR rationale.** Taking the maximum PAR across eligible positions reflects the reality that a player with multi-position eligibility provides the most value at their strongest position. A player who qualifies at both 2B and SS but provides more value at SS should be evaluated at SS.
 
-**Display format.** PAR uses `+` prefix for positive values (e.g., `+15.3`) and standard negative notation (e.g., `-8.7`). Color coding: green for positive, red for negative, muted gray for zero.
+**Display format.** PAR uses a `+` prefix for positive values and standard negative notation. The leaderboard displays rounded whole numbers; color coding is green for positive, red for negative, muted gray for zero.
