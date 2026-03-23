@@ -61,6 +61,7 @@ const BATTING_STAT_OPTIONS: StatOption[] = [
 	{ id: "R", label: "R" },
 	{ id: "RBI", label: "RBI" },
 	{ id: "BB", label: "BB" },
+	{ id: "IBB", label: "IBB" },
 	{ id: "HBP", label: "HBP" },
 	{ id: "SO", label: "SO" },
 	{ id: "SB", label: "SB" },
@@ -1269,6 +1270,19 @@ const LeaderboardTable = memo(function LeaderboardTable({
 							? (row.player as unknown as Record<string, number>).BB
 							: row.player._type === "two-way"
 								? row.player._battingStats.BB
+								: null,
+					cell: ({ getValue }) =>
+						formatCountingStat(getValue() as number | null),
+				},
+				{
+					id: "IBB",
+					header: "IBB",
+					size: 60,
+					accessorFn: (row) =>
+						row.player._type === "batter"
+							? (row.player as unknown as Record<string, number>).IBB
+							: row.player._type === "two-way"
+								? row.player._battingStats.IBB
 								: null,
 					cell: ({ getValue }) =>
 						formatCountingStat(getValue() as number | null),

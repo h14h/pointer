@@ -80,7 +80,7 @@ Reserved keeper slots are skipped automatically when deriving the current pick c
 
 ## Stat Column Visibility
 
-Users can toggle individual batting (16 options) and pitching (17 options) stat columns. Selections persist to `localStorage`. Defaults: R, HR, RBI, SB, AVG for batting; W, SV, K, ERA, WHIP for pitching. Invalid localStorage values are filtered to known stat IDs.
+Users can toggle individual batting (17 options) and pitching (17 options) stat columns. Selections persist to `localStorage`. Defaults: R, HR, RBI, SB, AVG for batting; W, SV, K, ERA, WHIP for pitching. Invalid localStorage values are filtered to known stat IDs.
 
 **Computed stats in display:**
 - TB (total bases) = `1B + 2B×2 + 3B×3 + HR×4` — computed inline, not from CSV

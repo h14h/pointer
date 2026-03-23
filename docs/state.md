@@ -13,12 +13,21 @@ All UI components: [Leaderboard](leaderboard.md), [CSV Upload Workflow](csv-uplo
 
 ## Persistence
 
-- **Storage key:** `"pointer-storage"`
+- **Storage keys:** `"pointer-leagues"`, `"pointer-projections"`, `"pointer-preferences"` (split storage)
 - **Version:** 8
-- **Middleware:** Zustand `persist` to `localStorage`
+- **Middleware:** Zustand `persist` with a custom `StateStorage` adapter that splits state across three `localStorage` keys so users can manually delete projection data without losing league config
 - **Hydration strategy:** `skipHydration: true` with a client-only `StoreHydrator` mounted from the root layout. The store uses deterministic SSR defaults so server HTML matches the client's pre-rehydration render before persisted league state is applied.
 
-Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure, wrapping single-league data in a `League` object (v4→v5), converting the old `activeTeamIndex` draft cursor into the snake-draft session shape (v5→v6), backfilling projection-group provenance so all legacy groups become `{ kind: "upload" }` (v6→v7), and defaulting every group's editable `eligibilityImportSeason` (v7→v8). Legacy drafted and keeper ownership is preserved; `history` starts empty because prior pick chronology is unknowable.
+**Split localStorage layout:**
+| Key | Contents |
+|-----|----------|
+| `pointer-leagues` | `leagues`, `activeLeagueId` |
+| `pointer-projections` | `projectionGroups`, `activeProjectionGroupId` |
+| `pointer-preferences` | `isDraftMode`, `mergeTwoWayRankings`, `_version` |
+
+The adapter transparently migrates from the legacy single-key format (`"pointer-storage"`): if the old key exists, it is returned as-is for Zustand's `migrate()` to process, then split into the new keys on the next write. The legacy key is removed after a successful split.
+
+Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure, wrapping single-league data in a `League` object (v4→v5), converting the old `activeTeamIndex` draft cursor into the snake-draft session shape (v5→v6), backfilling projection-group provenance so all legacy groups become `{ kind: "upload" }` (v6→v7), and defaulting every group's editable `eligibilityImportSeason` (v7→v8). All migration paths normalize leagues via `normalizeLeague`, which backfills new scoring fields (e.g., `batting.IBB`) with safe defaults. Legacy drafted and keeper ownership is preserved; `history` starts empty because prior pick chronology is unknowable.
 
 ## Key Invariants
 
@@ -35,6 +44,8 @@ Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (
 Given a first-round keeper reserved at overall pick 3, when overall picks 1, 2, 4, and 5 are made manually, then `history` records slot indexes `0, 1, 3, 4` and the live cursor advances to slot index `5` (overall pick 6) rather than collapsing back to `history.length`.
 
 **Reset preserves keeper setup.** `resetDraft` operates on the active league only and clears only manual draft progress: `draftedByTeam`, `history`, and the live pick cursor. Keeper ownership and reserved keeper slots remain intact, and the cursor rewinds to the first open non-keeper slot.
+
+**Scoring settings normalization.** `normalizeScoringSettings` backfills any missing scoring fields with `0` (e.g., `batting.IBB`). This runs both during migration and at read time via `getActiveLeague`, so stored data from before a field was added never produces `undefined` in the UI.
 
 **League size clamping.** Size is clamped to [2, 20] on every write via `normalizeLeagueSettings`. Team names are padded with `"Team {n}"` or truncated to match.
 

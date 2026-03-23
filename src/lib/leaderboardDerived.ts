@@ -338,6 +338,8 @@ function getStatValue(row: LeaderboardRow, columnId: string): number | null {
         return row.player._battingStats.RBI;
       case "BB":
         return row.player._battingStats.BB;
+      case "IBB":
+        return row.player._battingStats.IBB;
       case "HBP":
         return row.player._battingStats.HBP;
       case "SO":
@@ -410,6 +412,8 @@ function getStatValue(row: LeaderboardRow, columnId: string): number | null {
       return row.player.RBI;
     case "BB":
       return row.player.BB;
+    case "IBB":
+      return row.player.IBB;
     case "HBP":
       return row.player.HBP;
     case "SO":

@@ -20,6 +20,8 @@ Each counting stat is multiplied by its configured weight and the results are su
 
 **H stat gating.** Hits (`H`) are only included if `settings.H !== 0`. Most leagues score by hit type (1B, 2B, 3B, HR) rather than total hits, so H defaults to 0 in all presets. Including both H and hit-type weights would double-count.
 
+**IBB is additive.** The source data's `BB` stat includes intentional walks. IBB is scored as a separate bonus on top of BB: `BB × weight + IBB × weight`. With `BB=1, IBB=0` (the default), intentional walks score the same as regular walks. With `BB=1, IBB=1`, intentional walks earn double credit. This matches ESPN-style platforms where IBB is an independent scoring category.
+
 **QS/CG/ShO are treated as literal imported values.** Scoring does not run runtime estimation. Missing outcomes remain 0 unless they were estimated earlier during CSV import.
 
 **IP normalization.** When `useBaseballIp` is true, IP is converted from baseball notation (5.1 = 5⅓) to decimal before multiplying by the IP weight. See [Utilities](utilities.md).
