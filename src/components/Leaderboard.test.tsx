@@ -597,6 +597,110 @@ describe("Leaderboard", () => {
 		);
 	});
 
+	it("shows auto-rewind before the undone-pick toast when undo crosses a keeper slot", async () => {
+		vi.useFakeTimers();
+		const league = createLeague();
+		let currentState = createStoreState();
+		currentState = {
+			...currentState,
+			isDraftMode: true,
+			leagues: [
+				{
+					...league,
+					leagueSettings: {
+						...league.leagueSettings,
+						leagueSize: 4,
+						teamNames: ["Team 1", "Team 2", "Team 3", "Team 4"],
+					},
+					draftState: {
+						format: "snake",
+						draftedByTeam: {
+							"batter-mike": "0",
+							"batter-corey": "1",
+						},
+						keeperByTeam: { "pitcher-ace": "2" },
+						keeperSlotByPlayer: { "pitcher-ace": 2 },
+						pickIndex: 3,
+						history: [
+							{
+								playerId: "batter-mike",
+								teamIndex: 0,
+								slotIndex: 0,
+								overallPick: 1,
+								round: 1,
+								pickInRound: 1,
+								timestamp: 1,
+							},
+							{
+								playerId: "batter-corey",
+								teamIndex: 1,
+								slotIndex: 1,
+								overallPick: 2,
+								round: 1,
+								pickInRound: 2,
+								timestamp: 2,
+							},
+						],
+					},
+					updatedAt: Date.now(),
+				},
+			],
+		};
+		currentState.undoLastDraftPick = vi.fn(() => {
+			currentState = {
+				...currentState,
+				leagues: currentState.leagues.map((activeLeague) =>
+					activeLeague.id !== league.id
+						? activeLeague
+						: {
+							...activeLeague,
+							draftState: {
+								...activeLeague.draftState,
+								draftedByTeam: { "batter-mike": "0" },
+								pickIndex: 1,
+								history: [activeLeague.draftState.history[0]],
+							},
+						},
+				),
+			};
+		});
+		useStoreMock.mockImplementation((selector?: (state: ReturnType<typeof useStoreMock>) => unknown) => {
+			return selector ? selector(currentState) : currentState;
+		});
+
+		const { rerender } = render(<Leaderboard />);
+
+		await act(async () => {
+			vi.advanceTimersByTime(700);
+		});
+		toastSpy.mockClear();
+
+		fireEvent.click(screen.getByRole("button", { name: "Undo Last Pick" }));
+		rerender(<Leaderboard />);
+
+		expect(toastSpy).toHaveBeenCalledTimes(1);
+		expect(toastSpy).toHaveBeenNthCalledWith(
+			1,
+			"Auto-rewound",
+			expect.objectContaining({
+				description: "Gerrit Cole • Pick 3",
+			}),
+		);
+
+		await act(async () => {
+			vi.advanceTimersByTime(220);
+		});
+		expect(toastSpy).toHaveBeenCalledTimes(2);
+		expect(toastSpy).toHaveBeenNthCalledWith(
+			2,
+			"Pick undone",
+			expect.objectContaining({
+				description: "Corey Seager • Team 2 • Pick 2",
+				duration: 2200,
+			}),
+		);
+	});
+
 	it("keeps drafted rows readable in non-draft mode and shows ownership in a badge tooltip", async () => {
 		const user = userEvent.setup();
 		mockStore({

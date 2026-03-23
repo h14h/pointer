@@ -99,6 +99,7 @@ const DEFAULT_BATTING_STATS = ["R", "HR", "RBI", "SB", "AVG"];
 const DEFAULT_PITCHING_STATS = ["W", "SV", "SO_P", "ERA", "WHIP"];
 const EMPTY_DRAFT_HISTORY: DraftState["history"] = [];
 const AUTO_ACTION_TOAST_DELAY_MS = 650;
+const FOLLOW_UP_TOAST_DELAY_MS = 220;
 const OWNERSHIP_BADGE_CLASSNAME =
 	"inline-flex select-none rounded-sm border px-1.5 text-[10px] font-bold uppercase tracking-wider";
 const KEEPER_BADGE_CLASSNAME =
@@ -118,6 +119,12 @@ export function formatParForDisplay(par: number): string {
 	if (roundedPar > 0) return `+${roundedPar}`;
 	return `${roundedPar}`;
 }
+
+type PendingUndoToast = {
+	playerName: string;
+	teamName: string;
+	overallPick: number;
+};
 
 function abbreviateName(name: string): string {
 	const parts = name.trim().split(/\s+/);
@@ -296,6 +303,8 @@ export function Leaderboard() {
 	const isSwitchingGroups = deferredGroupId !== currentGroupId;
 	const previousOpenPickIndexRef = useRef<number | null>(null);
 	const autoActionToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const undoToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const pendingUndoToastRef = useRef<PendingUndoToast | null>(null);
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [appliedGlobalFilter, setAppliedGlobalFilter] = useState("");
 	const [playerView, setPlayerView] = useState<PlayerView>("all");
@@ -442,11 +451,16 @@ export function Leaderboard() {
 			allPlayersById.get(lastDraftPick.playerId)?.Name ?? "Draft pick";
 		const teamName =
 			leagueSettings.teamNames[lastDraftPick.teamIndex] ?? `Team ${lastDraftPick.teamIndex + 1}`;
+		pendingUndoToastRef.current = {
+			playerName,
+			teamName,
+			overallPick: lastDraftPick.overallPick,
+		};
+		if (undoToastTimeoutRef.current) {
+			clearTimeout(undoToastTimeoutRef.current);
+			undoToastTimeoutRef.current = null;
+		}
 		undoLastDraftPick();
-		toast("Pick undone", {
-			description: `${playerName} • ${teamName} • Pick ${lastDraftPick.overallPick}`,
-			duration: 2200,
-		});
 	}, [allPlayersById, lastDraftPick, leagueSettings, undoLastDraftPick]);
 	useEffect(() => {
 		if (!isDraftMode || !draftState) {
@@ -454,6 +468,11 @@ export function Leaderboard() {
 				clearTimeout(autoActionToastTimeoutRef.current);
 				autoActionToastTimeoutRef.current = null;
 			}
+			if (undoToastTimeoutRef.current) {
+				clearTimeout(undoToastTimeoutRef.current);
+				undoToastTimeoutRef.current = null;
+			}
+			pendingUndoToastRef.current = null;
 			previousOpenPickIndexRef.current = null;
 			return;
 		}
@@ -525,16 +544,33 @@ export function Leaderboard() {
 				previousOpenPickIndex !== null &&
 				currentOpenPickIndex < previousOpenPickIndex
 			) {
-				autoActionToastTimeoutRef.current = setTimeout(() => {
-					toast("Auto-rewound", {
-						description:
-							skippedKeeperEntries.length === 1
-								? `${skippedPlayerName} • ${skippedPickLabel}`
-								: `Cursor moved back across ${skippedKeeperEntries.length} keeper slots`,
-					});
-					autoActionToastTimeoutRef.current = null;
-				}, AUTO_ACTION_TOAST_DELAY_MS);
+				toast("Auto-rewound", {
+					description:
+						skippedKeeperEntries.length === 1
+							? `${skippedPlayerName} • ${skippedPickLabel}`
+							: `Cursor moved back across ${skippedKeeperEntries.length} keeper slots`,
+				});
+				if (pendingUndoToastRef.current) {
+					const pendingUndoToast = pendingUndoToastRef.current;
+					undoToastTimeoutRef.current = setTimeout(() => {
+						toast("Pick undone", {
+							description: `${pendingUndoToast.playerName} • ${pendingUndoToast.teamName} • Pick ${pendingUndoToast.overallPick}`,
+							duration: 2200,
+						});
+						pendingUndoToastRef.current = null;
+						undoToastTimeoutRef.current = null;
+					}, FOLLOW_UP_TOAST_DELAY_MS);
+				}
 			}
+		}
+
+		if (pendingUndoToastRef.current && !undoToastTimeoutRef.current) {
+			const pendingUndoToast = pendingUndoToastRef.current;
+			toast("Pick undone", {
+				description: `${pendingUndoToast.playerName} • ${pendingUndoToast.teamName} • Pick ${pendingUndoToast.overallPick}`,
+				duration: 2200,
+			});
+			pendingUndoToastRef.current = null;
 		}
 
 		previousOpenPickIndexRef.current = currentOpenPickIndex;
@@ -542,6 +578,10 @@ export function Leaderboard() {
 			if (autoActionToastTimeoutRef.current) {
 				clearTimeout(autoActionToastTimeoutRef.current);
 				autoActionToastTimeoutRef.current = null;
+			}
+			if (undoToastTimeoutRef.current) {
+				clearTimeout(undoToastTimeoutRef.current);
+				undoToastTimeoutRef.current = null;
 			}
 		};
 	}, [allPlayersById, currentOpenPickIndex, draftState, isDraftMode, leagueSettings]);

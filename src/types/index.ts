@@ -176,7 +176,8 @@ export interface ScoringSettings {
     RBI: number;    // RBI
     SB: number;     // Stolen bases
     CS: number;     // Caught stealing (usually negative)
-    BB: number;     // Walks
+    BB: number;     // Walks (non-intentional; BB minus IBB)
+    IBB: number;    // Intentional walks
     SO: number;     // Strikeouts (usually negative)
     HBP: number;    // Hit by pitch
     SF: number;     // Sacrifice flies

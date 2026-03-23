@@ -59,6 +59,7 @@ In draft mode:
 - **Pick confirmation toast** appears immediately after a manual draft pick using the same plain Sonner style as the automatic draft toasts, with the player name, receiving team, and pick number
 - **Undo confirmation toast** appears after undoing the most recent manual pick using the same plain Sonner style
 - **Automatic keeper-skip toast** appears when the live cursor auto-advances or rewinds across keeper-reserved slots; single-slot auto-advances use the kept player's name as the toast title with the same red `K` badge used in the table, and include the team name plus pick number in the description
+- **Undo across a keeper rewind** shows the automatic rewind toast immediately, then the manual "Pick undone" toast shortly afterward so the cursor movement reads before the restored manual pick
 - **Undo Last Pick** lives in the draft context band above the filters and rewinds the most recent manual pick only
 
 Keepers are no longer created from a row interaction. They are assigned in Settings, can reserve a specific draft round for their team's natural snake slot, and appear here as unavailable keeper-tagged rows.

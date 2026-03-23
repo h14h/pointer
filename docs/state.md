@@ -32,6 +32,8 @@ Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (
 
 **Manual picks only in history.** `history` contains only manual picks. `pickIndex` is now the next draft slot cursor rather than a simple manual-pick count, because keeper reservations may consume slots without creating history entries. Undo removes only the latest manual draft pick and restores its original slot index.
 
+Given a first-round keeper reserved at overall pick 3, when overall picks 1, 2, 4, and 5 are made manually, then `history` records slot indexes `0, 1, 3, 4` and the live cursor advances to slot index `5` (overall pick 6) rather than collapsing back to `history.length`.
+
 **Reset preserves keeper setup.** `resetDraft` operates on the active league only and clears only manual draft progress: `draftedByTeam`, `history`, and the live pick cursor. Keeper ownership and reserved keeper slots remain intact, and the cursor rewinds to the first open non-keeper slot.
 
 **League size clamping.** Size is clamped to [2, 20] on every write via `normalizeLeagueSettings`. Team names are padded with `"Team {n}"` or truncated to match.

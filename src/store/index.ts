@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import {
   createDraftPick,
   getDraftPickContext,
@@ -38,6 +38,7 @@ const defaultScoringSettings: ScoringSettings = {
     SB: 1,
     CS: -1,
     BB: 1,
+    IBB: 0,
     SO: -1,
     HBP: 1,
     SF: 0,
@@ -150,8 +151,17 @@ const createDefaultLeague = (
   updatedAt: options?.deterministic ? 0 : Date.now(),
 });
 
+const normalizeScoringSettings = (settings: ScoringSettings): ScoringSettings => ({
+  ...settings,
+  batting: {
+    ...settings.batting,
+    IBB: settings.batting.IBB ?? 0,
+  },
+});
+
 const normalizeLeague = (league: League): League => ({
   ...league,
+  scoringSettings: normalizeScoringSettings(league.scoringSettings),
   leagueSettings: normalizeLeagueSettings(league.leagueSettings),
   updatedAt: league.updatedAt ?? Date.now(),
 });
@@ -319,21 +329,130 @@ export function migrateDraftState(input?: LegacyDraftState | null): DraftState {
   const fallbackPickIndex = Object.keys(draftedByTeam).filter(
     (playerId) => keeperByTeam[playerId] === undefined
   ).length;
-  const pickIndex = history.length > 0
-    ? history.length
-    : Number.isFinite(input?.pickIndex)
-      ? Math.max(0, Math.round(input?.pickIndex as number))
-      : fallbackPickIndex;
+  const historyCursor = history.at(-1)?.slotIndex;
+  const persistedPickIndex = Number.isFinite(input?.pickIndex)
+    ? Math.max(0, Math.round(input?.pickIndex as number))
+    : null;
+  const pickIndex = historyCursor !== undefined
+    ? Math.max((historyCursor ?? -1) + 1, persistedPickIndex ?? 0)
+    : (persistedPickIndex ?? fallbackPickIndex);
 
   return {
     format: input?.format ?? "snake",
     draftedByTeam,
     keeperByTeam,
     keeperSlotByPlayer,
-    pickIndex: history.length > 0 ? history.length : pickIndex,
+    pickIndex,
     history,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Split localStorage adapter
+// ---------------------------------------------------------------------------
+// Stores leagues, projections, and preferences in separate localStorage keys
+// so users can manually delete projections without losing league config.
+// Transparently migrates from the legacy single-key format ("pointer-storage").
+// ---------------------------------------------------------------------------
+const STORAGE_KEY_LEAGUES = "pointer-leagues";
+const STORAGE_KEY_PROJECTIONS = "pointer-projections";
+const STORAGE_KEY_PREFERENCES = "pointer-preferences";
+const LEGACY_STORAGE_KEY = "pointer-storage";
+
+function getStorage(): Storage | null {
+  try {
+    return typeof localStorage !== "undefined" ? localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+const splitStorage: StateStorage = {
+  getItem(name: string): string | null {
+    const storage = getStorage();
+    if (!storage) return null;
+
+    // Migration path: if legacy single-key data exists, return it as-is so
+    // Zustand's built-in migrate() processes it. On the next setItem() call
+    // the data will be written to split keys and the legacy key removed.
+    const legacy = storage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      return legacy;
+    }
+
+    // Read from split keys
+    const leaguesRaw = storage.getItem(STORAGE_KEY_LEAGUES);
+    const projectionsRaw = storage.getItem(STORAGE_KEY_PROJECTIONS);
+    const preferencesRaw = storage.getItem(STORAGE_KEY_PREFERENCES);
+
+    if (!leaguesRaw && !projectionsRaw && !preferencesRaw) return null;
+
+    try {
+      const leagues = leaguesRaw ? JSON.parse(leaguesRaw) : {};
+      const projections = projectionsRaw ? JSON.parse(projectionsRaw) : {};
+      const preferences = preferencesRaw ? JSON.parse(preferencesRaw) : {};
+
+      return JSON.stringify({
+        state: { ...leagues, ...projections, ...preferences },
+        version: preferences._version ?? 8,
+      });
+    } catch {
+      return null;
+    }
+  },
+
+  setItem(_name: string, value: string): void {
+    const storage = getStorage();
+    if (!storage) return;
+
+    try {
+      const { state, version } = JSON.parse(value);
+
+      storage.setItem(
+        STORAGE_KEY_LEAGUES,
+        JSON.stringify({
+          leagues: state.leagues,
+          activeLeagueId: state.activeLeagueId,
+        })
+      );
+
+      storage.setItem(
+        STORAGE_KEY_PROJECTIONS,
+        JSON.stringify({
+          projectionGroups: state.projectionGroups,
+          activeProjectionGroupId: state.activeProjectionGroupId,
+        })
+      );
+
+      storage.setItem(
+        STORAGE_KEY_PREFERENCES,
+        JSON.stringify({
+          isDraftMode: state.isDraftMode,
+          mergeTwoWayRankings: state.mergeTwoWayRankings,
+          _version: version,
+        })
+      );
+
+      // Remove legacy key after successful split write
+      storage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {
+      // If splitting fails, fall back to single-key write so data isn't lost
+      try {
+        storage.setItem(LEGACY_STORAGE_KEY, value);
+      } catch { /* storage full or unavailable */ }
+    }
+  },
+
+  removeItem(_name: string): void {
+    const storage = getStorage();
+    if (!storage) return;
+
+    storage.removeItem(STORAGE_KEY_LEAGUES);
+    storage.removeItem(STORAGE_KEY_PROJECTIONS);
+    storage.removeItem(STORAGE_KEY_PREFERENCES);
+    storage.removeItem(LEGACY_STORAGE_KEY);
+  },
+};
 
 export const useStore = create<Store>()(
   persist(
@@ -351,7 +470,8 @@ export const useStore = create<Store>()(
       getActiveLeague: () => {
         const state = get();
         const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-        return state.leagues.find((l) => l.id === activeId);
+        const league = state.leagues.find((l) => l.id === activeId);
+        return league ? normalizeLeague(league) : undefined;
       },
       canEditDraftSetup: () => {
         const activeLeague = get().getActiveLeague();
@@ -973,6 +1093,7 @@ export const useStore = create<Store>()(
     }),
     {
       name: "pointer-storage",
+      storage: createJSONStorage(() => splitStorage),
       version: 8,
       skipHydration: true,
       partialize: (state): PersistedStoreState => ({
@@ -994,6 +1115,7 @@ export const useStore = create<Store>()(
           const projectionGroups = normalizeProjectionGroups(state.projectionGroups ?? []);
           return {
             ...state,
+            leagues: (state.leagues ?? []).map(normalizeLeague),
             projectionGroups,
             activeProjectionGroupId:
               state.activeProjectionGroupId ?? getProjectionGroupFallbackId(projectionGroups),
@@ -1005,6 +1127,7 @@ export const useStore = create<Store>()(
           const projectionGroups = normalizeProjectionGroups(state.projectionGroups ?? []);
           return {
             ...state,
+            leagues: (state.leagues ?? []).map(normalizeLeague),
             projectionGroups,
             activeProjectionGroupId:
               state.activeProjectionGroupId ?? getProjectionGroupFallbackId(projectionGroups),
@@ -1015,6 +1138,7 @@ export const useStore = create<Store>()(
           const state = persistedState as PersistedStoreState;
           return {
             ...state,
+            leagues: (state.leagues ?? []).map(normalizeLeague),
             projectionGroups: normalizeProjectionGroups(state.projectionGroups ?? []),
           };
         }
@@ -1036,7 +1160,7 @@ export const useStore = create<Store>()(
 
         const state = persistedState as V4State;
 
-        const scoringSettings = state.scoringSettings ?? defaultScoringSettings;
+        const scoringSettings = normalizeScoringSettings(state.scoringSettings ?? defaultScoringSettings);
         const leagueSettings = state.leagueSettings
           ? normalizeLeagueSettings(state.leagueSettings)
           : defaultLeagueSettings;

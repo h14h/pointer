@@ -16,6 +16,7 @@ export function calculateBatterPoints(
   points += (player.SB || 0) * settings.SB;
   points += (player.CS || 0) * settings.CS;
   points += (player.BB || 0) * settings.BB;
+  points += (player.IBB || 0) * (settings.IBB ?? 0);
   points += (player.SO || 0) * settings.SO;
   points += (player.HBP || 0) * settings.HBP;
   points += (player.SF || 0) * settings.SF;
@@ -75,6 +76,7 @@ function calculateTwoWayBattingPoints(
   points += (stats.SB || 0) * settings.SB;
   points += (stats.CS || 0) * settings.CS;
   points += (stats.BB || 0) * settings.BB;
+  points += (stats.IBB || 0) * (settings.IBB ?? 0);
   points += (stats.SO || 0) * settings.SO;
   points += (stats.HBP || 0) * settings.HBP;
   points += (stats.SF || 0) * settings.SF;

@@ -65,9 +65,37 @@ describe("migrateDraftState", () => {
     expect(migrated.history).toEqual([]);
   });
 
-  it("trusts history length over legacy pick index", () => {
+  it("derives the live cursor from the furthest recorded slot when history exists", () => {
     const migrated = migrateDraftState({
-      pickIndex: 9,
+      history: [
+        {
+          playerId: "player-1",
+          teamIndex: 0,
+          slotIndex: 0,
+          overallPick: 1,
+          round: 1,
+          pickInRound: 1,
+          timestamp: 1,
+        },
+        {
+          playerId: "player-2",
+          teamIndex: 3,
+          slotIndex: 3,
+          overallPick: 4,
+          round: 1,
+          pickInRound: 4,
+          timestamp: 2,
+        },
+      ],
+    });
+
+    expect(migrated.pickIndex).toBe(4);
+    expect(migrated.history).toHaveLength(2);
+  });
+
+  it("preserves an explicit cursor when keeper skips push it past manual pick count", () => {
+    const migrated = migrateDraftState({
+      pickIndex: 5,
       history: [
         {
           playerId: "player-1",
@@ -87,11 +115,19 @@ describe("migrateDraftState", () => {
           pickInRound: 2,
           timestamp: 2,
         },
+        {
+          playerId: "player-4",
+          teamIndex: 3,
+          slotIndex: 3,
+          overallPick: 4,
+          round: 1,
+          pickInRound: 4,
+          timestamp: 3,
+        },
       ],
     });
 
-    expect(migrated.pickIndex).toBe(2);
-    expect(migrated.history).toHaveLength(2);
+    expect(migrated.pickIndex).toBe(5);
   });
 });
 
@@ -265,6 +301,48 @@ describe("keeper slot cursor normalization", () => {
     const draftState = storeModule.useStore.getState().getActiveLeague()!.draftState;
     expect(draftState.keeperSlotByPlayer["keeper-1"]).toBe(6);
     expect(draftState.pickIndex).toBe(0);
+  });
+
+  it("keeps the live cursor aligned after drafting across an auto-skipped keeper slot", async () => {
+    const storeModule = await import("@/store");
+    const current = storeModule.useStore.getState();
+    const activeLeague = current.getActiveLeague();
+
+    if (!activeLeague) throw new Error("expected active league");
+
+    storeModule.useStore.setState({
+      leagues: [
+        {
+          ...activeLeague,
+          leagueSettings: {
+            ...activeLeague.leagueSettings,
+            leagueSize: 6,
+            teamNames: ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"],
+          },
+          draftState: {
+            format: "snake",
+            draftedByTeam: {},
+            keeperByTeam: { "keeper-1": "2" },
+            keeperSlotByPlayer: { "keeper-1": 2 },
+            pickIndex: 0,
+            history: [],
+          },
+        },
+      ],
+      activeLeagueId: activeLeague.id,
+    });
+
+    const store = storeModule.useStore.getState();
+    store.draftPlayer("pick-1");
+    store.draftPlayer("pick-2");
+    store.draftPlayer("pick-4");
+    store.draftPlayer("pick-5");
+
+    const draftState = storeModule.useStore.getState().getActiveLeague()!.draftState;
+
+    expect(draftState.history.map((pick) => pick.slotIndex)).toEqual([0, 1, 3, 4]);
+    expect(draftState.history.map((pick) => pick.teamIndex)).toEqual([0, 1, 3, 4]);
+    expect(draftState.pickIndex).toBe(5);
   });
 });
 

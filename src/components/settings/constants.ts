@@ -56,6 +56,7 @@ export const battingGroups: { label: string; categories: BattingCategory[] }[] =
     label: "Plate Discipline",
     categories: [
       { key: "BB", label: "Walks (BB)" },
+      { key: "IBB", label: "Intentional Walks (IBB)" },
       { key: "HBP", label: "Hit By Pitch (HBP)" },
       { key: "SO", label: "Strikeouts (SO)" },
     ],
