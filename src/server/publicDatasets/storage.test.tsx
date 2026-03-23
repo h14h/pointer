@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { afterEach, describe, expect, it } from "vitest";
-import { getPublicDatasetBySlug, getPublicDatasetManifest, PublicDatasetStorageError } from "@/server/publicDatasets/storage";
+import { getPublicDatasetManifest, PublicDatasetStorageError } from "@/server/publicDatasets/storage";
 
 describe("public dataset storage", () => {
   afterEach(() => {
@@ -19,14 +19,9 @@ describe("public dataset storage", () => {
     expect(manifest.datasets[0]?.slug).toBe("historical-2025");
   });
 
-  it("loads the checked-in dataset by slug when Tigris is not configured", async () => {
-    const payload = await getPublicDatasetBySlug("historical-2025");
-
-    expect(payload.projectionGroup.batters.length).toBeGreaterThan(0);
-    expect(payload.projectionGroup.pitchers.length).toBeGreaterThan(0);
-  });
-
   it("throws a controlled error for a missing dataset", async () => {
+    const { getPublicDatasetBySlug } = await import("@/server/publicDatasets/storage");
+
     await expect(getPublicDatasetBySlug("missing-dataset")).rejects.toMatchObject<
       Partial<PublicDatasetStorageError>
     >({
@@ -35,4 +30,3 @@ describe("public dataset storage", () => {
     });
   });
 });
-

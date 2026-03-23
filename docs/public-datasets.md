@@ -35,7 +35,7 @@ The browser never talks to Tigris directly. All storage access happens through N
 - `GET /api/public-datasets`
 - `GET /api/public-datasets/[slug]`
 
-Local development and tests can fall back to the checked-in `data/public-datasets/` files when Tigris env vars are absent, but production publishing still targets Tigris.
+Local development falls back to locally generated `data/public-datasets/` files when Tigris env vars are absent. Dataset payloads are gitignored — only `manifest.json` is committed. Run `scripts/generate-public-dataset.ts` to create local dataset files for development. Production always reads from Tigris.
 
 ## Protected Baseline Semantics
 
@@ -75,7 +75,7 @@ The script then uploads each dataset object and finally uploads `manifest.json`,
 
 ## Local Generation
 
-The checked-in dataset artifact is generated from raw FanGraphs exports with `scripts/generate-public-dataset.ts`. The script is parameterized; it does not hardcode source file locations. Pass explicit batter/pitcher paths plus the catalog metadata you want to write:
+The dataset payload is generated locally from raw FanGraphs exports with `scripts/generate-public-dataset.ts`. The script is parameterized; it does not hardcode source file locations. Pass explicit batter/pitcher paths plus the catalog metadata you want to write:
 
 ```bash
 bun run generate:public-dataset -- \
