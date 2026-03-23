@@ -21,6 +21,7 @@ import type {
   RosterSettings,
   RosterSlot,
   League,
+  ProjectionGroupSource,
 } from "@/types";
 
 // Default ESPN-style scoring
@@ -101,6 +102,39 @@ const createDefaultDraftState = (): DraftState => ({
   pickIndex: 0,
   history: [],
 });
+
+const UPLOAD_PROJECTION_SOURCE: ProjectionGroupSource = { kind: "upload" };
+
+function getDefaultEligibilityImportSeason(group: ProjectionGroup): number {
+  if (group.source.kind === "public-dataset") {
+    return group.source.season;
+  }
+  return 2025;
+}
+
+function isProtectedProjectionGroup(group: ProjectionGroup): boolean {
+  return group.source.kind === "public-dataset" && group.source.protected;
+}
+
+function getProjectionGroupFallbackId(groups: ProjectionGroup[]): string | null {
+  return groups.find(isProtectedProjectionGroup)?.id ?? groups[0]?.id ?? null;
+}
+
+function normalizeProjectionGroup(group: ProjectionGroup): ProjectionGroup {
+  const source = group.source ?? UPLOAD_PROJECTION_SOURCE;
+  return {
+    ...group,
+    source,
+    eligibilityImportSeason:
+      Number.isFinite(group.eligibilityImportSeason) && (group.eligibilityImportSeason ?? 0) > 0
+        ? Math.round(group.eligibilityImportSeason as number)
+        : getDefaultEligibilityImportSeason({ ...group, source }),
+  };
+}
+
+function normalizeProjectionGroups(groups: ProjectionGroup[]): ProjectionGroup[] {
+  return groups.map(normalizeProjectionGroup);
+}
 
 const INITIAL_LEAGUE_ID = "default-league";
 
@@ -208,6 +242,9 @@ interface Store {
 
   // Projection actions
   addProjectionGroup: (group: ProjectionGroup) => void;
+  seedProjectionGroup: (group: ProjectionGroup) => void;
+  renameProjectionGroup: (id: string, name: string) => void;
+  setProjectionGroupEligibilityImportSeason: (id: string, season: number) => void;
   setActiveProjectionGroup: (id: string) => void;
   clearProjectionGroups: () => void;
   removeProjectionGroup: (id: string) => void;
@@ -404,20 +441,69 @@ export const useStore = create<Store>()(
       // Projection actions
       addProjectionGroup: (group) =>
         set((state) => ({
-          projectionGroups: [...state.projectionGroups, group],
+          projectionGroups: [...state.projectionGroups, normalizeProjectionGroup(group)],
           activeProjectionGroupId: group.id,
+        })),
+
+      seedProjectionGroup: (group) =>
+        set((state) => {
+          const normalized = normalizeProjectionGroup(group);
+          const existingGroup = state.projectionGroups.find((current) => {
+            if (current.id === normalized.id) return true;
+            return (
+              current.source.kind === "public-dataset" &&
+              normalized.source.kind === "public-dataset" &&
+              current.source.slug === normalized.source.slug
+            );
+          });
+          if (existingGroup) return state;
+          const projectionGroups = [...state.projectionGroups, normalized];
+          return {
+            projectionGroups,
+            activeProjectionGroupId:
+              state.activeProjectionGroupId ?? getProjectionGroupFallbackId(projectionGroups),
+          };
+        }),
+
+      renameProjectionGroup: (id, name) =>
+        set((state) => ({
+          projectionGroups: state.projectionGroups.map((group) => {
+            if (group.id !== id) return group;
+            if (isProtectedProjectionGroup(group)) return group;
+            const trimmedName = name.trim();
+            if (trimmedName.length === 0) return group;
+            return { ...group, name: trimmedName };
+          }),
+        })),
+
+      setProjectionGroupEligibilityImportSeason: (id, season) =>
+        set((state) => ({
+          projectionGroups: state.projectionGroups.map((group) => {
+            if (group.id !== id) return group;
+            if (!Number.isFinite(season) || season <= 0) return group;
+            return { ...group, eligibilityImportSeason: Math.round(season) };
+          }),
         })),
 
       setActiveProjectionGroup: (id) => set({ activeProjectionGroupId: id }),
 
-      clearProjectionGroups: () => set({ projectionGroups: [], activeProjectionGroupId: null }),
+      clearProjectionGroups: () =>
+        set((state) => {
+          const projectionGroups = state.projectionGroups.filter(isProtectedProjectionGroup);
+          return {
+            projectionGroups,
+            activeProjectionGroupId: getProjectionGroupFallbackId(projectionGroups),
+          };
+        }),
 
       removeProjectionGroup: (id) =>
         set((state) => {
+          const target = state.projectionGroups.find((group) => group.id === id);
+          if (target && isProtectedProjectionGroup(target)) return state;
           const projectionGroups = state.projectionGroups.filter((g) => g.id !== id);
           const activeProjectionGroupId =
             state.activeProjectionGroupId === id
-              ? projectionGroups[0]?.id ?? null
+              ? getProjectionGroupFallbackId(projectionGroups)
               : state.activeProjectionGroupId;
           return { projectionGroups, activeProjectionGroupId };
         }),
@@ -847,8 +933,10 @@ export const useStore = create<Store>()(
 
       clearAllData: () =>
         set((state) => ({
-          projectionGroups: [],
-          activeProjectionGroupId: null,
+          projectionGroups: state.projectionGroups.filter(isProtectedProjectionGroup),
+          activeProjectionGroupId: getProjectionGroupFallbackId(
+            state.projectionGroups.filter(isProtectedProjectionGroup)
+          ),
           leagues: state.leagues.map((league) => ({
             ...league,
             draftState: createDefaultDraftState(),
@@ -885,7 +973,7 @@ export const useStore = create<Store>()(
     }),
     {
       name: "pointer-storage",
-      version: 6,
+      version: 8,
       skipHydration: true,
       partialize: (state): PersistedStoreState => ({
         leagues: state.leagues,
@@ -901,7 +989,35 @@ export const useStore = create<Store>()(
         }
       },
       migrate: (persistedState, version) => {
-        if (version >= 6) return persistedState as PersistedStoreState;
+        if (version === 6) {
+          const state = persistedState as PersistedStoreState;
+          const projectionGroups = normalizeProjectionGroups(state.projectionGroups ?? []);
+          return {
+            ...state,
+            projectionGroups,
+            activeProjectionGroupId:
+              state.activeProjectionGroupId ?? getProjectionGroupFallbackId(projectionGroups),
+          };
+        }
+
+        if (version === 7) {
+          const state = persistedState as PersistedStoreState;
+          const projectionGroups = normalizeProjectionGroups(state.projectionGroups ?? []);
+          return {
+            ...state,
+            projectionGroups,
+            activeProjectionGroupId:
+              state.activeProjectionGroupId ?? getProjectionGroupFallbackId(projectionGroups),
+          };
+        }
+
+        if (version >= 8) {
+          const state = persistedState as PersistedStoreState;
+          return {
+            ...state,
+            projectionGroups: normalizeProjectionGroups(state.projectionGroups ?? []),
+          };
+        }
 
         type V4State = {
           scoringSettings: ScoringSettings;
@@ -938,8 +1054,10 @@ export const useStore = create<Store>()(
         return {
           leagues: [league],
           activeLeagueId: league.id,
-          projectionGroups: state.projectionGroups ?? [],
-          activeProjectionGroupId: state.activeProjectionGroupId ?? null,
+          projectionGroups: normalizeProjectionGroups(state.projectionGroups ?? []),
+          activeProjectionGroupId:
+            state.activeProjectionGroupId ??
+            getProjectionGroupFallbackId(normalizeProjectionGroups(state.projectionGroups ?? [])),
           isDraftMode: state.isDraftMode ?? false,
           mergeTwoWayRankings: state.mergeTwoWayRankings ?? true,
         };

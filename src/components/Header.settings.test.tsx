@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { AnchorHTMLAttributes } from "react";
 import { Header } from "@/components/Header";
 
@@ -23,8 +24,6 @@ vi.mock("next/link", () => ({
 }));
 
 describe("Header settings navigation", () => {
-  const onOpenUpload = vi.fn();
-
   function mockStore() {
     useStoreMock.mockReturnValue({
       isDraftMode: false,
@@ -72,9 +71,41 @@ describe("Header settings navigation", () => {
       ],
       activeLeagueId: "league-1",
       setActiveLeague: vi.fn(),
-      undoLastDraftPick: vi.fn(),
-      resetDraft: vi.fn(),
-      clearAllData: vi.fn(),
+      projectionGroups: [
+        {
+          id: "public-historical-2025",
+          name: "2025 Prior-Year Stats",
+          createdAt: "2026-03-22T00:00:00.000Z",
+          source: {
+            kind: "public-dataset",
+            slug: "historical-2025",
+            season: 2025,
+            datasetType: "historical-stats",
+            protected: true,
+            seededAt: "2026-03-22T00:00:00.000Z",
+          },
+          batters: [],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+          eligibilityImportSeason: 2025,
+        },
+        {
+          id: "upload-1",
+          name: "Steamer",
+          createdAt: "2026-03-22T00:00:00.000Z",
+          source: { kind: "upload" },
+          batters: [],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+          eligibilityImportSeason: 2025,
+        },
+      ],
+      activeProjectionGroupId: "public-historical-2025",
+      setActiveProjectionGroup: vi.fn(),
     });
   }
 
@@ -82,12 +113,12 @@ describe("Header settings navigation", () => {
     cleanup();
   });
 
-  it("renders a settings cog link and removes the scoring button", () => {
+  it("renders the projections dropdown and settings cog", () => {
     usePathnameMock.mockReturnValue("/");
     mockStore();
-    render(<Header onOpenUpload={onOpenUpload} />);
+    render(<Header />);
 
-    expect(screen.queryByRole("button", { name: "Scoring" })).toBeNull();
+    expect(screen.getByRole("button", { name: /2025 Leaders/i })).toBeInTheDocument();
     const settingsLink = screen.getByLabelText("Settings");
     expect(settingsLink).toHaveAttribute("href", "/settings?section=scoring");
   });
@@ -95,7 +126,7 @@ describe("Header settings navigation", () => {
   it("links back to the leaderboard and applies active styles on the settings page", () => {
     usePathnameMock.mockReturnValue("/settings");
     mockStore();
-    render(<Header onOpenUpload={onOpenUpload} />);
+    render(<Header />);
 
     const settingsLink = screen.getByLabelText("Settings");
     expect(settingsLink).toHaveAttribute("href", "/");
@@ -103,63 +134,19 @@ describe("Header settings navigation", () => {
     expect(settingsLink.className).toContain("bg-[#dc2626]");
   });
 
-  it("keeps the header focused on global controls even in draft mode", () => {
+  it("opens the projections menu with a manage link", async () => {
+    const user = userEvent.setup();
     usePathnameMock.mockReturnValue("/");
-    useStoreMock.mockReturnValue({
-      ...useStoreMock.mock.results.at(-1)?.value,
-      isDraftMode: true,
-      leagues: [
-        {
-          id: "league-1",
-          name: "My League",
-          leagueSettings: {
-            leagueSize: 12,
-            teamNames: Array.from({ length: 12 }, (_, index) => `Team ${index + 1}`),
-            roster: {
-              positions: {
-                C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1, LF: 0, CF: 0, RF: 0, DH: 0,
-                CI: 0, MI: 0, IF: 0, OF: 3, UTIL: 1, SP: 0, RP: 0, P: 7, IL: 0, NA: 0,
-              },
-              bench: 3,
-            },
-          },
-          draftState: {
-            format: "snake",
-            draftedByTeam: { "player-1": "0" },
-            keeperByTeam: { "player-2": "0" },
-            keeperSlotByPlayer: { "player-2": 24 },
-            pickIndex: 1,
-            history: [
-              {
-                playerId: "player-1",
-                teamIndex: 0,
-                slotIndex: 0,
-                overallPick: 1,
-                round: 1,
-                pickInRound: 1,
-                timestamp: 1,
-              },
-            ],
-          },
-          scoringSettings: {
-            name: "Default",
-            batting: { R: 1, H: 0, "1B": 1, "2B": 2, "3B": 3, HR: 4, RBI: 1, SB: 1, CS: -1, BB: 1, SO: -1, HBP: 1, SF: 0, GDP: 0 },
-            pitching: { IP: 3, W: 5, L: -5, QS: 3, CG: 0, ShO: 0, SV: 5, BS: -3, HLD: 2, SO: 1, H: -1, ER: -2, HR: -1, BB: -1, HBP: -1 },
-          },
-          updatedAt: Date.now(),
-        },
-      ],
-      activeLeagueId: "league-1",
-      setActiveLeague: vi.fn(),
-      resetDraft: vi.fn(),
-      clearAllData: vi.fn(),
-      setDraftMode: vi.fn(),
-    });
+    mockStore();
+    render(<Header />);
 
-    render(<Header onOpenUpload={onOpenUpload} />);
+    await user.click(screen.getByRole("button", { name: /2025 Leaders/i }));
 
-    expect(screen.queryByText("On The Clock")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Undo Last Pick" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Reset Draft" })).toBeNull();
+    expect(screen.getByText("Steamer")).toBeInTheDocument();
+    expect(screen.getByText("Built-in")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Manage Projections..." })).toHaveAttribute(
+      "href",
+      "/settings?section=projections"
+    );
   });
 });

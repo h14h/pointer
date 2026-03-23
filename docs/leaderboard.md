@@ -6,6 +6,7 @@
 
 ## Dependencies
 - [State](state.md) — all major state slices
+- [Public Datasets](public-datasets.md) — built-in dataset bootstrap banner and protected baseline behavior
 - [Scoring](scoring.md) — `calculatePlayerPoints`
 - [Replacement Value (PAR)](paring-value.md) — `calculatePAR`
 - [Eligibility](eligibility.md) — `POSITION_ORDER`
@@ -16,11 +17,13 @@
 
 Split into two UI components plus a pure derivation helper:
 
-**`Leaderboard` (parent)** — owns filter state (search, player view, draft filter), stat visibility selections, projection group selection, and deferred UI transitions for search / position / player-type changes.
+**`Leaderboard` (parent)** — owns filter state (search, player view, draft filter), stat visibility selections, and deferred UI transitions for search / position / player-type changes. Projection-group switching now happens globally from the header instead of from a table-local control.
 
 **`LeaderboardTable` (child, `React.memo`)** — owns sorting state, pagination state, and table rendering.
 
 **`leaderboardDerived.ts`** — owns the expensive ranking pipeline plus lightweight filter/sort helpers so text search and position changes do not recompute PAR or view-specific points.
+
+**`PublicDatasetBootstrap` (sibling on the page)** — waits for persisted store hydration, auto-loads the default public dataset when no protected baseline is present, and renders retryable loading/failure UI above the leaderboard when the built-in 2025 stats are unavailable.
 
 ## Ranking Pipeline
 
@@ -86,7 +89,7 @@ Users can toggle individual batting (16 options) and pitching (17 options) stat 
 ## Performance
 
 - `useStore(..., shallow)` narrows the leaderboard subscription to only the slices this screen needs
-- `useDeferredValue` smooths projection-group switching and live search updates; `startTransition` is used for player-type and position changes
+- `useDeferredValue` smooths projection-group switching triggered from the header and live search updates; `startTransition` is used for player-type and position changes
 - Expensive ranking/PAR derivation is isolated from lightweight search/position filtering in `leaderboardDerived.ts`
 - A single explicit sort pass replaces the previous duplicate TanStack table instance used only for rank derivation
 - Dev-only `performance` / `Profiler` logging can be used to confirm whether ranking, filtering, or rendering is the bottleneck during manual profiling
@@ -96,3 +99,9 @@ Users can toggle individual batting (16 options) and pitching (17 options) stat 
 ## Global Filter
 
 Searches both Name and Team fields, case-insensitive, using a pre-lowercased, accent-folded `searchText` field. Search input is normalized the same way, so ASCII queries like `jose berrios` still match names such as `José Berríos`. Search is applied after the main ranking is established, so filtered rows keep their original rank numbers in the left gutter.
+
+## Built-In Baseline
+
+The leaderboard treats the public 2025 baseline exactly like any other projection group once it is seeded into local state. The only special behavior is before data exists locally: the page shows a lightweight bootstrap banner while loading the public catalog and a retry action if the first fetch fails. After a successful seed, the leaderboard stays fully offline-capable because it reads from the persisted local projection group rather than refetching on every visit.
+
+Projection switching is intentionally not duplicated in the filter row anymore. The board assumes the header communicates the active dataset globally, while the filter row remains dedicated to table-local concerns.

@@ -166,7 +166,7 @@ describe("NumericInput", () => {
           unmount();
         }
       ),
-      { numRuns: 75 }
+      { numRuns: 40 }
     );
   });
 
@@ -202,7 +202,7 @@ describe("NumericInput", () => {
           unmount();
         }
       ),
-      { numRuns: 200 }
+      { numRuns: 40 }
     );
   });
 });

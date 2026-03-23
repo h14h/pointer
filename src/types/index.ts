@@ -110,6 +110,17 @@ export type Player = BatterPlayer | PitcherPlayer | TwoWayPlayer;
 
 export type IdSource = "MLBAMID" | "PlayerId" | "custom" | "generated";
 
+export type ProjectionGroupSource =
+  | { kind: "upload" }
+  | {
+      kind: "public-dataset";
+      slug: string;
+      season: number;
+      datasetType: "historical-stats";
+      protected: true;
+      seededAt: string;
+    };
+
 export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH";
 
 export type RosterSlot =
@@ -139,11 +150,13 @@ export type ProjectionGroup = {
   id: string;
   name: string;
   createdAt: string;
+  source: ProjectionGroupSource;
   batters: Player[];
   pitchers: Player[];
   twoWayPlayers: TwoWayPlayer[];
   batterIdSource: IdSource | null;
   pitcherIdSource: IdSource | null;
+  eligibilityImportSeason?: number;
   eligibilityImportedAt?: string;
   eligibilitySeason?: number;
 };

@@ -11,6 +11,16 @@ interface SettingsLayoutProps {
 }
 
 const sectionIcons: Record<SettingsSectionKey, ReactNode> = {
+  projections: (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <rect x="3" y="4" width="14" height="3.5" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="3" y="8.25" width="14" height="3.5" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="3" y="12.5" width="14" height="3.5" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="6" cy="5.75" r=".9" fill="currentColor" />
+      <circle cx="6" cy="10" r=".9" fill="currentColor" />
+      <circle cx="6" cy="14.25" r=".9" fill="currentColor" />
+    </svg>
+  ),
   leagues: (
     <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
       <rect x="3" y="4" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />

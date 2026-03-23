@@ -7,6 +7,7 @@ import { CsvUpload } from "@/components/CsvUpload";
 import { Header } from "@/components/Header";
 import { DraftSection } from "@/components/settings/DraftSection";
 import { LeaguesSection } from "@/components/settings/LeaguesSection";
+import { ProjectionsSection } from "@/components/settings/ProjectionsSection";
 import { RosterSection } from "@/components/settings/RosterSection";
 import { ScoringSection } from "@/components/settings/ScoringSection";
 import { SettingsLayout } from "@/components/settings/SettingsLayout";
@@ -20,7 +21,7 @@ function SettingsPageContent() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-base)]">
-      <Header onOpenUpload={() => setUploadOpen(true)} />
+      <Header />
 
       <main className="mx-auto max-w-5xl px-4 py-6 font-sans sm:px-6 sm:py-8">
         <div className="mb-8">
@@ -49,6 +50,9 @@ function SettingsPageContent() {
         </div>
 
         <SettingsLayout activeSection={activeSection}>
+          {activeSection === "projections" && (
+            <ProjectionsSection onOpenUpload={() => setUploadOpen(true)} />
+          )}
           {activeSection === "scoring" && <ScoringSection />}
           {activeSection === "roster" && <RosterSection />}
           {activeSection === "draft" && <DraftSection />}

@@ -194,6 +194,7 @@ describe("settings sections", () => {
         id: "group-1",
         name: "Main Group",
         createdAt: "2026-02-11T00:00:00.000Z",
+        source: { kind: "upload" },
         batters: [],
         pitchers: [],
         twoWayPlayers: [],
@@ -482,6 +483,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [createBatter("keeper-1", "Mookie Betts", "LAD"), createBatter("batter-1", "Mike Trout", "LAA")],
           pitchers: [],
           twoWayPlayers: [],
@@ -523,6 +525,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             {
               _type: "batter",
@@ -638,6 +641,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             createBatter("keeper-1", "Mookie Betts", "LAD"),
             createBatter("keeper-2", "Fernando Tatis Jr.", "SD"),
@@ -679,6 +683,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             createBatter("keeper-1", "Mookie Betts", "LAD"),
             createBatter("keeper-2", "Mike Trout", "LAA"),
@@ -724,6 +729,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             createBatter("keeper-1", "Mookie Betts", "LAD"),
             createBatter("keeper-2", "Mike Trout", "LAA"),
@@ -759,6 +765,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             createBatter("keeper-1", "Mookie Betts", "LAD"),
             createBatter("keeper-2", "Mike Trout", "LAA"),
@@ -800,6 +807,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             createBatter("keeper-1", "Mookie Betts", "LAD"),
             createBatter("keeper-2", "Mike Trout", "LAA"),
@@ -847,6 +855,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [createBatter("keeper-1", "Mookie Betts", "LAD")],
           pitchers: [],
           twoWayPlayers: [],
@@ -892,6 +901,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             createBatter("keeper-1", "Mookie Betts", "LAD"),
             createBatter("keeper-2", "Mike Trout", "LAA"),
@@ -939,6 +949,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             createBatter("keeper-1", "Mookie Betts", "LAD"),
             createBatter("keeper-2", "Mike Trout", "LAA"),
@@ -980,6 +991,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             {
               _type: "batter",
@@ -1042,6 +1054,7 @@ describe("settings sections", () => {
           id: "group-1",
           name: "Main Group",
           createdAt: "2026-02-11T00:00:00.000Z",
+          source: { kind: "upload" },
           batters: [
             {
               _type: "batter",

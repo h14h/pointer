@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Leaderboard, formatParForDisplay } from "@/components/Leaderboard";
 import type {
@@ -341,6 +341,7 @@ function createProjectionGroup(totalBatters = 3): ProjectionGroup {
 		id: "group-1",
 		name: "Main Group",
 		createdAt: "2026-03-22T00:00:00.000Z",
+		source: { kind: "upload" },
 		batterIdSource: "MLBAMID",
 		pitcherIdSource: "MLBAMID",
 		batters,
@@ -495,17 +496,21 @@ describe("Leaderboard", () => {
 	});
 
 	it("resets pagination after applying a position filter", async () => {
-		const user = userEvent.setup();
 		mockStore({
-			projectionGroups: [createProjectionGroup(60)],
+			projectionGroups: [createProjectionGroup(26)],
 		});
 		render(<Leaderboard />);
 
-		await user.click(screen.getByRole("button", { name: "Next" }));
-		expect(screen.getByText(/Page 2 of/i)).toBeVisible();
+		fireEvent.click(screen.getByRole("button", { name: "Next" }));
+		await waitFor(() => {
+			expect(screen.getByText(/Page 2 of/i)).toBeVisible();
+		});
 
-		await user.click(screen.getByRole("button", { name: "Position" }));
-		await user.click(screen.getByRole("button", { name: "SS" }));
+		fireEvent.click(screen.getByRole("button", { name: "Position" }));
+		const positionMenuLabel = await screen.findByText("Filter by Position");
+		const positionMenu = positionMenuLabel.parentElement?.parentElement;
+		expect(positionMenu).not.toBeNull();
+		fireEvent.click(within(positionMenu as HTMLElement).getByRole("button", { name: "SS" }));
 
 		await waitFor(() => {
 			expect(screen.getByText(/Page 1 of 1/)).toBeVisible();

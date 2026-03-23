@@ -3,6 +3,11 @@ import type { SettingsSectionMeta } from "@/components/settings/types";
 
 export const settingsSections: SettingsSectionMeta[] = [
   {
+    key: "projections",
+    label: "Projections",
+    description: "Active dataset, uploads, and eligibility import.",
+  },
+  {
     key: "leagues",
     label: "Leagues",
     description: "Manage multiple league profiles.",

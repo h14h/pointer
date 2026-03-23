@@ -231,7 +231,6 @@ export function Leaderboard() {
 	const {
 		projectionGroups,
 		activeProjectionGroupId,
-		setActiveProjectionGroup,
 		isDraftMode,
 		draftPlayer,
 		undoLastDraftPick,
@@ -242,7 +241,6 @@ export function Leaderboard() {
 		useShallow((state) => ({
 			projectionGroups: state.projectionGroups,
 			activeProjectionGroupId: state.activeProjectionGroupId,
-			setActiveProjectionGroup: state.setActiveProjectionGroup,
 			isDraftMode: state.isDraftMode,
 			draftPlayer: state.draftPlayer,
 			undoLastDraftPick: state.undoLastDraftPick,
@@ -657,31 +655,6 @@ export function Leaderboard() {
 							});
 						}}
 					/>
-
-					{projectionGroups.length > 1 && (
-						<div className="flex items-center gap-2">
-							<MenuSelect
-								value={currentGroupId ?? ""}
-								onChange={(nextGroupId) => {
-									startTransition(() => {
-										resetPagination();
-										setActiveProjectionGroup(nextGroupId);
-									});
-								}}
-								ariaLabel="Projection group"
-								options={projectionGroups.map((group) => ({
-									value: group.id,
-									label: group.name,
-								}))}
-							/>
-							{isSwitchingGroups && (
-								<span
-									className="h-4 w-4 animate-spin rounded-full border-2 border-[#111111]/20 dark:border-[#333333] border-t-[#dc2626] dark:border-t-[#ef4444]"
-									aria-label="Loading projections"
-								/>
-							)}
-						</div>
-					)}
 
 					{isDraftMode && (
 						<MenuSelect

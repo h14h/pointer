@@ -15,11 +15,12 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 | Pitching Outcomes | Regression estimators for QS/CG/ShO used when import-time estimation is explicitly selected | `src/lib/pitchingOutcomes.ts`, `src/lib/qualityStarts.ts`, `src/lib/pitchingOutcomeImport.ts` | [docs/pitching-outcomes.md](docs/pitching-outcomes.md) |
 | Eligibility | Position eligibility computation and pitcher role classification | `src/lib/eligibility.ts` | [docs/eligibility.md](docs/eligibility.md) |
 | MLB Stats API | Fetching real-time stats from MLB's public API for eligibility enrichment | `src/lib/mlbStatsApi.ts` | [docs/mlb-stats-api.md](docs/mlb-stats-api.md) |
+| Public Datasets | Public catalog/bootstrap flow for the built-in Tigris-backed historical dataset | `src/lib/publicDatasets.ts`, `src/server/publicDatasets/storage.ts`, `src/app/api/public-datasets/**`, `src/components/PublicDatasetBootstrap.tsx`, `scripts/publish-public-dataset.ts`, `data/public-datasets/**` | [docs/public-datasets.md](docs/public-datasets.md) |
 | State Management | Zustand store, persistence, and schema migrations | `src/store/index.ts` | [docs/state.md](docs/state.md) |
 | Leaderboard | Player ranking table with sorting, filtering, draft interactions, and extracted derivation helpers | `src/components/Leaderboard.tsx`, `src/lib/leaderboardDerived.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
 | CSV Upload Workflow | Upload modal, file handling, eligibility import, and optional pitching-outcome estimation | `src/components/CsvUpload.tsx` | [docs/csv-upload-workflow.md](docs/csv-upload-workflow.md) |
-| Settings Page | Dedicated settings route with sectioned Scoring, Roster, and Draft controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx`, `src/components/settings/DraftTeamRow.tsx` | [docs/settings-page.md](docs/settings-page.md) |
-| Header | Top navigation, draft controls, and team selection | `src/components/Header.tsx` | [docs/header.md](docs/header.md) |
+| Settings Page | Dedicated settings route with sectioned Projections, Scoring, Roster, Draft, and League controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx`, `src/components/settings/DraftTeamRow.tsx` | [docs/settings-page.md](docs/settings-page.md) |
+| Header | Top navigation, projection/league selection, and global controls | `src/components/Header.tsx` | [docs/header.md](docs/header.md) |
 | UI System | Shared visual tokens and reusable UI primitives for consistent styling | `src/app/globals.css`, `src/components/ui/*.tsx` | [docs/ui-system.md](docs/ui-system.md) |
 | Utilities | IP math, debounce hook, and other shared helpers | `src/lib/ipMath.ts`, `src/lib/useDebounce.ts` | [docs/utilities.md](docs/utilities.md) |
 
@@ -30,6 +31,8 @@ Some features span multiple domains. Start with the linked spec and follow its d
 - **Two-way players** — Handled across CSV parsing, scoring, eligibility, and state. Start with [docs/types.md](docs/types.md).
 - **Draft mode** — Spans state management, leaderboard, and header. Start with [docs/state.md](docs/state.md).
 - **Persistence & migrations** — Covered in [docs/state.md](docs/state.md).
+- **Built-in public baseline** — Spans public datasets, state persistence, leaderboard empty-state behavior, and header destructive flows. Start with [docs/public-datasets.md](docs/public-datasets.md).
+- **Projection management** — Spans header selection, settings management, upload flow, public datasets, and eligibility import. Start with [docs/settings-page.md](docs/settings-page.md).
 
 ## Spec Conventions
 

@@ -7,6 +7,7 @@
 - [CSV Parsing](csv-parsing.md) — `parsePlayerCSV`, `mergePlayers`
 - [Eligibility](eligibility.md) — eligibility computation functions
 - [MLB Stats API](mlb-stats-api.md) — `fetchSeasonStatsForPlayers`
+- [Settings Page](settings-page.md) — now owns post-upload projection management and retroactive eligibility actions
 - [State](state.md) — `addProjectionGroup`, `applyEligibilityForGroup`
 - [Types](types.md) — Player variants, `ProjectionGroup`, `IdSource`
 
@@ -22,6 +23,8 @@ Only shown when `needsIdSelection` is true — meaning the parser found no MLBAM
 Shows parsed player counts, up to 5 parse warnings, and a preview table of the first 5 players. The user names the group (auto-suggested from the first filename, fallback `"Methodology {N+1}"`) and optionally enables eligibility import.
 
 For pitcher uploads, this stage also surfaces missing `QS`, `CG`, and `ShO` coverage (blank/invalid values) and provides one toggle per stat to estimate only those missing entries before group creation.
+
+The upload modal is no longer the primary navigation affordance for projection management. It is opened from Settings > Projections when the user wants to create a new group.
 
 ## Eligibility Import
 
@@ -39,6 +42,8 @@ When enabled, the import runs after the projection group is added to the store:
 **Important:** The projection group is added to the store *before* the eligibility import starts. If the import fails, the group exists with players but no eligibility data. The user can retry via a Retry Import button.
 
 **Retry with backoff.** The `retryStatus` state shows attempt number, delay, and HTTP status during exponential backoff from the MLB Stats API integration.
+
+**Shared import engine.** The upload flow now uses the same reusable eligibility-import helper as Settings > Projections and the built-in public-dataset bootstrap, so progress, fallback rules, and retry messaging stay aligned between first-time import, automatic baseline enrichment, and retroactive re-runs.
 
 ## Key Edge Cases
 - Multiple batter or pitcher files in one upload → error

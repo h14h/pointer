@@ -5,6 +5,7 @@
 
 ## Dependencies
 - [Types](types.md) — all major types
+- [Public Datasets](public-datasets.md) — protected built-in dataset provenance and seeding rules
 - Zustand (external) — state management with `persist` middleware
 
 ## Dependents
@@ -13,11 +14,11 @@ All UI components: [Leaderboard](leaderboard.md), [CSV Upload Workflow](csv-uplo
 ## Persistence
 
 - **Storage key:** `"pointer-storage"`
-- **Version:** 6
+- **Version:** 8
 - **Middleware:** Zustand `persist` to `localStorage`
 - **Hydration strategy:** `skipHydration: true` with a client-only `StoreHydrator` mounted from the root layout. The store uses deterministic SSR defaults so server HTML matches the client's pre-rehydration render before persisted league state is applied.
 
-Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure, wrapping single-league data in a `League` object (v4→v5), and converting the old `activeTeamIndex` draft cursor into the snake-draft session shape (v5→v6). Legacy drafted and keeper ownership is preserved; `history` starts empty because prior pick chronology is unknowable.
+Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure, wrapping single-league data in a `League` object (v4→v5), converting the old `activeTeamIndex` draft cursor into the snake-draft session shape (v5→v6), backfilling projection-group provenance so all legacy groups become `{ kind: "upload" }` (v6→v7), and defaulting every group's editable `eligibilityImportSeason` (v7→v8). Legacy drafted and keeper ownership is preserved; `history` starts empty because prior pick chronology is unknowable.
 
 ## Key Invariants
 
@@ -39,7 +40,11 @@ Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (
 
 **Draft setup lock.** League resize, add/remove team, and reorder operations are blocked only once manual draft picks exist. Keeper-only state does not lock structure, so reserved keepers can be configured before the live draft and the team order can still be finalized afterward.
 
-**Active group fallback.** Removing the active projection group falls back to the first remaining group's ID, or `null`. A stale `activeProjectionGroupId` is never left behind.
+**Protected public groups survive destructive clears.** Projection groups seeded from the public dataset catalog carry provenance metadata and are treated as protected baselines. `removeProjectionGroup` is a no-op for them, `clearProjectionGroups` removes only uploaded/custom groups, and `clearAllData` preserves them while still resetting every league's draft state.
+
+**Active group fallback.** Removing the active projection group falls back to the first protected public group when one exists, otherwise the first remaining group's ID, or `null`. A stale `activeProjectionGroupId` is never left behind.
+
+**Projection groups now carry next-run eligibility intent.** Each group stores an `eligibilityImportSeason` separately from `eligibilitySeason`, which records the season used by the last successful run. This lets the settings UI expose retroactive import and re-run without overloading the historical metadata.
 
 **Empty team name default.** Setting a team name to empty string (after trim) defaults to `"Team {index+1}"`. Out-of-bounds indices are silently ignored.
 
@@ -51,7 +56,8 @@ Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (
 
 The store has ~25 actions organized into:
 - **League management** — create, delete, duplicate, rename, set active, update active league
-- **Projection management** — add, remove, set active, clear groups
+- **Projection management** — add, seed, rename, remove, set active, clear groups, and update per-group eligibility seasons
+- **Projection seeding** — insert a public protected baseline without stealing the user's current active group
 - **Scoring** — full replacement or single-weight updates (operates on active league)
 - **League settings** — settings replacement (with normalization), individual setters for size/names/roster (operates on active league)
 - **Draft** — start session, draft player, undo last pick, assign/remove keepers with optional reserved rounds, reset (active league only), clear all
@@ -65,8 +71,8 @@ Default scoring uses ESPN-style weights. Default league is 12 teams with a stand
 
 **Active league resolution.** When reading `scoringSettings`, `leagueSettings`, or `draftState`, components derive them from the active league: `leagues.find(l => l.id === activeLeagueId) ?? leagues[0]`. The store initializes with a default "My League" if none exists.
 
-**Shared projections.** Projection groups are shared across all leagues — uploading projections once makes them available for all leagues.
+**Shared projections.** Projection groups are shared across all leagues — uploading projections once makes them available for all leagues, and the built-in protected baseline is shared the same way.
 
 **Per-league draft state.** Each league maintains its own `draftState`. Switching leagues preserves each league's drafted players, keeper assignments, and live pick cursor independently.
 
-**`clearAllData` behavior.** Clears all projections. Leagues and their draft states are preserved — only the draft picks and keepers are reset to empty.
+**`clearAllData` behavior.** Clears uploaded/custom projections only. Protected public baseline groups remain available, while leagues and their draft states are preserved except that draft picks and keepers reset to empty.

@@ -3,6 +3,7 @@
 ## Source Files
 - `src/app/settings/page.tsx`
 - `src/components/settings/SettingsLayout.tsx`
+- `src/components/settings/ProjectionsSection.tsx`
 - `src/components/settings/ScoringSection.tsx`
 - `src/components/settings/RosterSection.tsx`
 - `src/components/settings/DraftSection.tsx`
@@ -21,13 +22,15 @@
 
 ## How It Works
 
-Settings moved from a single modal to a dedicated `/settings` page. The page is split into independent sections selected by URL query: `?section=scoring|roster|draft`. Invalid or missing values default to `scoring`.
+Settings moved from a single modal to a dedicated `/settings` page. The page is split into independent sections selected by URL query: `?section=projections|scoring|roster|draft|leagues`. Invalid or missing values default to `scoring`.
 
 Desktop renders a left sidebar section navigator; mobile renders a top segmented navigator. Both are link-driven so section state is shareable via URL.
 
 ## Key Behaviors
 
 **Clean route cutover.** Header no longer opens a scoring modal; it links to `/settings?section=scoring` using an icon-only settings control.
+
+**Projections section.** Projection management now lives here instead of being split between the upload modal and the leaderboard filter row. The section lists every projection group, highlights the active one, exposes upload/rename/delete where allowed, and provides retroactive eligibility import or re-run controls with a per-group season field. The built-in `2025 Leaders` group now auto-imports its own 2025 eligibility during bootstrap, while uploaded groups get an explicit danger zone inside their card so deletion remains visible without competing with the header controls.
 
 **Scoring section.** Displays batting and pitching stats simultaneously in a two-column layout (batting left, pitching right; stacked on mobile with batting first). Stats are organized into semantic sub-groups (e.g., Hits, Run Production, Decisions, Relief) using `NumericInputGroup`, matching the roster section's visual grouping pattern. Keeps preset apply behavior, merge two-way toggle, and debounced numeric scoring updates.
 
@@ -59,6 +62,8 @@ Desktop renders a left sidebar section navigator; mobile renders a top segmented
 
 ## Edge Cases
 - Section query fallback to `scoring` for invalid values
+- Protected public projection groups can be selected and re-imported for eligibility, but they cannot be renamed or deleted
+- Projection import season is editable per group and can diverge from the last successful eligibility-import season
 - Team count constrained to 2–20
 - Empty team names normalize to `Team {n}` on commit
 - Roster values remain non-negative integers

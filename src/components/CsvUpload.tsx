@@ -8,21 +8,13 @@ import {
   type IdConfig,
   type PitchingOutcomeStat,
 } from "@/lib/csvParser";
-import {
-  computeHitterEligibility,
-  computePitcherEligibility,
-  emptyPositionGames,
-  eligibilityFromProfilePosition,
-  mergeTwoWayEligibility,
-  mergeWarnings,
-} from "@/lib/eligibility";
 import { isValidBaseballIp } from "@/lib/ipMath";
-import { fetchSeasonStatsForPlayers } from "@/lib/mlbStatsApi";
 import {
   applyPitchingOutcomeEstimates,
   DEFAULT_PITCHING_OUTCOME_ESTIMATE_SELECTION,
   type PitchingOutcomeEstimateSelection,
 } from "@/lib/pitchingOutcomeImport";
+import { runProjectionEligibilityImport } from "@/lib/projectionEligibilityImport";
 import { Button } from "@/components/ui/Button";
 import { MenuSelect } from "@/components/ui/MenuSelect";
 import { Toggle } from "@/components/ui/Toggle";
@@ -32,7 +24,6 @@ import type {
   IdSource,
   ProjectionGroup,
   Player,
-  Eligibility,
   PitcherPlayer,
 } from "@/types";
 
@@ -209,206 +200,27 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
   const runEligibilityImport = useCallback(
     async (group: ProjectionGroup) => {
-      const season = 2025;
-      const batters = group.batters ?? [];
-      const pitchers = group.pitchers ?? [];
-      const twoWayPlayers = group.twoWayPlayers ?? [];
-      const players = [...batters, ...pitchers, ...twoWayPlayers];
-
-      setIsImportingEligibility(true);
-      setImportProgress(0);
-      setImportPlayer("");
-      setImportError(null);
-      setRetryStatus(null);
-
-      try {
-        const retryOptions = {
-          onRetry: ({
-            attempt,
-            delayMs,
-            status,
-          }: {
-            attempt: number;
-            delayMs: number;
-            status?: number;
-          }) => {
-            const statusLabel = status ? `status ${status}` : "network error";
-            setRetryStatus(
-              `Retry ${attempt} in ${(delayMs / 1000).toFixed(1)}s (${statusLabel})`
-            );
+      return runProjectionEligibilityImport({
+        group,
+        season: group.eligibilityImportSeason ?? 2025,
+        applyEligibilityForGroup,
+        callbacks: {
+          onStart: () => {
+            setIsImportingEligibility(true);
+            setImportProgress(0);
+            setImportPlayer("");
+            setImportError(null);
+            setRetryStatus(null);
           },
-        };
-
-        if (players.length === 0) {
-          setImportProgress(100);
-          applyEligibilityForGroup(group.id, new Map(), season);
-          return true;
-        }
-
-        const mlbIds = players
-          .map((player) => player.MLBAMID)
-          .filter((id) => typeof id === "string" && id.trim().length > 0);
-
-        const {
-          fieldingById: fieldingMap,
-          pitchingById: pitchingMap,
-          primaryPositionById,
-        } = await fetchSeasonStatsForPlayers(mlbIds, season, retryOptions);
-
-        const eligibilityById = new Map<string, Eligibility>();
-
-        for (let i = 0; i < players.length; i += 1) {
-          const player = players[i];
-          setImportPlayer(player.Name);
-          const warnings: string[] = [];
-
-          if (!player.MLBAMID) {
-            warnings.push("Missing MLBAMID");
-          }
-
-          if (player._type === "batter") {
-            const fielding = player.MLBAMID
-              ? fieldingMap.get(player.MLBAMID)
-              : undefined;
-            const profilePosition = player.MLBAMID
-              ? primaryPositionById.get(player.MLBAMID)
-              : undefined;
-            const hasFielding =
-              fielding && Object.values(fielding).some((value) => value > 0);
-
-            if (!hasFielding && profilePosition) {
-              warnings.push(`Profile fallback: ${profilePosition}`);
-              const eligibility = eligibilityFromProfilePosition(
-                profilePosition,
-                season,
-                warnings
-              );
-              eligibilityById.set(player._id, eligibility);
-            } else {
-              if (!hasFielding) warnings.push("No fielding stats found");
-              const positionGames = fielding ?? emptyPositionGames();
-              const eligibility = computeHitterEligibility(
-                positionGames,
-                season,
-                warnings
-              );
-              eligibilityById.set(player._id, eligibility);
-            }
-          } else if (player._type === "pitcher") {
-            const pitching = player.MLBAMID
-              ? pitchingMap.get(player.MLBAMID)
-              : undefined;
-            const profilePosition = player.MLBAMID
-              ? primaryPositionById.get(player.MLBAMID)
-              : undefined;
-
-            if (!pitching && profilePosition) {
-              warnings.push(`Profile fallback: ${profilePosition}`);
-              const eligibility = eligibilityFromProfilePosition(
-                profilePosition,
-                season,
-                warnings
-              );
-              eligibilityById.set(player._id, eligibility);
-            } else {
-              if (!pitching) warnings.push("No pitching stats found");
-              const eligibility = computePitcherEligibility(
-                pitching ?? { G: 0, GS: 0 },
-                season,
-                warnings
-              );
-              eligibilityById.set(player._id, eligibility);
-            }
-          } else {
-            const battingWarnings: string[] = [];
-            const pitchingWarnings: string[] = [];
-
-            if (!player.MLBAMID) {
-              battingWarnings.push("Missing MLBAMID");
-              pitchingWarnings.push("Missing MLBAMID");
-            }
-
-            const fielding = player.MLBAMID
-              ? fieldingMap.get(player.MLBAMID)
-              : undefined;
-            const profilePosition = player.MLBAMID
-              ? primaryPositionById.get(player.MLBAMID)
-              : undefined;
-            const hasFielding =
-              fielding && Object.values(fielding).some((value) => value > 0);
-
-            let battingEligibility: Eligibility;
-            if (!hasFielding && profilePosition) {
-              battingWarnings.push(`Profile fallback: ${profilePosition}`);
-              battingEligibility = eligibilityFromProfilePosition(
-                profilePosition,
-                season,
-                battingWarnings
-              );
-            } else {
-              if (!hasFielding) battingWarnings.push("No fielding stats found");
-              battingEligibility = computeHitterEligibility(
-                fielding ?? emptyPositionGames(),
-                season,
-                battingWarnings
-              );
-            }
-
-            const pitching = player.MLBAMID
-              ? pitchingMap.get(player.MLBAMID)
-              : undefined;
-            let pitchingEligibility: Eligibility;
-            if (!pitching && profilePosition) {
-              pitchingWarnings.push(`Profile fallback: ${profilePosition}`);
-              pitchingEligibility = eligibilityFromProfilePosition(
-                profilePosition,
-                season,
-                pitchingWarnings
-              );
-            } else {
-              if (!pitching) pitchingWarnings.push("No pitching stats found");
-              pitchingEligibility = computePitcherEligibility(
-                pitching ?? { G: 0, GS: 0 },
-                season,
-                pitchingWarnings
-              );
-            }
-
-            const merged = mergeTwoWayEligibility(
-              battingEligibility,
-              pitchingEligibility
-            );
-            merged.warnings = mergeWarnings(
-              battingEligibility.warnings,
-              pitchingEligibility.warnings
-            );
-            eligibilityById.set(player._id, merged);
-          }
-
-          const pct = Math.round(((i + 1) / players.length) * 100);
-          setImportProgress(pct);
-
-          if (i % 25 === 0) {
-            await new Promise<void>((resolve) =>
-              requestAnimationFrame(() => resolve())
-            );
-          }
-        }
-
-        applyEligibilityForGroup(group.id, eligibilityById, season);
-        return true;
-      } catch (importErr) {
-        setImportError(
-          importErr instanceof Error
-            ? importErr.message
-            : "Failed to import eligibility"
-        );
-        return false;
-      } finally {
-        setIsImportingEligibility(false);
-        setRetryStatus(null);
-        setImportPlayer("");
-      }
+          onProgress: setImportProgress,
+          onPlayer: setImportPlayer,
+          onRetryStatus: setRetryStatus,
+          onError: setImportError,
+          onComplete: () => {
+            setIsImportingEligibility(false);
+          },
+        },
+      });
     },
     [applyEligibilityForGroup]
   );
@@ -472,11 +284,13 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
       id: crypto.randomUUID(),
       name: trimmedName,
       createdAt: new Date().toISOString(),
+      source: { kind: "upload" },
       batters,
       pitchers,
       twoWayPlayers,
       batterIdSource: batterFile?.parseResult.idSource ?? null,
       pitcherIdSource: pitcherFile?.parseResult.idSource ?? null,
+      eligibilityImportSeason: 2025,
     };
 
     addProjectionGroup(group);

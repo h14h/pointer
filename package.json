@@ -10,15 +10,19 @@
     "test:ui": "vitest run",
     "test:ui:watch": "vitest",
     "test:all": "npm run test && npm run test:ui",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:public-dataset": "bun run scripts/generate-public-dataset.ts",
+    "publish:public-datasets": "bun run scripts/publish-public-dataset.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1014.0",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-table": "^8.21.3",
     "next": "16.1.6",
     "papaparse": "^5.5.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "zustand": "^5.0.10"
   },

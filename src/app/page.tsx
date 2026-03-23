@@ -1,22 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import { Header } from "@/components/Header";
-import { CsvUpload } from "@/components/CsvUpload";
 import { Leaderboard } from "@/components/Leaderboard";
+import { PublicDatasetBootstrap } from "@/components/PublicDatasetBootstrap";
 
 export default function Home() {
-  const [uploadOpen, setUploadOpen] = useState(false);
-
   return (
     <div className="min-h-screen bg-[var(--color-surface-base)] font-serif">
-      <Header onOpenUpload={() => setUploadOpen(true)} />
+      <Header />
 
       <main className="mx-auto max-w-5xl py-8">
+        <PublicDatasetBootstrap />
         <Leaderboard />
       </main>
-
-      <CsvUpload isOpen={uploadOpen} onClose={() => setUploadOpen(false)} />
     </div>
   );
 }

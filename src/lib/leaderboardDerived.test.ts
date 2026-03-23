@@ -250,6 +250,7 @@ function createProjectionGroup(): ProjectionGroup {
 		id: "group-1",
 		name: "Main",
 		createdAt: "2026-03-22T00:00:00.000Z",
+		source: { kind: "upload" },
 		batterIdSource: "MLBAMID",
 		pitcherIdSource: "MLBAMID",
 		batters: [

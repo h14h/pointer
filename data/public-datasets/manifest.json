@@ -1,0 +1,11 @@
+{
+  "datasets": [
+    {
+      "slug": "historical-2025",
+      "name": "2025 Prior-Year Baseline",
+      "season": 2025,
+      "datasetType": "historical-stats",
+      "default": true
+    }
+  ]
+}

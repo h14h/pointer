@@ -23,6 +23,10 @@ vi.mock("@/components/settings/ScoringSection", () => ({
   ScoringSection: () => <div>Scoring section</div>,
 }));
 
+vi.mock("@/components/settings/ProjectionsSection", () => ({
+  ProjectionsSection: () => <div>Projections section</div>,
+}));
+
 vi.mock("@/components/settings/RosterSection", () => ({
   RosterSection: () => <div>Roster section</div>,
 }));
@@ -73,5 +77,13 @@ describe("settings route section query", () => {
 
     expect(screen.getByTestId("active-section")).toHaveTextContent("scoring");
     expect(screen.getByText("Scoring section")).toBeInTheDocument();
+  });
+
+  it("renders projections when section=projections", () => {
+    getSearchParamMock.mockReturnValue("projections");
+    render(<SettingsPage />);
+
+    expect(screen.getByTestId("active-section")).toHaveTextContent("projections");
+    expect(screen.getByText("Projections section")).toBeInTheDocument();
   });
 });
