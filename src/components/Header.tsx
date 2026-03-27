@@ -168,7 +168,16 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
                 className="text-2xl font-bold tracking-tight text-[#111111] dark:text-[#e5e5e5] sm:text-3xl"
                 style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
               >
-                Pointer
+                {isSettingsPage ? (
+                  <Link
+                    href="/"
+                    className="text-inherit hover:text-[#dc2626] dark:hover:text-[#ef4444] transition-colors"
+                  >
+                    Pointer
+                  </Link>
+                ) : (
+                  "Pointer"
+                )}
               </h1>
               <p
                 className="mt-1 text-sm font-sans text-[#111111]/60 dark:text-[#e5e5e5]/50 tracking-wide uppercase"
@@ -321,11 +330,8 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
                     className="mt-2 text-lg font-bold text-[#111111] dark:text-[#e5e5e5]"
                     style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
                   >
-                    Settings
+                    Menu
                   </h2>
-                  <p className="mt-1 text-sm leading-relaxed text-[#111111]/55 dark:text-[#e5e5e5]/48">
-                    Jump directly to any settings section from smaller screens.
-                  </p>
                 </div>
                 <button
                   type="button"
@@ -341,13 +347,42 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
             <div className="flex-1 overflow-y-auto px-4 py-4 font-sans">
               <div className="space-y-6">
                 <section>
-                  <div className="mb-3">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#111111]/42 dark:text-[#e5e5e5]/38">
-                      Settings Sections
+                  <Link
+                    href="/"
+                    onClick={closeAllMenus}
+                    className={`group flex items-start gap-3 rounded-xl px-3 py-3 transition-all ${
+                      !isSettingsPage
+                        ? "bg-[#111111]/[0.05] dark:bg-[#e5e5e5]/[0.07]"
+                        : "hover:bg-[#111111]/[0.025] dark:hover:bg-[#e5e5e5]/[0.035]"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 shrink-0 ${
+                        !isSettingsPage
+                          ? "text-[#dc2626] dark:text-[#ef4444]"
+                          : "text-[#111111]/45 group-hover:text-[#111111]/60 dark:text-[#e5e5e5]/38 dark:group-hover:text-[#e5e5e5]/55"
+                      }`}
+                    >
+                      <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+                        <path d="M4 15V7.5L10 3l6 4.5V15a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 15Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                        <path d="M8 16.5v-5h4v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <div
+                      className={`text-xs font-bold uppercase tracking-widest ${
+                        !isSettingsPage
+                          ? "text-[#111111] dark:text-[#e5e5e5]"
+                          : "text-[#111111]/65 group-hover:text-[#111111]/80 dark:text-[#e5e5e5]/55 dark:group-hover:text-[#e5e5e5]/70"
+                      }`}
+                    >
+                      Leaderboard
                     </div>
-                    <p className="mt-1 text-xs leading-relaxed text-[#111111]/55 dark:text-[#e5e5e5]/48">
-                      The same section structure as desktop, surfaced in the header on smaller screens.
-                    </p>
+                  </Link>
+
+                  <div className="mb-3 mt-5">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#111111]/42 dark:text-[#e5e5e5]/38">
+                      Settings
+                    </div>
                   </div>
                   <nav aria-label="Settings sections" className="grid gap-1.5">
                     {settingsSections.map((section) => {
