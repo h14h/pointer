@@ -118,9 +118,11 @@ describe("Header settings navigation", () => {
     mockStore();
     render(<Header />);
 
-    expect(screen.getByRole("button", { name: /2025 Leaders/i })).toBeInTheDocument();
-    const settingsLink = screen.getByLabelText("Settings");
-    expect(settingsLink).toHaveAttribute("href", "/settings?section=scoring");
+    expect(screen.getAllByRole("button", { name: /2025 Leaders/i })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /My League/i })).toHaveLength(2);
+    expect(screen.getAllByLabelText("Draft Mode")).toHaveLength(2);
+    expect(screen.getAllByLabelText("Settings")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Open settings navigation" })).toBeInTheDocument();
   });
 
   it("links back to the leaderboard and applies active styles on the settings page", () => {
@@ -132,6 +134,9 @@ describe("Header settings navigation", () => {
     expect(settingsLink).toHaveAttribute("href", "/");
     expect(settingsLink).toHaveAttribute("title", "Back to leaderboard");
     expect(settingsLink.className).toContain("bg-[#dc2626]");
+    expect(screen.getByRole("button", { name: "Open settings navigation" }).className).toContain(
+      "bg-[#dc2626]"
+    );
   });
 
   it("opens the projections menu with a manage link", async () => {
@@ -140,13 +145,27 @@ describe("Header settings navigation", () => {
     mockStore();
     render(<Header />);
 
-    await user.click(screen.getByRole("button", { name: /2025 Leaders/i }));
+    await user.click(screen.getAllByRole("button", { name: /2025 Leaders/i })[0]!);
 
-    expect(screen.getByText("Steamer")).toBeInTheDocument();
-    expect(screen.getByText("Built-in")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Manage Projections..." })).toHaveAttribute(
-      "href",
-      "/settings?section=projections"
-    );
+    expect(screen.getAllByText("Steamer")).toHaveLength(2);
+    expect(screen.getAllByText("Built-in")).toHaveLength(2);
+    screen.getAllByRole("link", { name: "Manage Projections..." }).forEach((link) => {
+      expect(link).toHaveAttribute("href", "/settings?section=projections");
+    });
+  });
+
+  it("opens the mobile navigation drawer with settings sections on the settings page", async () => {
+    const user = userEvent.setup();
+    usePathnameMock.mockReturnValue("/settings");
+    mockStore();
+    render(<Header activeSettingsSection="roster" />);
+
+    await user.click(screen.getByRole("button", { name: "Open settings navigation" }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-labelledby", "header-mobile-menu-title");
+    expect(screen.getByText("Settings Sections")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Roster/i })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("link", { name: "Manage Projections" })).not.toBeInTheDocument();
   });
 });

@@ -24,7 +24,7 @@
 
 Settings moved from a single modal to a dedicated `/settings` page. The page is split into independent sections selected by URL query: `?section=projections|scoring|roster|draft|leagues`. Invalid or missing values default to `scoring`.
 
-Desktop renders a left sidebar section navigator; mobile renders a top segmented navigator. Both are link-driven so section state is shareable via URL.
+Desktop renders a left sidebar section navigator. On smaller screens, section navigation moves into the global header drawer instead of adding a second in-page control, and the in-page sidebar disappears entirely. Both are link-driven so section state is shareable via URL, and both present the same labels, descriptions, and active-state treatment to keep the information architecture consistent across breakpoints.
 
 ## Key Behaviors
 

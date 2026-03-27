@@ -35,6 +35,7 @@ function createScoringSettings(): ScoringSettings {
       SB: 1,
       CS: -1,
       BB: 1,
+      IBB: 0,
       SO: -1,
       HBP: 1,
       SF: 0,

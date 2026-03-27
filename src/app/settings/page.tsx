@@ -21,7 +21,7 @@ function SettingsPageContent() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-base)]">
-      <Header />
+      <Header activeSettingsSection={activeSection} />
 
       <main className="mx-auto max-w-5xl px-4 py-6 font-sans sm:px-6 sm:py-8">
         <div className="mb-8">

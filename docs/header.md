@@ -11,9 +11,11 @@
 
 ## What It Does
 
-Top navigation bar with two global context selectors — active projection group and active league — plus draft mode and the settings cog. The projection dropdown is now the primary discovery point for dataset management: it always shows the current dataset label (for example `2025 Leaders`) and ends with a `Manage Projections...` link into Settings.
+Top navigation bar with two responsive modes. On large screens it exposes the global projection selector, league selector, a draft toggle, and the settings cog inline. On smaller screens it keeps the projection and league dropdowns plus a compact `Draft` toggle directly in the header, and it replaces the settings cog with a hamburger button that opens the settings-section navigator.
 
 The header stays focused on global controls. Draft-specific context and actions now live in the leaderboard draft band and the Settings > Draft section.
+
+On smaller screens, the hamburger drawer is the only settings-section navigator. It is available both on the leaderboard and on `/settings`, so users can jump straight into a section without a separate gear button.
 
 ## Draft Controls
 
