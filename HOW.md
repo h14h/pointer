@@ -19,9 +19,9 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 | State Management | Zustand store, persistence, and schema migrations | `src/store/index.ts` | [docs/state.md](docs/state.md) |
 | Leaderboard | Player ranking table with sorting, filtering, draft interactions, and extracted derivation helpers | `src/components/Leaderboard.tsx`, `src/lib/leaderboardDerived.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
 | CSV Upload Workflow | Upload modal, file handling, eligibility import, and optional pitching-outcome estimation | `src/components/CsvUpload.tsx` | [docs/csv-upload-workflow.md](docs/csv-upload-workflow.md) |
-| Settings Page | Dedicated settings route with sectioned Projections, Scoring, Roster, Draft, and League controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx`, `src/components/settings/DraftTeamRow.tsx` | [docs/settings-page.md](docs/settings-page.md) |
+| Settings Page | Dedicated settings route with sectioned Projections, Scoring, Roster, Draft, and League controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx` | [docs/settings-page.md](docs/settings-page.md) |
 | Header | Top navigation, projection/league selection, and global controls | `src/components/Header.tsx` | [docs/header.md](docs/header.md) |
-| UI System | Shared visual tokens and reusable UI primitives for consistent styling | `src/app/globals.css`, `src/components/ui/*.tsx` | [docs/ui-system.md](docs/ui-system.md) |
+| UI System | Shared visual tokens, shadcn/ui integration, and reusable UI primitives for consistent styling | `src/app/globals.css`, `src/components/ui/*.tsx`, `src/lib/utils.ts`, `components.json` | [docs/ui-system.md](docs/ui-system.md) |
 | Utilities | IP math, debounce hook, and other shared helpers | `src/lib/ipMath.ts`, `src/lib/useDebounce.ts` | [docs/utilities.md](docs/utilities.md) |
 
 ## Cross-Cutting Concerns
@@ -33,6 +33,7 @@ Some features span multiple domains. Start with the linked spec and follow its d
 - **Persistence & migrations** — Covered in [docs/state.md](docs/state.md).
 - **Built-in public baseline** — Spans public datasets, state persistence, leaderboard empty-state behavior, and header destructive flows. Start with [docs/public-datasets.md](docs/public-datasets.md).
 - **Projection management** — Spans header selection, settings management, upload flow, public datasets, and eligibility import. Start with [docs/settings-page.md](docs/settings-page.md).
+- **UI consistency** — All visual components should use shared primitives from `src/components/ui/` or the [shadcn/ui catalog](https://ui.shadcn.com/docs/components). Before creating new visual patterns, check [docs/ui-system.md](docs/ui-system.md).
 
 ## Spec Conventions
 
@@ -64,6 +65,10 @@ Keep the scenarios concrete and example-driven rather than abstract. Prefer a ca
 
 When updating a spec after a code change, ask: *"Would an agent need to know this to work effectively, or could it just read the code?"* If the answer is the latter, leave it out.
 
+### Source File Lists
+
+Source Files lists in specs must be explicit. List every file the spec covers by name. When adding a new file to a domain, add it to the spec's Source Files section. The domain map in this document may use wildcards for readability, but the spec is the authoritative inventory.
+
 ## Maintenance
 
 This document and its specs should always reflect the current codebase. When code changes, update the relevant spec. If a domain is added or removed, update this table.
@@ -83,7 +88,7 @@ Run all checks before completing any code change. Failure in any step blocks the
 
 ### Required Verification Order
 
-1. Review whether `HOW.md` or any relevant spec in `docs/` needs to be updated for the code change, and update it if needed
+1. Review whether `HOW.md` or any relevant spec in `docs/` needs to be updated for the code change, and update it if needed. If you added, renamed, or removed a source file, verify it appears (or is removed) in the relevant spec's Source Files section and the domain map above
 2. `bun run test` — all unit tests must pass
 3. `bun run test:ui` — all UI tests must pass
 4. `bun run lint` — zero errors (warnings are acceptable when React Compiler is known to handle the case)

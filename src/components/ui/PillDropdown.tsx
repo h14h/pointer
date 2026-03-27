@@ -37,15 +37,15 @@ export function PillDropdown({
         aria-expanded={isOpen}
         aria-label={ariaLabel}
         className={cx(
-          "flex items-center gap-2 rounded-full border border-[#111111]/12 bg-[#111111]/[0.03] px-3 py-2 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-[#111111]/68 transition hover:bg-[#111111]/[0.05] dark:border-[#e5e5e5]/10 dark:bg-[#e5e5e5]/[0.04] dark:text-[#e5e5e5]/64 dark:hover:bg-[#e5e5e5]/[0.07]",
+          "flex items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-3 py-2 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-hover)]",
           fullWidth ? "w-full" : "",
           triggerClassName
         )}
       >
         {label ? (
-          <span className="shrink-0 text-[#111111]/42 dark:text-[#e5e5e5]/38">{label}</span>
+          <span className="shrink-0 text-[var(--color-fg-subtle)]">{label}</span>
         ) : null}
-        <span className="min-w-0 flex-1 truncate text-[#111111]/80 dark:text-[#e5e5e5]/78">
+        <span className="min-w-0 flex-1 truncate text-[var(--color-fg-default)]">
           {value}
         </span>
         <svg viewBox="0 0 12 12" fill="currentColor" className="h-2.5 w-2.5 shrink-0" aria-hidden="true">
@@ -63,7 +63,7 @@ export function PillDropdown({
           />
           <div
             className={cx(
-              "absolute top-full z-50 mt-1 rounded-2xl border border-[#111111]/15 bg-white shadow-lg dark:border-[#333333] dark:bg-[#1a1a1a]",
+              "absolute top-full z-50 mt-1 rounded-2xl border border-[var(--color-border-soft)] bg-[var(--color-surface-overlay)] shadow-lg",
               fullWidth ? "left-0 right-0" : align === "right" ? "right-0" : "left-0",
               menuClassName
             )}

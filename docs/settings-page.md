@@ -3,10 +3,13 @@
 ## Source Files
 - `src/app/settings/page.tsx`
 - `src/components/settings/SettingsLayout.tsx`
+- `src/components/settings/sectionNavigation.tsx`
 - `src/components/settings/ProjectionsSection.tsx`
 - `src/components/settings/ScoringSection.tsx`
 - `src/components/settings/RosterSection.tsx`
+- `src/components/settings/LeaguesSection.tsx`
 - `src/components/settings/DraftSection.tsx`
+- `src/components/settings/DraftTeamRow.tsx`
 - `src/components/settings/constants.ts`
 - `src/components/settings/types.ts`
 - `src/components/NumericInputGroup.tsx`

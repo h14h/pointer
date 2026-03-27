@@ -7,7 +7,7 @@
 - [State](state.md) — draft state, league settings, draft mode toggle
 - [Public Datasets](public-datasets.md) — built-in baseline naming and protected projection behavior
 - Next navigation (`next/link`, `next/navigation`) — settings route link and active-state styling
-- [UI System](ui-system.md) — shared buttons, dialogs, select styling, labels, and page container tokens
+- [UI System](ui-system.md) — PillDropdown for projection/league selection, Toggle for draft mode, and shared page container tokens
 
 ## What It Does
 

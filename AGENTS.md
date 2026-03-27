@@ -24,12 +24,132 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
   - Avoid deep reference-chasing: prefer opening only files directly linked from `SKILL.md` unless you're blocked.
   - When variants exist (frameworks, providers, domains), pick only the relevant reference file(s) and note that choice.
 - Safety and fallback: If a skill can't be applied cleanly (missing files, unclear instructions), state the issue, pick the next-best approach, and continue.
+
+## UI System
+
+Before creating any new visual element, check `src/components/ui/` for an existing component. If none fits, check the **shadcn catalog** below — install and style a shadcn component before building from scratch. For token definitions, composition rules, and extraction thresholds, see [docs/ui-system.md](docs/ui-system.md).
+
+### Installed Components
+
+| Need | Component | Source | File |
+|------|-----------|--------|------|
+| Action button | `Button` | custom | `ui/Button.tsx` |
+| On/off switch | `Toggle` | custom | `ui/Toggle.tsx` |
+| Single/multi select | `MenuSelect` | custom | `ui/MenuSelect.tsx` |
+| Compact pill selector | `PillDropdown` | custom | `ui/PillDropdown.tsx` |
+| Modal dialog | `DialogShell` | custom | `ui/DialogShell.tsx` |
+| Uppercase meta label | `FieldLabel` | custom | `ui/FieldLabel.tsx` |
+| Section heading | `SectionHeader` | custom | `ui/SectionHeader.tsx` |
+| Bordered container | `Panel` | custom | `ui/Panel.tsx` |
+| Page-width wrapper | `PageContainer` | custom | `ui/PageContainer.tsx` |
+| Hover/focus help | `Tooltip` | custom | `ui/Tooltip.tsx` |
+| Toast notification | `toast()` | sonner | `ui/sonner.tsx` |
+| Classname merging | `cn()` | shadcn | `lib/utils.ts` |
+| Legacy classname merging | `cx()` | custom | `ui/cx.ts` |
+
+Custom components have shadcn equivalents (see [docs/ui-system.md](docs/ui-system.md)). When modifying a custom component substantially, consider migrating it to its shadcn equivalent instead.
+
+### shadcn Component Catalog
+
+Not-yet-installed components available via `npx shadcn@latest add <name>`:
+
+| Component | Description | Docs |
+|-----------|-------------|------|
+| Accordion | Collapsible content sections | [docs](https://ui.shadcn.com/docs/components/accordion) |
+| Alert | Callout for user attention | [docs](https://ui.shadcn.com/docs/components/alert) |
+| Alert Dialog | Modal interrupting with important content | [docs](https://ui.shadcn.com/docs/components/alert-dialog) |
+| Aspect Ratio | Content within a desired ratio | [docs](https://ui.shadcn.com/docs/components/aspect-ratio) |
+| Avatar | Image with user fallback | [docs](https://ui.shadcn.com/docs/components/avatar) |
+| Badge | Badge or badge-styled component | [docs](https://ui.shadcn.com/docs/components/badge) |
+| Breadcrumb | Hierarchical path links | [docs](https://ui.shadcn.com/docs/components/breadcrumb) |
+| Button | Button or button-styled component | [docs](https://ui.shadcn.com/docs/components/button) |
+| Button Group | Grouped related buttons | [docs](https://ui.shadcn.com/docs/components/button-group) |
+| Calendar | Date or date-range selection | [docs](https://ui.shadcn.com/docs/components/calendar) |
+| Card | Header, content, footer container | [docs](https://ui.shadcn.com/docs/components/card) |
+| Carousel | Swipeable content carousel | [docs](https://ui.shadcn.com/docs/components/carousel) |
+| Chart | Data visualization (Recharts) | [docs](https://ui.shadcn.com/docs/components/chart) |
+| Checkbox | Checked/unchecked control | [docs](https://ui.shadcn.com/docs/components/checkbox) |
+| Collapsible | Expandable/collapsible panel | [docs](https://ui.shadcn.com/docs/components/collapsible) |
+| Combobox | Autocomplete with suggestions | [docs](https://ui.shadcn.com/docs/components/combobox) |
+| Command | Search and quick actions menu | [docs](https://ui.shadcn.com/docs/components/command) |
+| Context Menu | Right-click action menu | [docs](https://ui.shadcn.com/docs/components/context-menu) |
+| Data Table | TanStack Table datagrid | [docs](https://ui.shadcn.com/docs/components/data-table) |
+| Date Picker | Date selection with presets | [docs](https://ui.shadcn.com/docs/components/date-picker) |
+| Dialog | Overlay window (inert backdrop) | [docs](https://ui.shadcn.com/docs/components/dialog) |
+| Direction | Text direction provider | [docs](https://ui.shadcn.com/docs/components/direction) |
+| Drawer | Side panel component | [docs](https://ui.shadcn.com/docs/components/drawer) |
+| Dropdown Menu | Button-triggered action menu | [docs](https://ui.shadcn.com/docs/components/dropdown-menu) |
+| Empty | Empty state display | [docs](https://ui.shadcn.com/docs/components/empty) |
+| Field | Label + control + help text | [docs](https://ui.shadcn.com/docs/components/field) |
+| Hover Card | Link preview on hover | [docs](https://ui.shadcn.com/docs/components/hover-card) |
+| Input | Text input for forms | [docs](https://ui.shadcn.com/docs/components/input) |
+| Input Group | Input with addons/buttons | [docs](https://ui.shadcn.com/docs/components/input-group) |
+| Input OTP | One-time password input | [docs](https://ui.shadcn.com/docs/components/input-otp) |
+| Item | Content with media and actions | [docs](https://ui.shadcn.com/docs/components/item) |
+| Kbd | Keyboard input display | [docs](https://ui.shadcn.com/docs/components/kbd) |
+| Label | Accessible form control label | [docs](https://ui.shadcn.com/docs/components/label) |
+| Menubar | Persistent desktop-style menu | [docs](https://ui.shadcn.com/docs/components/menubar) |
+| Native Select | Styled native HTML select | [docs](https://ui.shadcn.com/docs/components/native-select) |
+| Navigation Menu | Website navigation links | [docs](https://ui.shadcn.com/docs/components/navigation-menu) |
+| Pagination | Page navigation links | [docs](https://ui.shadcn.com/docs/components/pagination) |
+| Popover | Rich content portal | [docs](https://ui.shadcn.com/docs/components/popover) |
+| Progress | Task completion indicator | [docs](https://ui.shadcn.com/docs/components/progress) |
+| Radio Group | Single-select button set | [docs](https://ui.shadcn.com/docs/components/radio-group) |
+| Resizable | Resizable panel groups | [docs](https://ui.shadcn.com/docs/components/resizable) |
+| Scroll Area | Custom cross-browser scrollbar | [docs](https://ui.shadcn.com/docs/components/scroll-area) |
+| Select | Option list dropdown | [docs](https://ui.shadcn.com/docs/components/select) |
+| Separator | Content section divider | [docs](https://ui.shadcn.com/docs/components/separator) |
+| Sheet | Side dialog extension | [docs](https://ui.shadcn.com/docs/components/sheet) |
+| Sidebar | Themeable sidebar component | [docs](https://ui.shadcn.com/docs/components/sidebar) |
+| Skeleton | Loading placeholder | [docs](https://ui.shadcn.com/docs/components/skeleton) |
+| Slider | Range value selector | [docs](https://ui.shadcn.com/docs/components/slider) |
+| Sonner | Toast notifications (Sonner) | [docs](https://ui.shadcn.com/docs/components/sonner) |
+| Spinner | Loading state indicator | [docs](https://ui.shadcn.com/docs/components/spinner) |
+| Switch | Toggle between two states | [docs](https://ui.shadcn.com/docs/components/switch) |
+| Table | Responsive data table | [docs](https://ui.shadcn.com/docs/components/table) |
+| Tabs | Tabbed content panels | [docs](https://ui.shadcn.com/docs/components/tabs) |
+| Textarea | Form textarea component | [docs](https://ui.shadcn.com/docs/components/textarea) |
+| Toast | Temporary message display | [docs](https://ui.shadcn.com/docs/components/toast) |
+| Toggle | Two-state on/off button | [docs](https://ui.shadcn.com/docs/components/toggle) |
+| Toggle Group | Set of toggle buttons | [docs](https://ui.shadcn.com/docs/components/toggle-group) |
+| Tooltip | Hover/focus info popup | [docs](https://ui.shadcn.com/docs/components/tooltip) |
+| Typography | Text element styles | [docs](https://ui.shadcn.com/docs/components/typography) |
+
+### Installing a shadcn Component
+
+1. `npx shadcn@latest add <component-name>`
+2. Component lands in `src/components/ui/<name>.tsx`
+3. Review styling — adjust to use Pointer's token variables if the component introduces new color/spacing values
+4. Update `docs/ui-system.md` Source Files and move the component from the catalog to the installed table above
+5. Run `bun run test:ui && bun run build`
+
+### Custom → shadcn Migration Map
+
+When modifying an existing custom component substantially, prefer migrating to its shadcn equivalent:
+
+| Custom Component | shadcn Equivalent | Notes |
+|-----------------|-------------------|-------|
+| `Button` | Button | Similar variant system |
+| `Toggle` | Switch | shadcn Switch = Radix Switch |
+| `MenuSelect` | Select or Dropdown Menu | Select for form values, Dropdown Menu for actions |
+| `DialogShell` | Dialog or Alert Dialog | Dialog for general, Alert Dialog for confirmations |
+| `FieldLabel` | Label | shadcn Label = Radix Label |
+| `Panel` | Card | Card has header/content/footer structure |
+| `Tooltip` | Tooltip | Both Radix-based |
+| `sonner.tsx` | Sonner | Both wrap the sonner library |
+| `PillDropdown` | *(no equivalent)* | Keep as custom — unique pill trigger pattern |
+| `PageContainer` | *(no equivalent)* | Keep as custom — app-specific layout |
+| `SectionHeader` | *(no equivalent)* | Keep as custom — app-specific section pattern |
+| `NumericInput` | *(no equivalent)* | Keep as custom — domain-specific stepper |
+
 ## Quality Assurance
 Before completing any code change, run all checks in order and fix any failures:
 ```bash
 check whether any specs in docs/ or HOW.md need to be updated, then run:
 bun run test && bun run test:ui && bun run lint && bun run build
 ```
+- if your change adds or modifies visual elements: (1) check `src/components/ui/` for existing components, (2) check the shadcn catalog above for an installable component, (3) only build from scratch if neither option fits
+- if you added, renamed, or removed a source file: verify it appears (or is removed) in the relevant spec's Source Files section and the HOW.md domain map
 - review relevant specs/docs for code changes and update them if needed
 - `bun run test` — unit tests for src/lib
 - `bun run test:ui` — component/UI tests (Vitest)
