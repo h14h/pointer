@@ -1,6 +1,10 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/Button";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import { Input } from "@/components/ui/input";
 import { MenuSelect } from "@/components/ui/MenuSelect";
 import type { Player } from "@/types";
 
@@ -154,12 +158,9 @@ export function DraftTeamRow({
             ) : (
               <div className="mt-2 flex flex-wrap gap-2">
                 {collapsedKeeperBadges.map((badge) => (
-                  <span
-                    key={badge.playerId}
-                    className="inline-flex whitespace-nowrap rounded-full bg-[#dc2626]/[0.08] px-2.5 py-1 text-xs font-medium text-[#8b1e1e] dark:bg-[#ef4444]/[0.12] dark:text-[#f5b4b4]"
-                  >
+                  <Badge key={badge.playerId} variant="ownershipKeeper" size="md" className="whitespace-nowrap font-medium normal-case tracking-normal">
                     {badge.label}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             )}
@@ -182,38 +183,43 @@ export function DraftTeamRow({
               }))}
             />
           </label>
-          <button
+          <Button
             type="button"
             onClick={onToggleExpanded}
             aria-expanded={isExpanded}
             aria-controls={`team-keepers-panel-${index}`}
             aria-label={`${isExpanded ? "Hide" : "Show"} keepers for ${name}`}
-            className="inline-flex h-8 items-center justify-center rounded-md border border-[#111111]/15 px-3 text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 transition-colors hover:bg-[#111111]/[0.04] hover:text-[#111111] dark:border-[#333333] dark:text-[#e5e5e5]/52 dark:hover:bg-[#e5e5e5]/[0.05] dark:hover:text-[#e5e5e5]"
+            variant="toolbar"
+            size="sm"
           >
             {isExpanded ? "Hide Keepers" : "Edit Keepers"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onAddTeamBelow}
             disabled={!setupUnlocked || maxTeamsReached}
             aria-label={`Add team below ${name}`}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#111111]/45 transition-colors hover:bg-[#111111]/[0.05] hover:text-[#111111]/65 disabled:cursor-not-allowed disabled:opacity-30 dark:text-[#e5e5e5]/38 dark:hover:bg-[#e5e5e5]/[0.05] dark:hover:text-[#e5e5e5]/55"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-md text-[#111111]/45 hover:bg-[#111111]/[0.05] hover:text-[#111111]/65 dark:text-[#e5e5e5]/38 dark:hover:bg-[#e5e5e5]/[0.05] dark:hover:text-[#e5e5e5]/55"
           >
             <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
               <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" />
             </svg>
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onRemoveTeam}
             disabled={!setupUnlocked || minTeamsReached}
             aria-label={`Remove ${name}`}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#dc2626]/60 transition-colors hover:bg-[#dc2626]/[0.06] hover:text-[#dc2626] disabled:cursor-not-allowed disabled:opacity-30 dark:text-[#ef4444]/50 dark:hover:bg-[#ef4444]/[0.06] dark:hover:text-[#ef4444]"
+            variant="toolbarDanger"
+            size="icon"
+            className="h-8 w-8 rounded-md"
           >
             <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
               <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
             </svg>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -223,9 +229,7 @@ export function DraftTeamRow({
           className="mt-4 rounded-lg bg-[#111111]/[0.03] p-3 dark:bg-[#e5e5e5]/[0.04]"
         >
           <div className="mb-3">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
-              Keepers
-            </div>
+            <FieldLabel className="block">Keepers</FieldLabel>
             <p className="mt-0.5 text-xs text-[#111111]/40 dark:text-[#e5e5e5]/34">
               One row per keeper for quick edits.
             </p>
@@ -315,14 +319,15 @@ export function DraftTeamRow({
                       {getKeeperCostLabel(entry.teamIndex, getKeeperRoundValue(entry))}
                     </span>
                   </div>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => onRemoveKeeper(entry.playerId)}
                     aria-label={`Remove keeper ${entry.player?.Name ?? entry.playerId}`}
-                    className="text-[10px] font-bold uppercase tracking-widest text-[#dc2626] dark:text-[#ef4444]"
+                    variant="destructiveGhost"
+                    size="sm"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               ))
             ) : (
@@ -336,13 +341,13 @@ export function DraftTeamRow({
             {hasActiveProjectionGroup ? (
               <>
                 <div className="grid gap-3">
-                  <input
+                  <Input
                     type="text"
                     aria-label={`Search keepers for ${name}`}
                     value={keeperSearch}
                     onChange={(event) => onKeeperSearchChange(event.target.value)}
                     placeholder={`Search available players for ${name}`}
-                    className="w-full rounded-sm border border-[#111111]/20 bg-white px-3 py-2 text-sm text-[#111111] placeholder:text-[#111111]/35 focus:border-[#dc2626] focus:outline-none dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5] dark:placeholder:text-[#e5e5e5]/30 dark:focus:border-[#ef4444]"
+                    className="w-full"
                   />
                   <p className="text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38">
                     New keepers are added to the next open slot for this team. Use Rd or the arrows to move them to any open round.

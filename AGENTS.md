@@ -38,7 +38,12 @@ Before creating any new visual element, check `src/components/ui/` for an existi
 | Single/multi select | `MenuSelect` | custom | `ui/MenuSelect.tsx` |
 | Compact pill selector | `PillDropdown` | custom | `ui/PillDropdown.tsx` |
 | Modal dialog | `DialogShell` | custom | `ui/DialogShell.tsx` |
+| Workflow dialog | `AppDialog` | shadcn/Base UI | `ui/AppDialog.tsx` |
+| Mobile drawer | `AppSheet` | shadcn/Base UI | `ui/AppSheet.tsx` |
 | Uppercase meta label | `FieldLabel` | custom | `ui/FieldLabel.tsx` |
+| Text input | `Input` | shadcn/Base UI | `ui/input.tsx` |
+| Status badge | `Badge` | shadcn/Base UI | `ui/badge.tsx` |
+| Checkbox | `Checkbox` | shadcn/Base UI | `ui/checkbox.tsx` |
 | Section heading | `SectionHeader` | custom | `ui/SectionHeader.tsx` |
 | Bordered container | `Panel` | custom | `ui/Panel.tsx` |
 | Page-width wrapper | `PageContainer` | custom | `ui/PageContainer.tsx` |
@@ -60,7 +65,6 @@ Not-yet-installed components available via `npx shadcn@latest add <name>`:
 | Alert Dialog | Modal interrupting with important content | [docs](https://ui.shadcn.com/docs/components/alert-dialog) |
 | Aspect Ratio | Content within a desired ratio | [docs](https://ui.shadcn.com/docs/components/aspect-ratio) |
 | Avatar | Image with user fallback | [docs](https://ui.shadcn.com/docs/components/avatar) |
-| Badge | Badge or badge-styled component | [docs](https://ui.shadcn.com/docs/components/badge) |
 | Breadcrumb | Hierarchical path links | [docs](https://ui.shadcn.com/docs/components/breadcrumb) |
 | Button | Button or button-styled component | [docs](https://ui.shadcn.com/docs/components/button) |
 | Button Group | Grouped related buttons | [docs](https://ui.shadcn.com/docs/components/button-group) |
@@ -68,21 +72,18 @@ Not-yet-installed components available via `npx shadcn@latest add <name>`:
 | Card | Header, content, footer container | [docs](https://ui.shadcn.com/docs/components/card) |
 | Carousel | Swipeable content carousel | [docs](https://ui.shadcn.com/docs/components/carousel) |
 | Chart | Data visualization (Recharts) | [docs](https://ui.shadcn.com/docs/components/chart) |
-| Checkbox | Checked/unchecked control | [docs](https://ui.shadcn.com/docs/components/checkbox) |
 | Collapsible | Expandable/collapsible panel | [docs](https://ui.shadcn.com/docs/components/collapsible) |
 | Combobox | Autocomplete with suggestions | [docs](https://ui.shadcn.com/docs/components/combobox) |
 | Command | Search and quick actions menu | [docs](https://ui.shadcn.com/docs/components/command) |
 | Context Menu | Right-click action menu | [docs](https://ui.shadcn.com/docs/components/context-menu) |
 | Data Table | TanStack Table datagrid | [docs](https://ui.shadcn.com/docs/components/data-table) |
 | Date Picker | Date selection with presets | [docs](https://ui.shadcn.com/docs/components/date-picker) |
-| Dialog | Overlay window (inert backdrop) | [docs](https://ui.shadcn.com/docs/components/dialog) |
 | Direction | Text direction provider | [docs](https://ui.shadcn.com/docs/components/direction) |
 | Drawer | Side panel component | [docs](https://ui.shadcn.com/docs/components/drawer) |
 | Dropdown Menu | Button-triggered action menu | [docs](https://ui.shadcn.com/docs/components/dropdown-menu) |
 | Empty | Empty state display | [docs](https://ui.shadcn.com/docs/components/empty) |
 | Field | Label + control + help text | [docs](https://ui.shadcn.com/docs/components/field) |
 | Hover Card | Link preview on hover | [docs](https://ui.shadcn.com/docs/components/hover-card) |
-| Input | Text input for forms | [docs](https://ui.shadcn.com/docs/components/input) |
 | Input Group | Input with addons/buttons | [docs](https://ui.shadcn.com/docs/components/input-group) |
 | Input OTP | One-time password input | [docs](https://ui.shadcn.com/docs/components/input-otp) |
 | Item | Content with media and actions | [docs](https://ui.shadcn.com/docs/components/item) |
@@ -99,7 +100,6 @@ Not-yet-installed components available via `npx shadcn@latest add <name>`:
 | Scroll Area | Custom cross-browser scrollbar | [docs](https://ui.shadcn.com/docs/components/scroll-area) |
 | Select | Option list dropdown | [docs](https://ui.shadcn.com/docs/components/select) |
 | Separator | Content section divider | [docs](https://ui.shadcn.com/docs/components/separator) |
-| Sheet | Side dialog extension | [docs](https://ui.shadcn.com/docs/components/sheet) |
 | Sidebar | Themeable sidebar component | [docs](https://ui.shadcn.com/docs/components/sidebar) |
 | Skeleton | Loading placeholder | [docs](https://ui.shadcn.com/docs/components/skeleton) |
 | Slider | Range value selector | [docs](https://ui.shadcn.com/docs/components/slider) |

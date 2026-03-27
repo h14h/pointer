@@ -7,6 +7,8 @@ import { runProjectionEligibilityImport } from "@/lib/projectionEligibilityImpor
 import type { ProjectionGroup } from "@/types";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/Button";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import { Panel } from "@/components/ui/Panel";
 
 type BootstrapStatus = "idle" | "loading-dataset" | "loading-eligibility" | "error";
 
@@ -134,15 +136,18 @@ export function PublicDatasetBootstrap() {
   const hasAnyProjectionGroup = projectionGroups.length > 0;
 
   return (
-    <section
+    <Panel
+      as="section"
       aria-live="polite"
-      className="mx-auto mb-6 max-w-5xl border border-[#111111]/10 bg-white/90 px-5 py-4 font-sans shadow-sm dark:border-[#333333] dark:bg-[#111111]/90"
+      tone={status === "error" ? "warning" : "default"}
+      padding="md"
+      className="mx-auto mb-6 max-w-5xl px-5 py-4 font-sans shadow-sm"
     >
       {status === "loading-dataset" || status === "loading-eligibility" ? (
         <div className="space-y-1">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#111111]/45 dark:text-[#e5e5e5]/40">
+          <FieldLabel className="tracking-[0.18em]">
             {status === "loading-dataset" ? "Loading Built-In Dataset" : "Importing Eligibility"}
-          </p>
+          </FieldLabel>
           <p className="text-sm text-[#111111]/70 dark:text-[#e5e5e5]/65">
             {status === "loading-dataset"
               ? "Fetching the built-in 2025 Leaders dataset from the public catalog."
@@ -152,9 +157,9 @@ export function PublicDatasetBootstrap() {
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b45309] dark:text-[#f59e0b]">
+            <FieldLabel className="tracking-[0.18em] text-[#b45309] dark:text-[#f59e0b]">
               {protectedBaseline ? "Built-In Eligibility Unavailable" : "Built-In Dataset Unavailable"}
-            </p>
+            </FieldLabel>
             <p className="text-sm text-[#111111]/70 dark:text-[#e5e5e5]/65">
               {errorMessage ??
                 (protectedBaseline
@@ -188,6 +193,6 @@ export function PublicDatasetBootstrap() {
           </Button>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }

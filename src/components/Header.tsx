@@ -6,6 +6,9 @@ import { usePathname } from "next/navigation";
 import { settingsSections } from "@/components/settings/constants";
 import { settingsSectionIcons } from "@/components/settings/sectionNavigation";
 import type { SettingsSectionKey } from "@/components/settings/types";
+import { AppSheet } from "@/components/ui/AppSheet";
+import { Button } from "@/components/ui/Button";
+import { FieldLabel } from "@/components/ui/FieldLabel";
 import { PillDropdown } from "@/components/ui/PillDropdown";
 import { Toggle } from "@/components/ui/Toggle";
 import { getProjectionGroupDisplayName, getProjectionGroupSourceLabel } from "@/lib/projectionGroups";
@@ -196,8 +199,9 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
                   onClick={() => setDraftMode(!isDraftMode)}
                 />
               </label>
-              <button
-                type="button"
+              <Button
+                variant={isSettingsPage ? "toolbarActive" : "iconSubtle"}
+                size="icon"
                 aria-label="Open settings navigation"
                 aria-haspopup="dialog"
                 aria-expanded={isMobileMenuOpen}
@@ -207,12 +211,12 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
                   setIsLeagueOpen(false);
                   setIsProjectionOpen(false);
                 }}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#111111]/15 bg-[#111111]/[0.03] text-[#111111]/72 transition hover:bg-[#111111]/[0.07] hover:text-[#111111] dark:border-[#e5e5e5]/10 dark:bg-[#e5e5e5]/[0.04] dark:text-[#e5e5e5]/70 dark:hover:bg-[#e5e5e5]/[0.08] dark:hover:text-[#e5e5e5]"
+                className="rounded-full"
               >
                 <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden="true">
                   <path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
                 </svg>
-              </button>
+              </Button>
             </div>
 
             <div className="hidden flex-wrap items-center gap-3 font-sans lg:flex">
@@ -256,7 +260,7 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
                 href={settingsHref}
                 aria-label="Settings"
                 title={settingsTitle}
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#dc2626] dark:focus-visible:outline-[#ef4444] ${
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
                   isSettingsPage
                     ? "border-[#dc2626] bg-[#dc2626] text-white dark:border-[#ef4444] dark:bg-[#ef4444] dark:text-[#111111]"
                     : "border-[#111111]/15 bg-[#111111]/[0.03] text-[#111111]/72 hover:bg-[#111111]/[0.07] hover:text-[#111111] dark:border-[#e5e5e5]/10 dark:bg-[#e5e5e5]/[0.04] dark:text-[#e5e5e5]/70 dark:hover:bg-[#e5e5e5]/[0.08] dark:hover:text-[#e5e5e5]"
@@ -304,49 +308,15 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
         </div>
       </header>
 
-      {isMobileMenuOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            aria-label="Close navigation menu"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="absolute inset-0 bg-[rgba(17,17,17,0.52)]"
-          />
-          <div
-            id="header-mobile-menu"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="header-mobile-menu-title"
-            className="absolute inset-y-0 right-0 flex w-[min(22rem,calc(100vw-1.5rem))] flex-col border-l border-[#111111]/10 bg-[var(--color-surface-overlay)] shadow-2xl dark:border-[#e5e5e5]/10"
-          >
-            <div className="border-b border-[#111111]/8 px-5 pb-4 pt-5 dark:border-[#e5e5e5]/8">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#111111]/45 dark:text-[#e5e5e5]/40">
-                    Pointer
-                  </p>
-                  <h2
-                    id="header-mobile-menu-title"
-                    className="mt-2 text-lg font-bold text-[#111111] dark:text-[#e5e5e5]"
-                    style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-                  >
-                    Menu
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  aria-label="Close navigation drawer"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#111111]/10 text-[#111111]/60 transition hover:border-[#111111]/15 hover:text-[#111111] dark:border-[#e5e5e5]/10 dark:text-[#e5e5e5]/60 dark:hover:border-[#e5e5e5]/15 dark:hover:text-[#e5e5e5]"
-                >
-                  <span className="text-xl leading-none">&times;</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-4 font-sans">
-              <div className="space-y-6">
-                <section>
+      <div className="lg:hidden">
+        <AppSheet
+          open={isMobileMenuOpen}
+          onOpenChange={setIsMobileMenuOpen}
+          title="Menu"
+          description="Settings Sections"
+        >
+          <div className="space-y-6">
+            <section>
                   <Link
                     href="/"
                     onClick={closeAllMenus}
@@ -379,11 +349,7 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
                     </div>
                   </Link>
 
-                  <div className="mb-3 mt-5">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#111111]/42 dark:text-[#e5e5e5]/38">
-                      Settings
-                    </div>
-                  </div>
+                  <FieldLabel className="mb-3 mt-5 block tracking-[0.24em]">Settings</FieldLabel>
                   <nav aria-label="Settings sections" className="grid gap-1.5">
                     {settingsSections.map((section) => {
                       const isActive = isSettingsPage && section.key === activeSettingsSection;
@@ -433,12 +399,9 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
                     })}
                   </nav>
                 </section>
-
-              </div>
-            </div>
           </div>
-        </div>
-      ) : null}
+        </AppSheet>
+      </div>
     </>
   );
 }

@@ -135,7 +135,7 @@ describe("Header settings navigation", () => {
     expect(settingsLink).toHaveAttribute("title", "Back to leaderboard");
     expect(settingsLink.className).toContain("bg-[#dc2626]");
     expect(screen.getByRole("button", { name: "Open settings navigation" }).className).toContain(
-      "bg-[#dc2626]"
+      "color-mix"
     );
   });
 
@@ -163,7 +163,7 @@ describe("Header settings navigation", () => {
     await user.click(screen.getByRole("button", { name: "Open settings navigation" }));
 
     const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveAttribute("aria-labelledby", "header-mobile-menu-title");
+    expect(dialog).toHaveAttribute("aria-labelledby");
     expect(screen.getByText("Settings Sections")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Roster/i })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("link", { name: "Manage Projections" })).not.toBeInTheDocument();

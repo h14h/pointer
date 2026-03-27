@@ -3,6 +3,10 @@
 import { NumericInput } from "@/components/NumericInput";
 import { useStore } from "@/store";
 import { NumericInputGroup, NumericInputRow } from "@/components/NumericInputGroup";
+import { Badge } from "@/components/ui/badge";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import { Panel } from "@/components/ui/Panel";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Toggle } from "@/components/ui/Toggle";
 import {
   Tooltip,
@@ -73,23 +77,12 @@ export function RosterSection() {
 
   return (
     <div className="font-sans">
-      {/* Section header */}
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2
-            className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Roster
-          </h2>
-          <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
-            Set per-team starting slots and reserve capacity.
-          </p>
-        </div>
-        <div className="rounded-md bg-[#111111]/[0.04] px-3 py-1.5 text-xs font-bold tabular-nums text-[#111111]/60 dark:bg-[#e5e5e5]/[0.06] dark:text-[#e5e5e5]/50">
-          {totalSlots} slots per team
-        </div>
-      </div>
+      <SectionHeader
+        className="mb-8"
+        title="Roster"
+        description="Set per-team starting slots and reserve capacity."
+        meta={<Badge variant="neutral" size="md" className="tabular-nums">{totalSlots} slots per team</Badge>}
+      />
 
       {/* Two-column layout: stacks on mobile, side-by-side from sm up */}
       <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
@@ -138,10 +131,12 @@ export function RosterSection() {
         {/* Right column: battery + reserves */}
         <div className="grid content-start gap-6">
           <div>
-            <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
-              Pitcher Usage
-            </div>
-            <div className="rounded-lg bg-[#dc2626]/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] dark:bg-[#ef4444]/[0.08]">
+            <FieldLabel className="mb-2 block">Pitcher Usage</FieldLabel>
+            <Panel
+              tone="accent"
+              padding="md"
+              className="shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
+            >
               <div className="flex items-start justify-between gap-4">
                 <div className="max-w-[22rem]">
                   <div className="flex items-center gap-2">
@@ -194,7 +189,7 @@ export function RosterSection() {
                   }`}
                 />
               </div>
-            </div>
+            </Panel>
           </div>
 
           <NumericInputGroup label="Pitchers">

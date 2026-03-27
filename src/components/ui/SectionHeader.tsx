@@ -5,6 +5,9 @@ export interface SectionHeaderProps {
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
+  eyebrow?: ReactNode;
+  meta?: ReactNode;
+  size?: "section" | "page";
   className?: string;
   titleAs?: ElementType;
   titleClassName?: string;
@@ -15,6 +18,9 @@ export function SectionHeader({
   title,
   description,
   actions,
+  eyebrow,
+  meta,
+  size = "section",
   className,
   titleAs: TitleTag = "h2",
   titleClassName,
@@ -28,10 +34,15 @@ export function SectionHeader({
       )}
     >
       <div>
+        {eyebrow ? (
+          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-fg-subtle)]">
+            {eyebrow}
+          </div>
+        ) : null}
         <TitleTag
           className={cx(
             "font-bold text-[var(--color-fg-default)]",
-            titleClassName ?? "text-xl sm:text-2xl"
+            titleClassName ?? (size === "page" ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl")
           )}
           style={{ fontFamily: "var(--font-title)" }}
         >
@@ -47,6 +58,7 @@ export function SectionHeader({
             {description}
           </p>
         ) : null}
+        {meta ? <div className="mt-2">{meta}</div> : null}
       </div>
       {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
     </div>

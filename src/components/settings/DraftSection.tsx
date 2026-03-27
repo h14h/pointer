@@ -6,6 +6,10 @@ import { NumericInput } from "@/components/NumericInput";
 import { DraftTeamRow, type DraftKeeperEntry } from "@/components/settings/DraftTeamRow";
 import { normalizeLeagueSettingsDraft } from "@/components/settings/constants";
 import { Button } from "@/components/ui/Button";
+import { DialogShell } from "@/components/ui/DialogShell";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import { Panel } from "@/components/ui/Panel";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { calculatePlayerPoints } from "@/lib/calculatePoints";
 import {
   findNextAvailableKeeperRound,
@@ -345,20 +349,14 @@ export function DraftSection() {
 
   return (
     <div className="font-sans">
-      <div className="mb-8">
-        <h2
-          className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
-          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-        >
-          Draft
-        </h2>
-        <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
-          Manage draft order and keepers in one place, team by team.
-        </p>
-      </div>
+      <SectionHeader
+        className="mb-8"
+        title="Draft"
+        description="Manage draft order and keepers in one place, team by team."
+      />
 
       {!setupUnlocked ? (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#dc2626]/20 bg-[#dc2626]/[0.04] p-4 text-sm text-[#111111]/70 dark:border-[#ef4444]/20 dark:bg-[#ef4444]/[0.05] dark:text-[#e5e5e5]/65">
+        <Panel tone="danger" padding="md" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg text-sm text-[#111111]/70 dark:text-[#e5e5e5]/65">
           <p className="max-w-[64ch]">
             Team order, add/remove, and league size are locked because draft activity already exists.
             Reorder controls are disabled, but team names and keeper assignments can still be edited.
@@ -368,15 +366,13 @@ export function DraftSection() {
               Reset Draft
             </Button>
           ) : null}
-        </div>
+        </Panel>
       ) : null}
 
-      <div className="mb-8 rounded-lg bg-[#111111]/[0.02] p-4 dark:bg-[#e5e5e5]/[0.03]">
+      <Panel tone="muted" padding="md" className="mb-8 rounded-lg">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
-              League Size
-            </div>
+            <FieldLabel className="block">League Size</FieldLabel>
             <p className="mt-0.5 text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38">
               Structural team changes lock once draft activity begins.
             </p>
@@ -393,7 +389,7 @@ export function DraftSection() {
             disabled={!setupUnlocked}
           />
         </div>
-      </div>
+      </Panel>
 
       <div className="mb-3 flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
@@ -472,33 +468,13 @@ export function DraftSection() {
       </div>
 
       {isResetOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111111]/20 dark:bg-black/60">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="settings-reset-draft-title"
-            className="relative mx-0 h-full w-full max-w-none rounded-none border-l-4 border-l-[#dc2626] border-y border-r border-y-[#111111]/10 border-r-[#111111]/10 bg-white p-8 dark:border-l-[#ef4444] dark:border-y-[#333333] dark:border-r-[#333333] dark:bg-[#111111] sm:mx-4 sm:h-auto sm:max-w-md sm:rounded-sm"
-          >
-            <button
-              type="button"
-              onClick={() => setIsResetOpen(false)}
-              aria-label="Close reset draft modal"
-              className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center text-[#111111]/50 transition-colors hover:text-[#111111] dark:text-[#e5e5e5]/40 dark:hover:text-[#e5e5e5]"
-            >
-              <span className="text-xl font-sans leading-none">&times;</span>
-            </button>
-            <h2
-              id="settings-reset-draft-title"
-              className="mb-3 pr-10 text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
-              style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-            >
-              Reset all draft picks?
-            </h2>
-            <p className="mb-8 text-sm leading-relaxed text-[#111111]/60 dark:text-[#e5e5e5]/50">
-              This clears only the in-progress drafted picks for the current league. Keeper assignments
-              stay in place, and projection data is unchanged.
-            </p>
-            <div className="flex justify-end gap-3">
+        <DialogShell
+          title="Reset all draft picks?"
+          description="This clears only the in-progress drafted picks for the current league. Keeper assignments stay in place, and projection data is unchanged."
+          labelledBy="settings-reset-draft-title"
+          onClose={() => setIsResetOpen(false)}
+          footer={
+            <>
               <Button variant="ghost" onClick={() => setIsResetOpen(false)}>
                 Cancel
               </Button>
@@ -511,9 +487,9 @@ export function DraftSection() {
               >
                 Reset Draft
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
       ) : null}
     </div>
   );

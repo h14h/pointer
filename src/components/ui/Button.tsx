@@ -1,7 +1,16 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cx } from "@/components/ui/cx";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "destructiveGhost";
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "destructive"
+  | "destructiveGhost"
+  | "toolbar"
+  | "toolbarActive"
+  | "toolbarDanger"
+  | "iconSubtle";
 type ButtonSize = "sm" | "md" | "icon";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -24,6 +33,14 @@ const variantClassNames: Record<ButtonVariant, string> = {
     "bg-[var(--color-danger)] text-white hover:bg-[var(--color-danger-hover)]",
   destructiveGhost:
     "text-[var(--color-danger)] hover:bg-red-50 dark:text-[#ef4444] dark:hover:bg-red-950/30",
+  toolbar:
+    "border border-[var(--color-border-default)] bg-[var(--color-surface-base)] text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)]",
+  toolbarActive:
+    "border border-[color:color-mix(in_srgb,var(--color-accent)_28%,transparent)] bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)] text-[var(--color-accent)] hover:bg-[color:color-mix(in_srgb,var(--color-accent)_8%,transparent)]",
+  toolbarDanger:
+    "border border-[color:color-mix(in_srgb,var(--color-danger)_22%,transparent)] text-[var(--color-danger)] hover:bg-[color:color-mix(in_srgb,var(--color-danger)_6%,transparent)]",
+  iconSubtle:
+    "border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)]",
 };
 
 const sizeClassNames: Record<ButtonSize, string> = {

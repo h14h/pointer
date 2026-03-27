@@ -7,8 +7,11 @@ import {
   pitchingGroups,
 } from "@/components/settings/constants";
 import { Button } from "@/components/ui/Button";
+import { FieldLabel } from "@/components/ui/FieldLabel";
 import { MenuSelect } from "@/components/ui/MenuSelect";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Toggle } from "@/components/ui/Toggle";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/Tooltip";
 import { scoringPresets, presetNames } from "@/lib/presets";
 import { useDebouncedCallback } from "@/lib/useDebounce";
 import { useStore } from "@/store";
@@ -68,28 +71,17 @@ export function ScoringSection() {
 
   return (
     <div className="font-sans">
-      <div className="mb-8">
-        <h2
-          className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
-          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-        >
-          Scoring
-        </h2>
-        <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
-          Adjust point weights and control two-way player merge behavior.
-        </p>
-      </div>
+      <SectionHeader
+        className="mb-8"
+        title="Scoring"
+        description="Adjust point weights and control two-way player merge behavior."
+      />
 
       {/* Preset controls + merge toggle */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="grid flex-1 gap-1.5 sm:max-w-[220px]">
-            <label
-              htmlFor="scoring-preset"
-              className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42"
-            >
-              Preset
-            </label>
+            <FieldLabel>Preset</FieldLabel>
             <MenuSelect
               value={selectedPresetKey}
               onChange={setSelectedPresetKey}
@@ -119,9 +111,26 @@ export function ScoringSection() {
               ? "text-[#111111]/65 dark:text-[#e5e5e5]/55"
               : "text-[#111111]/45 dark:text-[#e5e5e5]/38"
           }`}
-          title={!canMergeTwoWay ? "Merge two-way requires provided player IDs in both uploads." : undefined}
         >
           <span className="text-xs font-medium">Merge two-way</span>
+          {!canMergeTwoWay ? (
+            <TooltipProvider delayDuration={140}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Why merge two-way is unavailable"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[var(--color-border-soft)] text-[11px] font-bold text-[var(--color-fg-subtle)] transition-colors hover:border-[var(--color-border-default)] hover:text-[var(--color-fg-muted)]"
+                  >
+                    ?
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="center">
+                  Merge two-way requires provided player IDs in both uploads.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : null}
           <Toggle
             checked={mergeTwoWayRankings}
             aria-disabled={!canMergeTwoWay}

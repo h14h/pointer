@@ -1,5 +1,6 @@
 import { NumericInput, type NumericIncrement } from "@/components/NumericInput";
 import { cx } from "@/components/ui/cx";
+import { FieldLabel } from "@/components/ui/FieldLabel";
 
 /* ------------------------------------------------------------------ */
 /*  Shared row inside any NumericInputGroup                           */
@@ -75,9 +76,7 @@ interface NumericInputGroupProps {
 export function NumericInputGroup({ label, children }: NumericInputGroupProps) {
   return (
     <div>
-      <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
-        {label}
-      </div>
+      <FieldLabel className="mb-2 block">{label}</FieldLabel>
       <div className="rounded-lg bg-[#111111]/[0.02] px-3 dark:bg-[#e5e5e5]/[0.03]">
         {children}
       </div>

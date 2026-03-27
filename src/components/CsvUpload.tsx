@@ -15,8 +15,14 @@ import {
   type PitchingOutcomeEstimateSelection,
 } from "@/lib/pitchingOutcomeImport";
 import { runProjectionEligibilityImport } from "@/lib/projectionEligibilityImport";
+import { AppDialog } from "@/components/ui/AppDialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import { Input } from "@/components/ui/input";
 import { MenuSelect } from "@/components/ui/MenuSelect";
+import { Panel } from "@/components/ui/Panel";
 import { Toggle } from "@/components/ui/Toggle";
 import { useStore } from "@/store";
 import type {
@@ -364,9 +370,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         )}
 
         <div className="mt-3">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
+          <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
             Preview (first 5)
-          </p>
+          </FieldLabel>
           <div className="max-h-40 overflow-y-auto">
             <table className="w-full text-xs text-[#111111] dark:text-[#e5e5e5]">
               <thead>
@@ -432,33 +438,26 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111111]/20 dark:bg-black/60">
-      <div className="relative mx-0 h-full w-full max-w-none rounded-none border-l-4 border-l-[#dc2626] dark:border-l-[#ef4444] border-y border-r border-y-[#111111]/10 dark:border-y-[#333333] border-r-[#111111]/10 dark:border-r-[#333333] bg-white dark:bg-[#111111] p-6 overflow-y-auto font-sans sm:mx-4 sm:h-auto sm:max-h-[85vh] sm:max-w-lg sm:rounded-sm sm:p-8">
-        <button
-          type="button"
-          onClick={handleCancel}
-          disabled={isImportingEligibility}
-          aria-label="Close upload modal"
-          className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center text-[#111111]/50 dark:text-[#e5e5e5]/40 hover:text-[#111111] dark:hover:text-[#e5e5e5] transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:right-6 sm:top-6"
-        >
-          <span className="text-xl leading-none">&times;</span>
-        </button>
-        <h2 className="mb-5 pr-10 text-xl font-bold text-[#111111] dark:text-[#e5e5e5]" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-          Upload Player Projections
-        </h2>
-
+    <AppDialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleCancel();
+      }}
+      title="Upload Player Projections"
+      contentClassName="font-sans"
+    >
         {error && (
-          <div className="mb-4 border-l-4 border-l-[#dc2626] dark:border-l-[#ef4444] bg-[#dc2626]/5 dark:bg-[#ef4444]/5 p-3 text-sm text-[#dc2626] dark:text-[#ef4444]">
+          <Panel tone="danger" padding="sm" className="mb-4 rounded-none text-sm text-[#dc2626] dark:text-[#ef4444]">
             {error}
-          </div>
+          </Panel>
         )}
 
         {!batterFile && !pitcherFile ? (
           <>
             <div className="mb-5">
-              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
+              <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                 Player Type
-              </label>
+              </FieldLabel>
               <MenuSelect
                 value={uploadType}
                 onChange={setUploadType}
@@ -511,23 +510,23 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
           </>
         ) : needsIdSelection ? (
           <>
-            <div className="mb-5 border-l-4 border-l-[#111111]/30 dark:border-l-[#e5e5e5]/20 bg-[#f5f5f5] dark:bg-[#1a1a1a] p-4">
+            <Panel tone="muted" padding="md" className="mb-5 rounded-none border-l-4 border-l-[var(--color-border-strong)]">
               <p className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
                 No MLBAMID or PlayerId column found
               </p>
               <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
                 Select a column to use as the unique player identifier, or generate IDs automatically.
               </p>
-            </div>
+            </Panel>
 
             {batterFile?.parseResult.needsIdSelection && (
               <div className="mb-5">
                 <p className="mb-2 text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
                   Batter file: {batterFile.file.name}
                 </p>
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
+                <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                   ID Source
-                </label>
+                </FieldLabel>
                 <MenuSelect
                   value={batterFile.selectedIdSource}
                   onChange={(value) =>
@@ -547,9 +546,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
                 {batterFile.selectedIdSource === "custom" && (
                   <div className="mt-3">
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
+                    <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                       Select Column
-                    </label>
+                    </FieldLabel>
                     <MenuSelect
                       value={batterFile.customIdColumn}
                       onChange={(value) =>
@@ -573,9 +572,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                 <p className="mb-2 text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
                   Pitcher file: {pitcherFile.file.name}
                 </p>
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
+                <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                   ID Source
-                </label>
+                </FieldLabel>
                 <MenuSelect
                   value={pitcherFile.selectedIdSource}
                   onChange={(value) =>
@@ -595,9 +594,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
                 {pitcherFile.selectedIdSource === "custom" && (
                   <div className="mt-3">
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
+                    <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                       Select Column
-                    </label>
+                    </FieldLabel>
                     <MenuSelect
                       value={pitcherFile.customIdColumn}
                       onChange={(value) =>
@@ -628,17 +627,17 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         ) : (
           <>
             <div className="mb-5">
-              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
+              <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                 Group Name
-              </label>
-              <input
+              </FieldLabel>
+              <Input
                 type="text"
                 value={groupName}
                 onChange={(e) => {
                   setGroupName(e.target.value);
                   setGroupNameTouched(true);
                 }}
-                className="w-full rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-2 text-sm text-[#111111] dark:text-[#e5e5e5] placeholder:text-[#111111]/30 dark:placeholder:text-[#e5e5e5]/20 focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
+                className="w-full"
                 placeholder="e.g. Steamer 2025"
               />
             </div>
@@ -681,9 +680,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                       Missing values stay at zero unless selected below.
                     </p>
                   </div>
-                  <span className="rounded-sm border border-[#111111]/20 dark:border-[#333333] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40">
-                    Optional
-                  </span>
+                  <Badge variant="neutral" className="rounded-sm px-2">Optional</Badge>
                 </div>
 
                 <div className="mt-3 space-y-2">
@@ -698,17 +695,16 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                         } ${isImportingEligibility ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                       >
                         <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={pitchingOutcomeSelection[stat]}
-                            onChange={(e) =>
+                            onCheckedChange={(checked) =>
                               setPitchingOutcomeSelection((current) => ({
                                 ...current,
-                                [stat]: e.target.checked,
+                                [stat]: Boolean(checked),
                               }))
                             }
                             disabled={isImportingEligibility}
-                            className="mt-0.5 h-4 w-4 rounded-sm border-[#111111]/30 text-[#dc2626] focus:ring-[#dc2626] dark:border-[#e5e5e5]/40 dark:bg-[#111111] dark:text-[#ef4444] dark:focus:ring-[#ef4444]"
+                            className="mt-0.5"
                           />
                           <div>
                             <p className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
@@ -730,9 +726,9 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
             )}
 
             {missingTypeWarning && (
-              <div className="mb-4 border-l-4 border-l-[#111111]/30 dark:border-l-[#e5e5e5]/20 bg-[#f5f5f5] dark:bg-[#1a1a1a] p-3 text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
+              <Panel tone="muted" padding="sm" className="mb-4 rounded-none border-l-4 border-l-[var(--color-border-strong)] text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
                 {missingTypeWarning}
-              </div>
+              </Panel>
             )}
 
             {batterFile && renderPreview(batterFile)}
@@ -832,7 +828,6 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </AppDialog>
   );
 }

@@ -3,16 +3,23 @@
 ## Source Files
 - `src/app/globals.css`
 - `src/components/ui/Button.tsx`
+- `src/components/ui/dialog.tsx`
 - `src/components/ui/DialogShell.tsx`
 - `src/components/ui/FieldLabel.tsx`
+- `src/components/ui/input.tsx`
 - `src/components/ui/MenuSelect.tsx`
 - `src/components/ui/PageContainer.tsx`
 - `src/components/ui/Panel.tsx`
 - `src/components/ui/PillDropdown.tsx`
 - `src/components/ui/SectionHeader.tsx`
+- `src/components/ui/sheet.tsx`
 - `src/components/ui/sonner.tsx`
 - `src/components/ui/Toggle.tsx`
 - `src/components/ui/Tooltip.tsx`
+- `src/components/ui/badge.tsx`
+- `src/components/ui/checkbox.tsx`
+- `src/components/ui/AppDialog.tsx`
+- `src/components/ui/AppSheet.tsx`
 - `src/components/ui/cx.ts`
 - `src/lib/utils.ts`
 - `components.json`
@@ -94,11 +101,16 @@ The initial primitive set is intentionally small:
 
 - **`PageContainer`** defines the standard application content width and horizontal gutters.
 - **`SectionHeader`** standardizes page/section titles plus supporting copy and optional actions.
+- **`Input`** is the standard single-line text and number-like field for feature code outside `NumericInput`.
+- **`Badge`** standardizes status chips, ownership pills, and compact count tags.
 - **`Button`** covers the repeated action hierarchy: primary, secondary, ghost, destructive, and destructive-ghost.
 - **`MenuSelect`** is the standard select-like control for both single-select and multi-select menus, including placement-aware popovers.
+- **`Checkbox`** is the standard checkbox control for stat toggles and optional import settings.
 - **`Toggle`** is the standard switch control and supports the two geometries already present in the app (`sm` and `md`).
 - **`FieldLabel`** standardizes uppercase meta labels used above fields and grouped controls.
-- **`Panel`** provides a reusable container for muted or bordered surfaces without forcing full card abstraction.
+- **`Panel`** provides a reusable container for muted, accent, warning, danger, or bordered surfaces without forcing full card abstraction.
+- **`AppDialog`** is the shared non-destructive modal shell for richer workflows like uploads.
+- **`AppSheet`** is the shared mobile drawer shell for navigational overlays.
 - **`DialogShell`** centralizes destructive-confirmation modal structure and close affordances.
 - **`Toaster`** mounts the shared Sonner toast surface used for lightweight confirmation and undo flows, and follows the app's system light/dark mode behavior.
 - **`Tooltip`** is the shared hover/focus helper surface for compact status badges and inline help affordances, built on Radix Tooltip and styled to match Pointer's warm paper utility feel.
@@ -110,14 +122,19 @@ These primitives are meant to carry the repeated visual recipes. Feature compone
 
 | Primitive | Source | Variants / Sizes | When to use |
 |-----------|--------|-------------------|-------------|
-| `Button` | custom | primary, secondary, ghost, destructive, destructiveGhost; sm, md, icon | Any clickable action |
+| `Button` | custom | primary, secondary, ghost, destructive, destructiveGhost, toolbar, toolbarActive, toolbarDanger, iconSubtle; sm, md, icon | Any clickable action |
+| `Input` | shadcn/Base UI | default, subtle, danger; sm, md | Standard text or numeric-like single-line input |
+| `Badge` | shadcn-inspired | neutral, accent, danger, muted, count, ownershipDrafted, ownershipKeeper; sm, md | Compact status or count chips |
+| `Checkbox` | shadcn/Base UI | — | Checked/unchecked control |
 | `Toggle` | custom | sm, md | Binary on/off state |
 | `MenuSelect` | custom | single, multi; placement | Dropdown selection from a list |
 | `PillDropdown` | custom | align, fullWidth, label | Compact inline selector (header-style) |
+| `AppDialog` | shadcn/Base UI | default shell | Multi-step or non-destructive modal workflows |
+| `AppSheet` | shadcn/Base UI | top, right, bottom, left | Mobile drawers and edge panels |
 | `DialogShell` | custom | title, description, footer | Modal confirmations and forms |
 | `FieldLabel` | custom | — | Uppercase label above a control group |
-| `SectionHeader` | custom | title, description, actions slot | Page or section heading |
-| `Panel` | custom | default, raised, muted; none, sm, md padding | Grouped content surface |
+| `SectionHeader` | custom | eyebrow, title, description, actions, meta; section, page | Page or section heading |
+| `Panel` | custom | default, raised, muted, accent, danger, warning; none, sm, md padding | Grouped content surface |
 | `PageContainer` | custom | polymorphic | Page-width content wrapper |
 | `Tooltip` | custom | Radix props | Hover/focus contextual help |
 | Sonner `toast()` | sonner | sonner API | Transient confirmation/undo |
@@ -135,6 +152,8 @@ The current visual baseline that should be preserved is:
 - **Tooltips** use the shared Radix-based primitive with the warm `--color-surface-tooltip` surface, soft border, and compact `text-xs leading-5` copy instead of browser-native `title` styling.
 - **Pill dropdowns** use `rounded-full`, `text-[11px]`, uppercase bold copy with `tracking-[0.18em]`, and semantic border/surface tokens.
 - **Destructive actions** use the current red family; if the interaction is text-only or light-emphasis, use destructive-ghost rather than inventing a new red button style.
+- **Inputs** use the shared `Input` primitive instead of repeating rounded-sm border and focus-accent recipes in feature code.
+- **Badges** use the shared `Badge` primitive instead of per-surface chip styling.
 
 These are not redesign targets. They are the styles future work should inherit by default.
 
@@ -167,6 +186,9 @@ Tailwind utilities remain the main composition tool. The system does not try to 
 - Do not create a custom toggle or switch — use `Toggle`.
 - Do not create a new dropdown — use `MenuSelect` or `PillDropdown`.
 - Do not create a custom modal wrapper — use `DialogShell`.
+- Do not create a one-off text input recipe — use `Input`.
+- Do not create a one-off badge recipe — use `Badge`.
+- Do not create a one-off drawer shell — use `AppSheet`.
 - Do not add inline `title` attributes for hover help — use `Tooltip`.
 - Do not hardcode `font-family`, hex colors, border-opacity, or radius values in feature components — use tokens from `globals.css`.
 - Do not build a component that shadcn already offers — install and style it instead.

@@ -3,12 +3,17 @@
 import { useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { runProjectionEligibilityImport } from "@/lib/projectionEligibilityImport";
+import { Badge } from "@/components/ui/badge";
 import {
   getProjectionGroupDisplayName,
   getProjectionGroupPlayerCounts,
   getProjectionGroupSourceLabel,
 } from "@/lib/projectionGroups";
 import { Button } from "@/components/ui/Button";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import { Input } from "@/components/ui/input";
+import { Panel } from "@/components/ui/Panel";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { useStore } from "@/store";
 
 interface ProjectionsSectionProps {
@@ -105,23 +110,16 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
 
   return (
     <div className="font-sans">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2
-            className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Projections
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
-            Select the active dataset, upload new projection groups, and import position eligibility.
-            Projection groups are shared across all leagues.
-          </p>
-        </div>
-        <Button variant="primary" size="md" onClick={onOpenUpload}>
-          Upload Projections
-        </Button>
-      </div>
+      <SectionHeader
+        className="mb-8"
+        title="Projections"
+        description="Select the active dataset, upload new projection groups, and import position eligibility. Projection groups are shared across all leagues."
+        actions={
+          <Button variant="primary" size="md" onClick={onOpenUpload}>
+            Upload Projections
+          </Button>
+        }
+      />
 
       <div className="grid gap-4">
         {projectionGroupsWithCounts.map(({ group, counts, isActive, importedAtLabel }) => {
@@ -132,9 +130,11 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
           const importSeason = group.eligibilityImportSeason ?? 2025;
 
           return (
-            <section
+            <Panel
               key={group.id}
-              className="rounded-lg border border-[#111111]/10 bg-white p-5 shadow-sm dark:border-[#333333] dark:bg-[#111111]"
+              tone="default"
+              padding="md"
+              className="rounded-lg p-5 shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -145,13 +145,9 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                     >
                       {getProjectionGroupDisplayName(group)}
                     </h3>
-                    <span className="rounded-full bg-[#111111]/[0.05] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:bg-[#e5e5e5]/[0.06] dark:text-[#e5e5e5]/55">
-                      {sourceLabel}
-                    </span>
+                    <Badge variant="neutral">{sourceLabel}</Badge>
                     {isActive ? (
-                      <span className="rounded-full bg-[#dc2626]/[0.08] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#dc2626] dark:bg-[#ef4444]/[0.08] dark:text-[#ef4444]">
-                        Active
-                      </span>
+                      <Badge variant="accent">Active</Badge>
                     ) : null}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-4 text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
@@ -177,12 +173,10 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                 <div className="space-y-3">
                   {!isBuiltIn ? (
                     <>
-                      <div className="rounded-md bg-[#111111]/[0.03] p-3 dark:bg-[#e5e5e5]/[0.04]">
-                        <label className="block text-[10px] font-bold uppercase tracking-widest text-[#111111]/45 dark:text-[#e5e5e5]/40">
-                          Rename Projection Group
-                        </label>
+                      <Panel tone="muted" padding="sm" className="rounded-md">
+                        <FieldLabel className="block">Rename Projection Group</FieldLabel>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <input
+                          <Input
                             type="text"
                             value={renameValue}
                             onChange={(event) =>
@@ -191,7 +185,7 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                                 [group.id]: event.target.value,
                               }))
                             }
-                            className="min-w-[220px] flex-1 rounded-sm border border-[#111111]/15 bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#dc2626] focus:outline-none dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5] dark:focus:border-[#ef4444]"
+                            className="min-w-[220px] flex-1"
                           />
                           <Button
                             variant="ghost"
@@ -201,12 +195,12 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                             Save Name
                           </Button>
                         </div>
-                      </div>
+                      </Panel>
 
-                      <div className="rounded-md border border-[#dc2626]/20 bg-[#dc2626]/[0.03] p-3 dark:border-[#ef4444]/25 dark:bg-[#ef4444]/[0.05]">
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-[#991b1b] dark:text-[#fca5a5]">
+                      <Panel tone="danger" padding="sm" className="rounded-md">
+                        <FieldLabel className="block text-[#991b1b] dark:text-[#fca5a5]">
                           Delete Projection Group
-                        </div>
+                        </FieldLabel>
                         <p className="mt-2 text-sm text-[#7f1d1d] dark:text-[#fecaca]">
                           Remove this uploaded group from the app. Built-in leaders stay protected
                           and are not affected.
@@ -232,18 +226,16 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                             Deletion removes the dataset from every league view.
                           </span>
                         </div>
-                      </div>
+                      </Panel>
                     </>
                   ) : (
-                    <div className="rounded-md bg-[#111111]/[0.03] p-3 text-sm text-[#111111]/60 dark:bg-[#e5e5e5]/[0.04] dark:text-[#e5e5e5]/50">
+                    <Panel tone="muted" padding="sm" className="rounded-md text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
                       Built-in datasets stay protected, but you can still import or re-run eligibility.
-                    </div>
+                    </Panel>
                   )}
 
-                  <div className="rounded-md bg-[#111111]/[0.03] p-3 dark:bg-[#e5e5e5]/[0.04]">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/45 dark:text-[#e5e5e5]/40">
-                      Eligibility Status
-                    </div>
+                  <Panel tone="muted" padding="sm" className="rounded-md">
+                    <FieldLabel className="block">Eligibility Status</FieldLabel>
                     <div className="mt-2 space-y-1 text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
                       {group.eligibilityImportedAt ? (
                         <>
@@ -260,14 +252,12 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                         {importError.message}
                       </p>
                     ) : null}
-                  </div>
+                  </Panel>
                 </div>
 
-                <div className="rounded-md border border-[#111111]/10 p-4 dark:border-[#333333]">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-[#111111]/45 dark:text-[#e5e5e5]/40">
-                    Eligibility Season
-                  </label>
-                  <input
+                <Panel tone="default" padding="md" className="rounded-md border">
+                  <FieldLabel className="block">Eligibility Season</FieldLabel>
+                  <Input
                     type="number"
                     defaultValue={importSeason}
                     min={1900}
@@ -278,7 +268,7 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                         setProjectionGroupEligibilityImportSeason(group.id, parsed);
                       }
                     }}
-                    className="mt-2 w-full rounded-sm border border-[#111111]/15 bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#dc2626] focus:outline-none dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5] dark:focus:border-[#ef4444]"
+                    className="mt-2 w-full"
                     aria-label={`Eligibility season for ${getProjectionGroupDisplayName(group)}`}
                   />
 
@@ -299,9 +289,9 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                       {retryStatus ? <div>{retryStatus}</div> : null}
                     </div>
                   ) : null}
-                </div>
+                </Panel>
               </div>
-            </section>
+            </Panel>
           );
         })}
       </div>

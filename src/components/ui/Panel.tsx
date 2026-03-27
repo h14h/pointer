@@ -1,7 +1,7 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import { cx } from "@/components/ui/cx";
 
-type PanelTone = "default" | "raised" | "muted";
+type PanelTone = "default" | "raised" | "muted" | "accent" | "danger" | "warning";
 type PanelPadding = "none" | "sm" | "md";
 
 export interface PanelProps extends HTMLAttributes<HTMLElement> {
@@ -17,6 +17,12 @@ const toneClassNames: Record<PanelTone, string> = {
   raised:
     "border border-[var(--color-border-soft)] bg-[var(--color-surface-overlay)] shadow-[var(--shadow-overlay)]",
   muted: "bg-[var(--color-surface-muted)]",
+  accent:
+    "border border-[color:color-mix(in_srgb,var(--color-accent)_18%,transparent)] bg-[color:color-mix(in_srgb,var(--color-accent)_4%,transparent)]",
+  danger:
+    "border border-[color:color-mix(in_srgb,var(--color-danger)_20%,transparent)] bg-[color:color-mix(in_srgb,var(--color-danger)_5%,transparent)]",
+  warning:
+    "border border-[color:color-mix(in_srgb,#b45309_24%,transparent)] bg-[color:color-mix(in_srgb,#f59e0b_8%,transparent)]",
 };
 
 const paddingClassNames: Record<PanelPadding, string> = {

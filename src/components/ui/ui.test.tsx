@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { AppDialog } from "@/components/ui/AppDialog";
+import { AppSheet } from "@/components/ui/AppSheet";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
 import { DialogShell } from "@/components/ui/DialogShell";
+import { Input } from "@/components/ui/input";
 import { MenuSelect } from "@/components/ui/MenuSelect";
 import { PillDropdown } from "@/components/ui/PillDropdown";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 describe("shared ui primitives", () => {
   it("renders button variants with accessible button semantics", () => {
@@ -11,6 +16,7 @@ describe("shared ui primitives", () => {
       <>
         <Button variant="primary">Save</Button>
         <Button variant="destructive">Delete</Button>
+        <Button variant="toolbar">Filter</Button>
       </>
     );
 
@@ -20,6 +26,23 @@ describe("shared ui primitives", () => {
     expect(screen.getByRole("button", { name: "Delete" }).className).toContain(
       "bg-[var(--color-danger)]"
     );
+    expect(screen.getByRole("button", { name: "Filter" }).className).toContain(
+      "border-[var(--color-border-default)]"
+    );
+  });
+
+  it("renders input tones and badge variants", () => {
+    render(
+      <>
+        <Input aria-label="Search" tone="subtle" />
+        <Badge variant="accent">Active</Badge>
+      </>
+    );
+
+    expect(screen.getByRole("textbox", { name: "Search" }).className).toContain(
+      "bg-[var(--color-surface-muted)]"
+    );
+    expect(screen.getByText("Active").className).toContain("text-[var(--color-accent)]");
   });
 
   it("closes dialog via the shared close button", () => {
@@ -134,5 +157,37 @@ describe("shared ui primitives", () => {
     expect(within(container).getByText("Menu body")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close dropdown" }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("renders app dialog and sheet shells", () => {
+    render(
+      <>
+        <AppDialog open={true} onOpenChange={vi.fn()} title="Upload">
+          <div>Dialog body</div>
+        </AppDialog>
+        <AppSheet open={true} onOpenChange={vi.fn()} title="Menu">
+          <div>Sheet body</div>
+        </AppSheet>
+      </>
+    );
+
+    expect(screen.getByText("Dialog body")).toBeInTheDocument();
+    expect(screen.getByText("Sheet body")).toBeInTheDocument();
+    expect(screen.getAllByText("Pointer").length).toBeGreaterThan(0);
+  });
+
+  it("supports section header eyebrow and meta content", () => {
+    render(
+      <SectionHeader
+        eyebrow="Settings"
+        title="Scoring"
+        description="Adjust weights."
+        meta={<span>12 slots</span>}
+      />
+    );
+
+    expect(screen.getByText("Settings")).toBeInTheDocument();
+    expect(screen.getByText("Scoring")).toBeInTheDocument();
+    expect(screen.getByText("12 slots")).toBeInTheDocument();
   });
 });

@@ -18,6 +18,11 @@ import {
 	type ColumnDef,
 } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import { Input } from "@/components/ui/input";
 import { MenuSelect } from "@/components/ui/MenuSelect";
 import {
 	Tooltip,
@@ -101,13 +106,6 @@ const DEFAULT_PITCHING_STATS = ["W", "SV", "SO_P", "ERA", "WHIP"];
 const EMPTY_DRAFT_HISTORY: DraftState["history"] = [];
 const AUTO_ACTION_TOAST_DELAY_MS = 650;
 const FOLLOW_UP_TOAST_DELAY_MS = 220;
-const OWNERSHIP_BADGE_CLASSNAME =
-	"inline-flex select-none rounded-sm border px-1.5 text-[10px] font-bold uppercase tracking-wider";
-const KEEPER_BADGE_CLASSNAME =
-	`${OWNERSHIP_BADGE_CLASSNAME} border-[#dc2626]/25 bg-[#dc2626]/5 text-[#dc2626]/85 dark:border-[#ef4444]/25 dark:bg-[#ef4444]/5 dark:text-[#ef4444]/85`;
-const DRAFTED_BADGE_CLASSNAME =
-	`${OWNERSHIP_BADGE_CLASSNAME} border-[#111111]/20 bg-[#111111]/[0.04] text-[#111111]/60 dark:border-[#333333] dark:bg-[#e5e5e5]/[0.04] dark:text-[#e5e5e5]/55`;
-
 const formatCountingStat = (value: number | null) =>
 	value === null || Number.isNaN(value) ? (
 		"-"
@@ -525,7 +523,9 @@ export function Leaderboard() {
 						skippedKeeperEntries.length === 1 ? (
 							<div className="flex items-center gap-2">
 								<span>{skippedPlayerName}</span>
-								<span className={KEEPER_BADGE_CLASSNAME}>K</span>
+								<Badge variant="ownershipKeeper" className="rounded-sm px-1.5">
+									K
+								</Badge>
 							</div>
 						) : (
 							"Auto-advanced"
@@ -664,18 +664,19 @@ export function Leaderboard() {
 								{draftHistory.length} drafted, {Object.keys(keeperByTeam).length} keepers
 							</div>
 						</div>
-						<button
+						<Button
 							type="button"
 							onClick={handleUndoLastPick}
 							disabled={draftHistory.length === 0}
-							className="inline-flex min-h-8 items-center justify-center rounded-sm border border-[#111111]/20 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#111111]/60 transition-colors hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-30 dark:border-[#333333] dark:text-[#e5e5e5]/55 dark:hover:bg-[#1a1a1a]"
+							variant="toolbar"
+							size="sm"
 						>
 							Undo Last Pick
-						</button>
+						</Button>
 					</div>
 				) : null}
 				<div className="flex flex-wrap items-center gap-3">
-					<input
+					<Input
 						type="text"
 						placeholder="Search players..."
 						value={globalFilter}
@@ -684,7 +685,7 @@ export function Leaderboard() {
 							setGlobalFilter(nextValue);
 							applySearchFilter(nextValue);
 						}}
-						className="w-full min-w-[220px] flex-1 rounded-sm border border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-3 py-1.5 text-sm text-[#111111] dark:text-[#e5e5e5] placeholder:text-[#111111]/30 dark:placeholder:text-[#e5e5e5]/30 focus:border-[#dc2626] dark:focus:border-[#ef4444] focus:outline-none"
+						className="w-full min-w-[220px] flex-1"
 					/>
 
 					<PlayerViewFilter
@@ -734,9 +735,11 @@ export function Leaderboard() {
 						</span>
 					)}
 
-					<button
+					<Button
 						onClick={() => setIsStatsOpen((open) => !open)}
-						className="relative inline-flex min-h-8 items-center justify-center rounded-sm border border-[#111111]/30 px-3 py-1.5 text-center text-xs font-bold uppercase tracking-widest text-[#111111]/70 transition-colors hover:bg-[#f5f5f5] dark:border-[#333333] dark:text-[#e5e5e5]/60 dark:hover:bg-[#1a1a1a]"
+						variant={isStatsOpen ? "toolbarActive" : "toolbar"}
+						size="sm"
+						className="relative"
 						aria-expanded={isStatsOpen}
 						aria-controls="stat-visibility-panel"
 					>
@@ -744,7 +747,7 @@ export function Leaderboard() {
 						<span className="absolute inset-0 flex items-center justify-center">
 							{isStatsOpen ? "Hide Stats" : "Customize Stats"}
 						</span>
-					</button>
+					</Button>
 				</div>
 			</div>
 
@@ -762,32 +765,33 @@ export function Leaderboard() {
 								Toggle columns without changing scoring.
 							</p>
 						</div>
-						<button
+						<Button
 							onClick={() => setIsStatsOpen(false)}
-							className="text-xs font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40 hover:text-[#111111] dark:hover:text-[#e5e5e5]"
+							variant="ghost"
+							size="sm"
 						>
 							Close
-						</button>
+						</Button>
 					</div>
 					<div className="mt-4 grid gap-6 lg:grid-cols-2">
 						<div>
 							<div className="flex items-center justify-between mb-3">
-								<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
-									Batting
-								</span>
+								<FieldLabel style={{ fontVariant: "small-caps" }}>Batting</FieldLabel>
 								<div className="flex items-center gap-3">
-									<button
+									<Button
 										onClick={() => applyAllStats("batting")}
-										className="text-xs font-bold uppercase tracking-widest text-[#dc2626] dark:text-[#ef4444] hover:underline"
+										variant="destructiveGhost"
+										size="sm"
 									>
 										All
-									</button>
-									<button
+									</Button>
+									<Button
 										onClick={() => clearAllStats("batting")}
-										className="text-xs font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30 hover:text-[#111111] dark:hover:text-[#e5e5e5]"
+										variant="ghost"
+										size="sm"
 									>
 										None
-									</button>
+									</Button>
 								</div>
 							</div>
 							<div className="flex flex-wrap gap-2">
@@ -796,13 +800,11 @@ export function Leaderboard() {
 										key={stat.id}
 										className="flex items-center gap-1.5 border border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2.5 py-1.5 text-xs font-medium text-[#111111] dark:text-[#e5e5e5] rounded-sm"
 									>
-										<input
-											type="checkbox"
+										<Checkbox
 											checked={battingStatSet.has(stat.id)}
-											onChange={(event) =>
-												toggleStat("batting", stat.id, event.target.checked)
+											onCheckedChange={(checked) =>
+												toggleStat("batting", stat.id, Boolean(checked))
 											}
-											className="h-3.5 w-3.5 rounded-sm border-[#111111]/30 dark:border-[#333333] text-[#dc2626] dark:text-[#ef4444] accent-[#dc2626] dark:accent-[#ef4444]"
 										/>
 										<span>{stat.label}</span>
 									</label>
@@ -811,22 +813,22 @@ export function Leaderboard() {
 						</div>
 						<div>
 							<div className="flex items-center justify-between mb-3">
-								<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/40" style={{ fontVariant: "small-caps" }}>
-									Pitching
-								</span>
+								<FieldLabel style={{ fontVariant: "small-caps" }}>Pitching</FieldLabel>
 								<div className="flex items-center gap-3">
-									<button
+									<Button
 										onClick={() => applyAllStats("pitching")}
-										className="text-xs font-bold uppercase tracking-widest text-[#dc2626] dark:text-[#ef4444] hover:underline"
+										variant="destructiveGhost"
+										size="sm"
 									>
 										All
-									</button>
-									<button
+									</Button>
+									<Button
 										onClick={() => clearAllStats("pitching")}
-										className="text-xs font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30 hover:text-[#111111] dark:hover:text-[#e5e5e5]"
+										variant="ghost"
+										size="sm"
 									>
 										None
-									</button>
+									</Button>
 								</div>
 							</div>
 							<div className="flex flex-wrap gap-2">
@@ -835,13 +837,11 @@ export function Leaderboard() {
 										key={stat.id}
 										className="flex items-center gap-1.5 border border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2.5 py-1.5 text-xs font-medium text-[#111111] dark:text-[#e5e5e5] rounded-sm"
 									>
-										<input
-											type="checkbox"
+										<Checkbox
 											checked={pitchingStatSet.has(stat.id)}
-											onChange={(event) =>
-												toggleStat("pitching", stat.id, event.target.checked)
+											onCheckedChange={(checked) =>
+												toggleStat("pitching", stat.id, Boolean(checked))
 											}
-											className="h-3.5 w-3.5 rounded-sm border-[#111111]/30 dark:border-[#333333] text-[#dc2626] dark:text-[#ef4444] accent-[#dc2626] dark:accent-[#ef4444]"
 										/>
 										<span>{stat.label}</span>
 									</label>
@@ -1014,9 +1014,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								<TooltipProvider delayDuration={140}>
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<span className={DRAFTED_BADGE_CLASSNAME} tabIndex={0}>
+											<Badge variant="ownershipDrafted" className="rounded-sm px-1.5" tabIndex={0}>
 												D
-											</span>
+											</Badge>
 										</TooltipTrigger>
 										<TooltipContent side="top" align="end">
 											{resolveTeamLabel(row.original.draftedTeamIndex)}
@@ -1028,9 +1028,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								<TooltipProvider delayDuration={140}>
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<span className={KEEPER_BADGE_CLASSNAME} tabIndex={0}>
+											<Badge variant="ownershipKeeper" className="rounded-sm px-1.5" tabIndex={0}>
 												K
-											</span>
+											</Badge>
 										</TooltipTrigger>
 										<TooltipContent side="top" align="end">
 											{resolveTeamLabel(row.original.keeperTeamIndex)}

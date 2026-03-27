@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import { Panel } from "@/components/ui/Panel";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { useStore } from "@/store";
 import type { League } from "@/types";
 
@@ -50,18 +54,11 @@ export function LeaguesSection() {
 
   return (
     <div className="font-sans">
-      {/* Section header */}
-      <div className="mb-8">
-        <h2
-          className="text-xl font-bold text-[#111111] dark:text-[#e5e5e5]"
-          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-        >
-          Leagues
-        </h2>
-        <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
-          Manage your league profiles. Each league has its own settings and draft state.
-        </p>
-      </div>
+      <SectionHeader
+        className="mb-8"
+        title="Leagues"
+        description="Manage your league profiles. Each league has its own settings and draft state."
+      />
 
       {/* Create league button */}
       <div className="mb-6">
@@ -71,7 +68,7 @@ export function LeaguesSection() {
       </div>
 
       {/* League list */}
-      <div className="rounded-lg border border-[#111111]/[0.10] dark:border-[#e5e5e5]/[0.08]">
+      <Panel tone="default" padding="none" className="overflow-hidden rounded-lg">
         {leagues.map((league) => {
           const isActive = league.id === activeLeagueId;
           const isEditing = editingId === league.id;
@@ -112,7 +109,7 @@ export function LeaguesSection() {
                 {/* League info */}
                 <div className="min-w-0 flex-1">
                   {isEditing ? (
-                    <input
+                    <Input
                       ref={nameInputRef}
                       type="text"
                       value={editValue}
@@ -125,7 +122,8 @@ export function LeaguesSection() {
                           setEditValue("");
                         }
                       }}
-                      className="w-full rounded-md border border-[#111111]/15 bg-white px-2 py-1 text-sm text-[#111111] focus:border-[#dc2626] focus:outline-none dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5] dark:focus:border-[#ef4444]"
+                      inputSize="sm"
+                      className="w-full px-2 py-1"
                       aria-label="League name"
                     />
                   ) : (
@@ -138,7 +136,7 @@ export function LeaguesSection() {
                     </button>
                   )}
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#111111]/50 dark:text-[#e5e5e5]/40">
-                    <span>{league.leagueSettings.leagueSize} teams</span>
+                    <Badge variant="neutral">{league.leagueSettings.leagueSize} teams</Badge>
                     <span className="text-[#111111]/20 dark:text-[#e5e5e5]/15">|</span>
                     <span>Updated {formatDate(league.updatedAt)}</span>
                   </div>
@@ -201,7 +199,7 @@ export function LeaguesSection() {
             </div>
           );
         })}
-      </div>
+      </Panel>
 
       {/* Help text */}
       <p className="mt-4 text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38">
