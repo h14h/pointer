@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
-import { MenuSelect } from "@/components/ui/MenuSelect";
+import { Dropdown } from "@/components/ui/Dropdown";
 import {
 	Tooltip,
 	TooltipContent,
@@ -198,7 +198,7 @@ function PlayerViewFilter({
 	onChange: (nextValue: PlayerView) => void;
 }) {
 	return (
-		<MenuSelect
+		<Dropdown
 			value={value}
 			onChange={onChange}
 			ariaLabel="Player type"
@@ -219,7 +219,7 @@ function PositionFilter({
 	onChange: Dispatch<SetStateAction<Set<string>>>;
 }) {
 	return (
-		<MenuSelect
+		<Dropdown
 			mode="multi"
 			values={Array.from(selectedPositions)}
 			onChange={(nextValues) => onChange(new Set(nextValues))}
@@ -699,7 +699,7 @@ export function Leaderboard() {
 					/>
 
 					{isDraftMode && (
-						<MenuSelect
+						<Dropdown
 							value={draftFilter}
 							onChange={(nextValue) => {
 								startTransition(() => {
@@ -1795,7 +1795,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					</span>
 					<label className="flex items-center gap-2">
 						<span>Rows</span>
-						<MenuSelect
+						<Dropdown
 							value={pagination.pageSize}
 							onChange={(nextSize) =>
 								setPagination({ pageIndex: 0, pageSize: nextSize })
@@ -1803,7 +1803,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 							ariaLabel="Rows per page"
 							triggerClassName="px-2 py-1 text-xs"
 							menuClassName="min-w-[5rem]"
-							menuPlacement="top-right"
+							placement="top-right"
 							options={[
 								{ value: 25, label: "25" },
 								{ value: 50, label: "50" },

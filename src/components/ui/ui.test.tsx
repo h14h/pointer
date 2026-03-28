@@ -1,13 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { AppDialog } from "@/components/ui/AppDialog";
 import { AppSheet } from "@/components/ui/AppSheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
 import { DialogShell } from "@/components/ui/DialogShell";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { Input } from "@/components/ui/input";
-import { MenuSelect } from "@/components/ui/MenuSelect";
-import { PillDropdown } from "@/components/ui/PillDropdown";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
 describe("shared ui primitives", () => {
@@ -66,10 +65,11 @@ describe("shared ui primitives", () => {
   });
 
   it("supports multi-select mode with count badge and clear action", () => {
+    cleanup();
     const onChange = vi.fn();
 
     const { rerender } = render(
-      <MenuSelect
+      <Dropdown
         mode="multi"
         values={["C", "SS"]}
         onChange={onChange}
@@ -99,7 +99,7 @@ describe("shared ui primitives", () => {
     expect(onChange).toHaveBeenCalledWith([]);
 
     rerender(
-      <MenuSelect
+      <Dropdown
         mode="multi"
         values={[]}
         onChange={onChange}
@@ -121,42 +121,92 @@ describe("shared ui primitives", () => {
     ).not.toBeNull();
   });
 
-  it("renders pill dropdowns with an optional label", () => {
-    const onToggle = vi.fn();
-    const onClose = vi.fn();
+  it("renders dropdown with an optional label and custom content", () => {
+    cleanup();
+    const onOpenChange = vi.fn();
 
     const { rerender, container } = render(
-      <PillDropdown
+      <Dropdown
         label="Projection"
-        value="2025 Leaders"
-        menu={<div>Menu body</div>}
-        isOpen={false}
-        onToggle={onToggle}
-        onClose={onClose}
+        triggerValue="2025 Leaders"
+        open={false}
+        onOpenChange={onOpenChange}
         fullWidth
-      />
+      >
+        <div>Menu body</div>
+      </Dropdown>
     );
 
     const labelledTrigger = within(container).getByRole("button");
     expect(labelledTrigger).toHaveTextContent("Projection");
     expect(labelledTrigger).toHaveTextContent("2025 Leaders");
+    expect(labelledTrigger.className).toContain("rounded-full");
+    expect(labelledTrigger.className).toContain("border-[var(--color-border-soft)]");
     fireEvent.click(labelledTrigger);
-    expect(onToggle).toHaveBeenCalled();
+    expect(onOpenChange).toHaveBeenCalledWith(true);
 
     rerender(
-      <PillDropdown
-        value="My League"
-        menu={<div>Menu body</div>}
-        isOpen={true}
-        onToggle={onToggle}
-        onClose={onClose}
-      />
+      <Dropdown
+        triggerValue="My League"
+        open={true}
+        onOpenChange={onOpenChange}
+      >
+        <div>Menu body</div>
+      </Dropdown>
     );
 
     expect(within(container).getByText("My League").closest("button")).not.toBeNull();
     expect(within(container).getByText("Menu body")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close dropdown" }));
-    expect(onClose).toHaveBeenCalled();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("renders data-driven dropdown with consistent pill styling", () => {
+    cleanup();
+    const onChange = vi.fn();
+
+    render(
+      <Dropdown
+        value="batters"
+        onChange={onChange}
+        ariaLabel="Player type"
+        options={[
+          { value: "all", label: "All Players" },
+          { value: "batters", label: "Batters" },
+          { value: "pitchers", label: "Pitchers" },
+        ]}
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: "Player type" });
+    expect(trigger).toHaveTextContent("Batters");
+    expect(trigger.className).toContain("rounded-full");
+    expect(trigger.className).toContain("border-[var(--color-border-soft)]");
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "All Players" }));
+    expect(onChange).toHaveBeenCalledWith("all");
+  });
+
+  it("renders dropdown with description and footer", () => {
+    cleanup();
+    const onChange = vi.fn();
+
+    render(
+      <Dropdown
+        value="a"
+        onChange={onChange}
+        options={[
+          { value: "a", label: "Option A", description: "First option" },
+          { value: "b", label: "Option B", description: "Second option" },
+        ]}
+        footer={<a href="/manage">Manage...</a>}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /option a/i }));
+    expect(screen.getByText("First option")).toBeInTheDocument();
+    expect(screen.getByText("Manage...")).toBeInTheDocument();
   });
 
   it("renders app dialog and sheet shells", () => {

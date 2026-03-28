@@ -7,10 +7,9 @@
 - `src/components/ui/DialogShell.tsx`
 - `src/components/ui/FieldLabel.tsx`
 - `src/components/ui/input.tsx`
-- `src/components/ui/MenuSelect.tsx`
+- `src/components/ui/Dropdown.tsx`
 - `src/components/ui/PageContainer.tsx`
 - `src/components/ui/Panel.tsx`
-- `src/components/ui/PillDropdown.tsx`
 - `src/components/ui/SectionHeader.tsx`
 - `src/components/ui/sheet.tsx`
 - `src/components/ui/sonner.tsx`
@@ -26,7 +25,7 @@
 
 ## Dependencies
 - [Settings Page](settings-page.md) — first pilot surface that composes the shared primitives across page shell, section header, tabs, and inputs
-- [Header](header.md) — pilot surface that uses PillDropdown, Toggle, and page container tokens
+- [Header](header.md) — pilot surface that uses Dropdown, Toggle, and page container tokens
 
 ## Visual Intent
 
@@ -41,7 +40,7 @@ shadcn/ui is the project's first-class component system. It provides accessible,
 ### Configuration
 
 - **`components.json`** — shadcn config at project root. Points to `src/components/ui/` and `src/lib/utils.ts`.
-- **`cn()`** — shadcn's classname utility in `src/lib/utils.ts` (clsx + tailwind-merge). New components should use `cn()`. The legacy `cx()` in `ui/cx.ts` stays for existing components.
+- **`cn()`** — shadcn's classname utility in `src/lib/utils.ts` (clsx + tailwind-merge). All shared UI components should use `cn()`. The legacy `cx()` in `ui/cx.ts` remains available but is deprecated; prefer `cn()` in new and migrated code.
 - **Token bridge** — shadcn variables (`--background`, `--foreground`, `--primary`, `--border`, etc.) are mapped to Pointer's tokens in `globals.css`, so shadcn components automatically use Pointer's design language.
 
 ### Installing a Component
@@ -71,13 +70,12 @@ When modifying an existing custom component substantially, prefer migrating to i
 |-----------------|-------------------|-------|
 | `Button` | Button | Similar variant system |
 | `Toggle` | Switch | shadcn Switch = Radix Switch |
-| `MenuSelect` | Select or Dropdown Menu | Select for form values, Dropdown Menu for actions |
+| `Dropdown` | Select or Dropdown Menu | Unified single/multi select with pill-shaped trigger |
 | `DialogShell` | Dialog or Alert Dialog | Dialog for general, Alert Dialog for confirmations |
 | `FieldLabel` | Label | shadcn Label = Radix Label |
 | `Panel` | Card | Card has header/content/footer structure |
 | `Tooltip` | Tooltip | Both Radix-based |
 | `sonner.tsx` | Sonner | Both wrap the sonner library |
-| `PillDropdown` | *(no equivalent)* | Keep as custom — unique pill trigger pattern |
 | `PageContainer` | *(no equivalent)* | Keep as custom — app-specific layout |
 | `SectionHeader` | *(no equivalent)* | Keep as custom — app-specific section pattern |
 | `NumericInput` | *(no equivalent)* | Keep as custom — domain-specific stepper |
@@ -104,7 +102,7 @@ The initial primitive set is intentionally small:
 - **`Input`** is the standard single-line text and number-like field for feature code outside `NumericInput`.
 - **`Badge`** standardizes status chips, ownership pills, and compact count tags.
 - **`Button`** covers the repeated action hierarchy: primary, secondary, ghost, destructive, and destructive-ghost.
-- **`MenuSelect`** is the standard select-like control for both single-select and multi-select menus, including placement-aware popovers.
+- **`Dropdown`** is the unified select-like control for both single-select and multi-select menus. It uses a single pill-shaped trigger style (`rounded-full`, `text-sm`, `font-medium`, sentence-case) with placement-aware popovers, optional leading labels, footer slots, and description support. It replaces the former `MenuSelect` and `PillDropdown` components.
 - **`Checkbox`** is the standard checkbox control for stat toggles and optional import settings.
 - **`Toggle`** is the standard switch control and supports the two geometries already present in the app (`sm` and `md`).
 - **`FieldLabel`** standardizes uppercase meta labels used above fields and grouped controls.
@@ -114,8 +112,6 @@ The initial primitive set is intentionally small:
 - **`DialogShell`** centralizes destructive-confirmation modal structure and close affordances.
 - **`Toaster`** mounts the shared Sonner toast surface used for lightweight confirmation and undo flows, and follows the app's system light/dark mode behavior.
 - **`Tooltip`** is the shared hover/focus helper surface for compact status badges and inline help affordances, built on Radix Tooltip and styled to match Pointer's warm paper utility feel.
-- **`PillDropdown`** is the compact pill-shaped dropdown trigger used for global selection controls (projection source, league). It renders a rounded-full trigger with an optional leading label, a truncating value, and a chevron, plus a placement-aware popover menu.
-
 These primitives are meant to carry the repeated visual recipes. Feature components still own structure and behavior.
 
 ## Component Inventory
@@ -127,8 +123,7 @@ These primitives are meant to carry the repeated visual recipes. Feature compone
 | `Badge` | shadcn-inspired | neutral, accent, danger, muted, count, ownershipDrafted, ownershipKeeper; sm, md | Compact status or count chips |
 | `Checkbox` | shadcn/Base UI | — | Checked/unchecked control |
 | `Toggle` | custom | sm, md | Binary on/off state |
-| `MenuSelect` | custom | single, multi; placement | Dropdown selection from a list |
-| `PillDropdown` | custom | align, fullWidth, label | Compact inline selector (header-style) |
+| `Dropdown` | custom | single, multi; placement; footer; label | Pill-shaped dropdown selection with unified styling |
 | `AppDialog` | shadcn/Base UI | default shell | Multi-step or non-destructive modal workflows |
 | `AppSheet` | shadcn/Base UI | top, right, bottom, left | Mobile drawers and edge panels |
 | `DialogShell` | custom | title, description, footer | Modal confirmations and forms |
@@ -146,11 +141,10 @@ These primitives are meant to carry the repeated visual recipes. Feature compone
 The current visual baseline that should be preserved is:
 
 - **Buttons** use `rounded-sm`, `text-xs`, uppercase copy, and `tracking-widest`.
-- **Menu selects** use the same trigger/menu/item styling family as the header league selector.
-- **Multi-select menus** use the same trigger as single-select plus a count badge and optional in-menu clear action.
+- **Dropdowns** use `Dropdown` with a single pill-shaped trigger (`rounded-full`, `text-sm`, `font-medium`, sentence-case). Sizing adjustments for compact contexts (e.g. pagination) use `triggerClassName`.
+- **Multi-select dropdowns** use the same trigger as single-select plus a count badge and optional in-menu clear action.
 - **Toggles** use the shared switch component instead of re-implementing track/thumb geometry in feature code.
 - **Tooltips** use the shared Radix-based primitive with the warm `--color-surface-tooltip` surface, soft border, and compact `text-xs leading-5` copy instead of browser-native `title` styling.
-- **Pill dropdowns** use `rounded-full`, `text-[11px]`, uppercase bold copy with `tracking-[0.18em]`, and semantic border/surface tokens.
 - **Destructive actions** use the current red family; if the interaction is text-only or light-emphasis, use destructive-ghost rather than inventing a new red button style.
 - **Inputs** use the shared `Input` primitive instead of repeating rounded-sm border and focus-accent recipes in feature code.
 - **Badges** use the shared `Badge` primitive instead of per-surface chip styling.
@@ -184,7 +178,7 @@ Tailwind utilities remain the main composition tool. The system does not try to 
 
 - Do not create a new button variant — extend `Button` with a new variant prop value.
 - Do not create a custom toggle or switch — use `Toggle`.
-- Do not create a new dropdown — use `MenuSelect` or `PillDropdown`.
+- Do not create a new dropdown — use `Dropdown`. Use `triggerClassName` only for sizing adjustments, not for shape or text treatment.
 - Do not create a custom modal wrapper — use `DialogShell`.
 - Do not create a one-off text input recipe — use `Input`.
 - Do not create a one-off badge recipe — use `Badge`.

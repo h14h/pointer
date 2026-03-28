@@ -40,6 +40,10 @@
   --color-danger-hover: hsl(0 74% 42%);
   --color-danger-soft: hsl(0 100% 98%);
 
+  /* Warning */
+  --color-warning: hsl(26 90% 37%);
+  --color-warning-soft: hsl(38 92% 50%);
+
   /* Feedback */
   --color-focus-ring: hsla(0 72% 50% / 0.35);
   --color-backdrop: hsla(222 47% 11% / 0.2);
@@ -177,6 +181,10 @@
     --color-danger: hsl(0 83% 60%);
     --color-danger-hover: hsl(0 78% 54%);
     --color-danger-soft: hsla(0 83% 60% / 0.12);
+
+    /* Warning */
+    --color-warning: hsl(38 80% 55%);
+    --color-warning-soft: hsl(38 92% 50%);
     --color-focus-ring: hsla(0 83% 60% / 0.35);
     --color-backdrop: hsla(0 0% 0% / 0.6);
     --shadow-overlay: 0 20px 55px hsla(0 0% 0% / 0.45);

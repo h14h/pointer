@@ -1,5 +1,5 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
-import { cx } from "@/components/ui/cx";
+import { cn } from "@/lib/utils";
 
 type PanelTone = "default" | "raised" | "muted" | "accent" | "danger" | "warning";
 type PanelPadding = "none" | "sm" | "md";
@@ -22,7 +22,7 @@ const toneClassNames: Record<PanelTone, string> = {
   danger:
     "border border-[color:color-mix(in_srgb,var(--color-danger)_20%,transparent)] bg-[color:color-mix(in_srgb,var(--color-danger)_5%,transparent)]",
   warning:
-    "border border-[color:color-mix(in_srgb,#b45309_24%,transparent)] bg-[color:color-mix(in_srgb,#f59e0b_8%,transparent)]",
+    "border border-[color:color-mix(in_srgb,var(--color-warning)_24%,transparent)] bg-[color:color-mix(in_srgb,var(--color-warning-soft)_8%,transparent)]",
 };
 
 const paddingClassNames: Record<PanelPadding, string> = {
@@ -41,7 +41,7 @@ export function Panel({
 }: PanelProps) {
   return (
     <Component
-      className={cx(
+      className={cn(
         "rounded-[var(--radius-lg)]",
         toneClassNames[tone],
         paddingClassNames[padding],

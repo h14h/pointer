@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
-import { MenuSelect } from "@/components/ui/MenuSelect";
+import { Dropdown } from "@/components/ui/Dropdown";
 import type { Player } from "@/types";
 
 export type DraftKeeperEntry = {
@@ -127,16 +127,18 @@ export function DraftTeamRow({
   }, [recentlyEditedKeeperId, teamKeepers]);
 
   return (
-    <div className="rounded-xl border border-[#111111]/10 bg-white/90 px-4 py-3 dark:border-[#333333] dark:bg-[#1a1a1a]/85">
+    <div className="rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-surface-base)]/90 px-4 py-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#111111]/[0.04] text-sm font-bold tabular-nums text-[#111111]/70 dark:bg-[#e5e5e5]/[0.06] dark:text-[#e5e5e5]/70">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-muted)] text-sm font-bold tabular-nums text-[var(--color-fg-muted)]">
             {index + 1}
           </div>
 
           <div className="min-w-0 flex-1">
-            <input
+            <Input
               type="text"
+              tone="subtle"
+              inputSize="sm"
               aria-label={`Team ${index + 1} name`}
               defaultValue={name}
               onChange={(event) => {
@@ -148,11 +150,11 @@ export function DraftTeamRow({
                 delete teamNameDraftByIndexRef.current[index];
               }}
               onKeyDown={handleTeamNameKeyDown}
-              className="min-w-0 w-full rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-[#111111] transition-colors focus:border-[#111111]/15 focus:bg-white focus:outline-none dark:text-[#e5e5e5] dark:focus:border-[#333333] dark:focus:bg-[#111111]"
+              className="min-w-0 border-transparent bg-transparent font-semibold"
             />
 
             {collapsedKeeperBadges.length === 0 ? (
-              <div className="mt-2 text-xs font-medium text-[#111111]/48 dark:text-[#e5e5e5]/40">
+              <div className="mt-2 text-xs font-medium text-[var(--color-fg-subtle)]">
                 No Keepers
               </div>
             ) : (
@@ -168,14 +170,14 @@ export function DraftTeamRow({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-          <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
+          <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-fg-subtle)]">
             <span>Move to</span>
-            <MenuSelect
+            <Dropdown
               value={index + 1}
               onChange={(nextPosition) => onReorder(nextPosition - 1)}
               ariaLabel={`Draft position for ${name}`}
               disabled={!setupUnlocked}
-              triggerClassName="h-8 min-w-[4.25rem] justify-between rounded-md border-[#111111]/15 px-2 text-xs font-semibold normal-case tracking-normal text-[#111111] dark:border-[#333333] dark:text-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-40"
+              triggerClassName="h-8 min-w-[4.25rem] px-2 text-xs text-[var(--color-fg-default)]"
               menuClassName="min-w-[4.25rem]"
               options={Array.from({ length: leagueSize }, (_, position) => ({
                 value: position + 1,
@@ -201,7 +203,7 @@ export function DraftTeamRow({
             aria-label={`Add team below ${name}`}
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-md text-[#111111]/45 hover:bg-[#111111]/[0.05] hover:text-[#111111]/65 dark:text-[#e5e5e5]/38 dark:hover:bg-[#e5e5e5]/[0.05] dark:hover:text-[#e5e5e5]/55"
+            className="h-8 w-8 rounded-md"
           >
             <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
               <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" />
@@ -226,11 +228,11 @@ export function DraftTeamRow({
       {isExpanded ? (
         <div
           id={`team-keepers-panel-${index}`}
-          className="mt-4 rounded-lg bg-[#111111]/[0.03] p-3 dark:bg-[#e5e5e5]/[0.04]"
+          className="mt-4 rounded-lg bg-[var(--color-surface-muted)] p-3"
         >
           <div className="mb-3">
             <FieldLabel className="block">Keepers</FieldLabel>
-            <p className="mt-0.5 text-xs text-[#111111]/40 dark:text-[#e5e5e5]/34">
+            <p className="mt-0.5 text-xs text-[var(--color-fg-subtle)]">
               One row per keeper for quick edits.
             </p>
           </div>
@@ -241,7 +243,7 @@ export function DraftTeamRow({
                 <div
                   key={entry.playerId}
                   data-keeper-row={entry.playerId}
-                  className={`flex min-w-0 w-full items-center gap-3 rounded-xl border border-[#dc2626]/20 bg-[#dc2626]/[0.05] px-3 py-2 text-xs text-[#111111]/75 dark:border-[#ef4444]/20 dark:bg-[#ef4444]/[0.08] dark:text-[#e5e5e5]/70 ${
+                  className={`flex min-w-0 w-full items-center gap-3 rounded-xl border border-[color:color-mix(in_srgb,var(--color-accent)_20%,transparent)] bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)] px-3 py-2 text-xs text-[var(--color-fg-muted)] ${
                     fadingKeeperIds.includes(entry.playerId)
                       ? "keeper-row-fade-in"
                       : ""
@@ -249,13 +251,13 @@ export function DraftTeamRow({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{entry.player?.Name}</div>
-                    <div className="flex min-w-0 items-center gap-2 text-[#111111]/45 dark:text-[#e5e5e5]/38">
+                    <div className="flex min-w-0 items-center gap-2 text-[var(--color-fg-subtle)]">
                       <span className="truncate">{entry.player?.Team}</span>
                     </div>
                   </div>
                   <div className="ml-auto flex shrink-0 items-center gap-2">
-                    <div className="flex items-center gap-1 rounded-lg border border-[#111111]/10 bg-white/70 px-2 py-1 dark:border-[#333333] dark:bg-[#111111]/60">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/35">
+                    <div className="flex items-center gap-1 rounded-lg border border-[var(--color-border-soft)] bg-[var(--color-surface-base)]/70 px-2 py-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-fg-subtle)]">
                         Rd
                       </span>
                       <input
@@ -290,14 +292,14 @@ export function DraftTeamRow({
                             event.currentTarget.blur();
                           }
                         }}
-                        className="w-9 bg-transparent text-center text-sm font-semibold tabular-nums text-[#111111] outline-none dark:text-[#e5e5e5]"
+                        className="w-9 bg-transparent text-center text-sm font-semibold tabular-nums text-[var(--color-fg-default)] outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => onMoveKeeperRound(entry.teamIndex, entry.playerId, "earlier")}
                         disabled={getMoveTargetRound(entry.teamIndex, entry.playerId, "earlier") === null}
                         aria-label={`Move keeper ${entry.player?.Name ?? entry.playerId} earlier`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#111111]/10 text-[#111111]/55 transition-colors hover:bg-white hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-30 dark:border-[#333333] dark:text-[#e5e5e5]/50 dark:hover:bg-[#111111] dark:hover:text-[#e5e5e5]"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--color-border-soft)] text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-base)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
                           <path d="M8 4.22a.75.75 0 0 1 .53.22l4 4a.75.75 0 0 1-1.06 1.06L8 6.06 4.53 9.5a.75.75 0 1 1-1.06-1.06l4-4A.75.75 0 0 1 8 4.22Z" />
@@ -308,14 +310,14 @@ export function DraftTeamRow({
                         onClick={() => onMoveKeeperRound(entry.teamIndex, entry.playerId, "later")}
                         disabled={getMoveTargetRound(entry.teamIndex, entry.playerId, "later") === null}
                         aria-label={`Move keeper ${entry.player?.Name ?? entry.playerId} later`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#111111]/10 text-[#111111]/55 transition-colors hover:bg-white hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-30 dark:border-[#333333] dark:text-[#e5e5e5]/50 dark:hover:bg-[#111111] dark:hover:text-[#e5e5e5]"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--color-border-soft)] text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-base)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
                           <path d="M8 11.78a.75.75 0 0 1-.53-.22l-4-4A.75.75 0 0 1 4.53 6.5L8 9.94l3.47-3.44a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-.53.22Z" />
                         </svg>
                       </button>
                     </div>
-                    <span className="min-w-[4.75rem] text-right text-[10px] font-bold uppercase tracking-widest text-[#dc2626]/80 dark:text-[#ef4444]/80">
+                    <span className="min-w-[4.75rem] text-right text-[10px] font-bold uppercase tracking-widest text-[var(--color-accent)]/80">
                       {getKeeperCostLabel(entry.teamIndex, getKeeperRoundValue(entry))}
                     </span>
                   </div>
@@ -331,13 +333,13 @@ export function DraftTeamRow({
                 </div>
               ))
             ) : (
-              <span className="text-sm text-[#111111]/40 dark:text-[#e5e5e5]/32">
+              <span className="text-sm text-[var(--color-fg-subtle)]">
                 No keepers assigned.
               </span>
             )}
           </div>
 
-          <div className="mt-3 border-t border-[#111111]/10 pt-3 dark:border-[#333333]">
+          <div className="mt-3 border-t border-[var(--color-border-soft)] pt-3">
             {hasActiveProjectionGroup ? (
               <>
                 <div className="grid gap-3">
@@ -349,7 +351,7 @@ export function DraftTeamRow({
                     placeholder={`Search available players for ${name}`}
                     className="w-full"
                   />
-                  <p className="text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38">
+                  <p className="text-xs text-[var(--color-fg-subtle)]">
                     New keepers are added to the next open slot for this team. Use Rd or the arrows to move them to any open round.
                   </p>
                 </div>
@@ -359,17 +361,17 @@ export function DraftTeamRow({
                       key={player._id}
                       type="button"
                       onClick={() => onAssignKeeper(player._id)}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#111111]/15 bg-white px-3 py-2 text-left text-xs text-[#111111]/75 transition-colors hover:border-[#dc2626]/30 hover:bg-[#dc2626]/[0.04] dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-[#e5e5e5]/70 dark:hover:border-[#ef4444]/30 dark:hover:bg-[#ef4444]/[0.05]"
+                      className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-[var(--color-surface-base)] px-3 py-2 text-left text-xs text-[var(--color-fg-muted)] transition-colors hover:border-[color:color-mix(in_srgb,var(--color-accent)_30%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
                     >
-                      <span className="font-semibold text-[#111111] dark:text-[#e5e5e5]">
+                      <span className="font-semibold text-[var(--color-fg-default)]">
                         {player.Name}
                       </span>
-                      <span className="text-[#111111]/45 dark:text-[#e5e5e5]/38">{player.Team}</span>
+                      <span className="text-[var(--color-fg-subtle)]">{player.Team}</span>
                     </button>
                   ))}
                 </div>
                 {keeperCandidates.length === 0 ? (
-                  <p className="mt-3 text-sm text-[#111111]/45 dark:text-[#e5e5e5]/38">
+                  <p className="mt-3 text-sm text-[var(--color-fg-subtle)]">
                     {keeperSearch.trim().length === 0
                       ? "Type to search for an available keeper."
                       : "No available players match this search."}
@@ -377,7 +379,7 @@ export function DraftTeamRow({
                 ) : null}
               </>
             ) : (
-              <p className="text-sm text-[#111111]/45 dark:text-[#e5e5e5]/38">
+              <p className="text-sm text-[var(--color-fg-subtle)]">
                 Upload or select a projection set before assigning keepers.
               </p>
             )}

@@ -133,7 +133,7 @@ describe("Header settings navigation", () => {
     const settingsLink = screen.getByLabelText("Settings");
     expect(settingsLink).toHaveAttribute("href", "/");
     expect(settingsLink).toHaveAttribute("title", "Back to leaderboard");
-    expect(settingsLink.className).toContain("bg-[#dc2626]");
+    expect(settingsLink.className).toContain("bg-[var(--color-accent)]");
     expect(screen.getByRole("button", { name: "Open settings navigation" }).className).toContain(
       "color-mix"
     );
@@ -147,11 +147,12 @@ describe("Header settings navigation", () => {
 
     await user.click(screen.getAllByRole("button", { name: /2025 Leaders/i })[0]!);
 
-    expect(screen.getAllByText("Steamer")).toHaveLength(2);
-    expect(screen.getAllByText("Built-in")).toHaveLength(2);
-    screen.getAllByRole("link", { name: "Manage Projections..." }).forEach((link) => {
-      expect(link).toHaveAttribute("href", "/settings?section=projections");
-    });
+    expect(screen.getByText("Steamer")).toBeInTheDocument();
+    expect(screen.getByText("Built-in")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Manage Projections..." })).toHaveAttribute(
+      "href",
+      "/settings?section=projections"
+    );
   });
 
   it("opens the mobile navigation drawer with settings sections on the settings page", async () => {

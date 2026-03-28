@@ -8,7 +8,7 @@ import {
 } from "@/components/settings/constants";
 import { Button } from "@/components/ui/Button";
 import { FieldLabel } from "@/components/ui/FieldLabel";
-import { MenuSelect } from "@/components/ui/MenuSelect";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Toggle } from "@/components/ui/Toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/Tooltip";
@@ -82,11 +82,11 @@ export function ScoringSection() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="grid flex-1 gap-1.5 sm:max-w-[220px]">
             <FieldLabel>Preset</FieldLabel>
-            <MenuSelect
+            <Dropdown
               value={selectedPresetKey}
               onChange={setSelectedPresetKey}
               ariaLabel="Scoring preset"
-              triggerClassName="h-9 justify-between rounded-md border-[#111111]/15 px-2.5 text-sm normal-case tracking-normal dark:border-[#333333]"
+              triggerClassName="h-9"
               menuClassName="min-w-[220px]"
               options={presetNames.map((key) => ({
                 value: key,

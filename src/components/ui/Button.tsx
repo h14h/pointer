@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cx } from "@/components/ui/cx";
+import { cn } from "@/lib/utils";
 
 type ButtonVariant =
   | "primary"
@@ -32,7 +32,7 @@ const variantClassNames: Record<ButtonVariant, string> = {
   destructive:
     "bg-[var(--color-danger)] text-white hover:bg-[var(--color-danger-hover)]",
   destructiveGhost:
-    "text-[var(--color-danger)] hover:bg-red-50 dark:text-[#ef4444] dark:hover:bg-red-950/30",
+    "text-[var(--color-danger)] hover:bg-[var(--color-danger-soft)]",
   toolbar:
     "border border-[var(--color-border-default)] bg-[var(--color-surface-base)] text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)]",
   toolbarActive:
@@ -59,7 +59,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={cx(baseClassName, variantClassNames[variant], sizeClassNames[size], className)}
+      className={cn(baseClassName, variantClassNames[variant], sizeClassNames[size], className)}
       {...props}
     />
   );

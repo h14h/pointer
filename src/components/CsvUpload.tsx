@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
-import { MenuSelect } from "@/components/ui/MenuSelect";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { Panel } from "@/components/ui/Panel";
 import { Toggle } from "@/components/ui/Toggle";
 import { useStore } from "@/store";
@@ -458,11 +458,11 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                 Player Type
               </FieldLabel>
-              <MenuSelect
+              <Dropdown
                 value={uploadType}
                 onChange={setUploadType}
                 ariaLabel="Player Type"
-                triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                fullWidth
                 menuClassName="w-full min-w-0"
                 options={[
                   { value: "auto", label: "Auto-detect" },
@@ -527,7 +527,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                 <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                   ID Source
                 </FieldLabel>
-                <MenuSelect
+                <Dropdown
                   value={batterFile.selectedIdSource}
                   onChange={(value) =>
                     setBatterFile({
@@ -536,7 +536,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                     })
                   }
                   ariaLabel="Batter ID Source"
-                  triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                  fullWidth
                   menuClassName="w-full min-w-0"
                   options={[
                     { value: "generated", label: "Generate IDs automatically" },
@@ -549,13 +549,13 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                     <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                       Select Column
                     </FieldLabel>
-                    <MenuSelect
+                    <Dropdown
                       value={batterFile.customIdColumn}
                       onChange={(value) =>
                         setBatterFile({ ...batterFile, customIdColumn: value })
                       }
                       ariaLabel="Batter ID Column"
-                      triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                      fullWidth
                       menuClassName="w-full min-w-0"
                       options={batterFile.parseResult.availableColumns.map((col) => ({
                         value: col,
@@ -575,7 +575,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                 <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                   ID Source
                 </FieldLabel>
-                <MenuSelect
+                <Dropdown
                   value={pitcherFile.selectedIdSource}
                   onChange={(value) =>
                     setPitcherFile({
@@ -584,7 +584,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                     })
                   }
                   ariaLabel="Pitcher ID Source"
-                  triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                  fullWidth
                   menuClassName="w-full min-w-0"
                   options={[
                     { value: "generated", label: "Generate IDs automatically" },
@@ -597,13 +597,13 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                     <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
                       Select Column
                     </FieldLabel>
-                    <MenuSelect
+                    <Dropdown
                       value={pitcherFile.customIdColumn}
                       onChange={(value) =>
                         setPitcherFile({ ...pitcherFile, customIdColumn: value })
                       }
                       ariaLabel="Pitcher ID Column"
-                      triggerClassName="w-full justify-between px-3 py-2 text-sm normal-case tracking-normal"
+                      fullWidth
                       menuClassName="w-full min-w-0"
                       options={pitcherFile.parseResult.availableColumns.map((col) => ({
                         value: col,
