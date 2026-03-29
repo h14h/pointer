@@ -54,7 +54,10 @@
   --radius-md: 0.375rem;
   --radius-lg: 0.625rem;
   --width-page: 80rem;
-  --space-page-x: 1rem;
+  --space-page-x: 0.75rem;
+  --space-page-x-sm: 1.5rem;
+  --space-section-gap: 1.25rem;
+  --space-section-gap-sm: 1.5rem;
 
   /* Typography */
   --font-title: Georgia, "Times New Roman", serif;

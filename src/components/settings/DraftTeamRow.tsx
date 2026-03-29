@@ -177,8 +177,7 @@ export function DraftTeamRow({
               onChange={(nextPosition) => onReorder(nextPosition - 1)}
               ariaLabel={`Draft position for ${name}`}
               disabled={!setupUnlocked}
-              triggerClassName="h-8 min-w-[4.25rem] px-2 text-xs text-[var(--color-fg-default)]"
-              menuClassName="min-w-[4.25rem]"
+              triggerClassName="h-8 px-2 text-xs text-[var(--color-fg-default)]"
               options={Array.from({ length: leagueSize }, (_, position) => ({
                 value: position + 1,
                 label: String(position + 1),

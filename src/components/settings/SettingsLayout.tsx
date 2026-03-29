@@ -13,7 +13,7 @@ interface SettingsLayoutProps {
 
 export function SettingsLayout({ activeSection, children }: SettingsLayoutProps) {
   return (
-    <div className="grid gap-6 font-sans lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-8">
+    <div className="grid gap-[var(--space-section-gap)] font-sans sm:gap-[var(--space-section-gap-sm)] lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-8">
       {/* Desktop: vertical sidebar */}
       <aside className="hidden lg:block">
         <nav aria-label="Settings sections" className="sticky top-6 grid gap-1">
@@ -66,7 +66,7 @@ export function SettingsLayout({ activeSection, children }: SettingsLayoutProps)
       </aside>
 
       {/* Content area */}
-      <section className="min-w-0">{children}</section>
+      <section className="mx-auto w-full min-w-0 max-w-3xl lg:mx-0 lg:max-w-none">{children}</section>
     </div>
   );
 }

@@ -172,6 +172,12 @@ function renderColumnCell<TData>(column: ColumnDef<TData>, row: TData): ReactNod
 	return value as ReactNode;
 }
 
+/* Frozen-column geometry (px) — # | ADP | Name all stick left */
+const FROZEN_RANK_W = 40;
+const FROZEN_ADP_W = 55;
+const FROZEN_ADP_LEFT = FROZEN_RANK_W;
+const FROZEN_NAME_LEFT = FROZEN_RANK_W + FROZEN_ADP_W;
+
 function getColumnId<TData>(column: ColumnDef<TData>, fallbackIndex: number): string {
 	if ("id" in column && typeof column.id === "string") {
 		return column.id;
@@ -642,9 +648,9 @@ export function Leaderboard() {
 	return (
 		<div className="flex flex-col font-sans">
 			{/* Filters */}
-			<div className="mb-6 border-b border-[#111111]/10 dark:border-[#333333] pb-5">
+			<div className="mx-auto w-full max-w-5xl px-[var(--space-page-x)] sm:px-[var(--space-page-x-sm)]">
 				{isDraftMode && currentPickContext ? (
-					<div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#111111]/[0.03] px-4 py-3 dark:bg-[#e5e5e5]/[0.04]">
+					<div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#111111]/[0.03] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 dark:bg-[#e5e5e5]/[0.04]">
 						<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 							<div>
 								<div className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/45 dark:text-[#e5e5e5]/35">
@@ -675,7 +681,7 @@ export function Leaderboard() {
 						</Button>
 					</div>
 				) : null}
-				<div className="flex flex-wrap items-center gap-3">
+				<div className="flex flex-wrap items-center gap-2 sm:gap-3">
 					<Input
 						type="text"
 						placeholder="Search players..."
@@ -685,7 +691,7 @@ export function Leaderboard() {
 							setGlobalFilter(nextValue);
 							applySearchFilter(nextValue);
 						}}
-						className="w-full min-w-[220px] flex-1"
+						className="w-full min-w-0 flex-1"
 					/>
 
 					<PlayerViewFilter
@@ -978,7 +984,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			{
 				id: "ADP",
 				header: "ADP",
-				size: 70,
+				size: 55,
 				accessorFn: (row) =>
 					(row.player as unknown as Record<string, number | null>).ADP,
 				cell: ({ getValue }) => {
@@ -1685,10 +1691,10 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	return (
 		<div className="space-y-4">
 			<div className="overflow-x-auto overflow-y-clip">
-				<table className="w-full text-sm text-[#111111] dark:text-[#e5e5e5]">
+				<table className="mt-8 w-full border-separate border-spacing-0 border-t border-[#111111]/40 text-sm text-[#111111] dark:border-[#e5e5e5]/25 dark:text-[#e5e5e5]">
 					<thead>
 						<tr>
-							<th className="sticky left-0 top-0 z-20 w-12 border-b border-b-[#111111]/40 border-r border-[#111111]/10 bg-white px-2 py-2 text-right text-[10px] font-bold uppercase tracking-widest text-[#111111]/35 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-b-[#e5e5e5]/25 dark:border-[#333333] dark:bg-[#111111] dark:text-[#e5e5e5]/30 dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]">
+							<th style={{ width: FROZEN_RANK_W, minWidth: FROZEN_RANK_W, maxWidth: FROZEN_RANK_W }} className="sticky left-0 top-0 z-20 border-b border-b-[#111111]/40 bg-white px-2 py-1.5 text-right text-[10px] sm:py-2 font-bold uppercase tracking-widest text-[#111111]/35 dark:border-b-[#e5e5e5]/25 dark:bg-[#111111] dark:text-[#e5e5e5]/30">
 								#
 							</th>
 							{columns.map((column, columnIndex) => {
@@ -1705,10 +1711,17 @@ const LeaderboardTable = memo(function LeaderboardTable({
 												"size" in column && typeof column.size === "number"
 													? column.size
 													: undefined,
+											...(columnId === "ADP" ? { left: FROZEN_ADP_LEFT, minWidth: FROZEN_ADP_W, maxWidth: FROZEN_ADP_W } :
+												columnId === "player.Name" ? { left: FROZEN_NAME_LEFT } :
+												{}),
 										}}
-										className={`sticky top-0 z-10 border-b border-b-[#111111]/40 dark:border-b-[#e5e5e5]/25 border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#111111] px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 whitespace-nowrap after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-1 after:bg-gradient-to-b after:from-black/[0.04] after:to-transparent dark:after:from-white/[0.06] relative cursor-pointer select-none hover:text-[#111111] dark:hover:text-[#e5e5e5] ${
-											meta?.className ?? ""
-										}`}
+										className={`sticky top-0 z-10 border-b border-b-[#111111]/40 dark:border-b-[#e5e5e5]/25 bg-white dark:bg-[#111111] px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-widest sm:px-3 sm:py-2 text-[#111111]/60 dark:text-[#e5e5e5]/50 whitespace-nowrap relative cursor-pointer select-none hover:text-[#111111] dark:hover:text-[#e5e5e5] ${
+											columnId === "ADP"
+												? "z-20"
+												: columnId === "player.Name"
+													? "z-20 border-r border-[#111111]/10 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-[#333333] dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]"
+													: ""
+										} ${meta?.className ?? ""}`}
 										onClick={() => setSorting((current) => getNextSorting(columnId, current))}
 									>
 										<div className="flex items-center gap-1 whitespace-nowrap">
@@ -1725,7 +1738,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 							<tr
 								key={row.player._id}
 								onClick={() => handleRowClick(row)}
-								className={`border-b border-[#111111]/10 dark:border-[#333333]/60 ${
+								className={`${
 									isDraftMode && !row.isDrafted && !row.isKeeper ? "cursor-pointer" : ""
 								} ${
 									isDraftMode && row.isDrafted
@@ -1735,7 +1748,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 										: "hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
 								}`}
 							>
-								<td className="sticky left-0 z-[1] w-12 border-r border-[#111111]/10 bg-white px-2 py-2.5 text-right font-mono text-[11px] text-[#111111]/38 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-[#333333] dark:bg-[#111111] dark:text-[#e5e5e5]/30 dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]">
+								<td style={{ width: FROZEN_RANK_W, minWidth: FROZEN_RANK_W, maxWidth: FROZEN_RANK_W }} className={`sticky left-0 z-[1] border-b border-[#111111]/10 px-2 py-2 text-right font-mono sm:py-2.5 text-[11px] text-[#111111]/38 dark:border-[#333333]/60 dark:text-[#e5e5e5]/30 ${isDraftMode && row.isDrafted ? "bg-[#f7f7f7] dark:bg-[#141414]" : row.isKeeper ? "bg-[#fef7f7] dark:bg-[#160e0e]" : "bg-white dark:bg-[#111111]"}`}>
 									{rankByPlayerId.get(row.player._id) ??
 										effectivePageIndex * pagination.pageSize + rowIndex + 1}
 								</td>
@@ -1743,11 +1756,16 @@ const LeaderboardTable = memo(function LeaderboardTable({
 									const columnId = getColumnId(column, columnIndex);
 									const meta =
 										(column.meta as { className?: string } | undefined) ?? undefined;
+									const isAdpColumn = columnId === "ADP";
+									const isNameColumn = columnId === "player.Name";
+									const isStickyColumn = isAdpColumn || isNameColumn;
+									const stickyBg = isDraftMode && row.isDrafted ? "bg-[#f7f7f7] dark:bg-[#141414]" : row.isKeeper ? "bg-[#fef7f7] dark:bg-[#160e0e]" : "bg-white dark:bg-[#111111]";
 
 									return (
 									<td
 										key={`${row.player._id}-${columnId}`}
-										className={`px-3 py-2.5 ${meta?.className ?? ""}`}
+										style={isAdpColumn ? { left: FROZEN_ADP_LEFT, minWidth: FROZEN_ADP_W, maxWidth: FROZEN_ADP_W } : isNameColumn ? { left: FROZEN_NAME_LEFT } : undefined}
+										className={`border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/60 sm:px-3 sm:py-2.5${isStickyColumn ? ` sticky z-[1] ${stickyBg}${isNameColumn ? " border-r shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]" : ""}` : ""} ${meta?.className ?? ""}`}
 									>
 										{renderColumnCell(column, row)}
 									</td>
@@ -1758,8 +1776,8 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					</tbody>
 				</table>
 			</div>
-			<div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#111111]/10 dark:border-[#333333] pt-4 text-xs text-[#111111]/60 dark:text-[#e5e5e5]/50">
-				<div className="flex items-center gap-3">
+			<div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#111111]/10 dark:border-[#333333] pt-4 text-xs text-[#111111]/60 sm:gap-3 dark:text-[#e5e5e5]/50">
+				<div className="flex items-center gap-2 sm:gap-3">
 					<button
 						onClick={() =>
 							setPagination((current) => ({
@@ -1789,7 +1807,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 						{pageCount}
 					</span>
 				</div>
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-2 sm:gap-3">
 					<span>
 						{totalRowCount} total
 					</span>

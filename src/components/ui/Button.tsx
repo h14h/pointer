@@ -44,8 +44,8 @@ const variantClassNames: Record<ButtonVariant, string> = {
 };
 
 const sizeClassNames: Record<ButtonSize, string> = {
-  sm: "min-h-8 px-3 py-1.5",
-  md: "min-h-9 px-4 py-2",
+  sm: "min-h-8 min-w-[4.5rem] max-w-xs px-3 py-1.5",
+  md: "min-h-9 min-w-[5rem] max-w-xs px-4 py-2",
   icon: "h-8 w-8 p-0 tracking-normal",
 };
 

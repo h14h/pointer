@@ -9,7 +9,7 @@ export default function Home() {
     <div className="min-h-screen bg-[var(--color-surface-base)] font-serif">
       <Header />
 
-      <main className="mx-auto max-w-5xl py-8">
+      <main className="py-6 sm:py-8">
         <PublicDatasetBootstrap />
         <Leaderboard />
       </main>

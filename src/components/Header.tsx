@@ -88,7 +88,7 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
   return (
     <>
       <header className="border-b border-[var(--color-border-default)] bg-[var(--color-surface-base)]">
-        <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 sm:py-5">
+        <div className="mx-auto max-w-5xl px-[var(--space-page-x)] py-3 sm:px-[var(--space-page-x-sm)] sm:py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1

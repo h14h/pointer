@@ -21,7 +21,7 @@ function SettingsPageContent() {
     <div className="min-h-screen bg-[var(--color-surface-base)]">
       <Header activeSettingsSection={activeSection} />
 
-      <main className="mx-auto max-w-5xl px-4 py-6 font-sans sm:px-6 sm:py-8">
+      <main className="mx-auto max-w-5xl px-[var(--space-page-x)] py-5 font-sans sm:px-[var(--space-page-x-sm)] sm:py-8">
         <SettingsLayout activeSection={activeSection}>
           {activeSection === "projections" && (
             <ProjectionsSection onOpenUpload={() => setUploadOpen(true)} />

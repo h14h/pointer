@@ -15,7 +15,7 @@ export function PageContainer({
   return (
     <Component
       className={cx(
-        "mx-auto w-full max-w-[var(--width-page)] px-[var(--space-page-x)] sm:px-6",
+        "mx-auto w-full max-w-[var(--width-page)] px-[var(--space-page-x)] sm:px-[var(--space-page-x-sm)]",
         className
       )}
       {...props}

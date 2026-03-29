@@ -169,6 +169,7 @@ function ChevronIcon() {
 
 const triggerBase = cn(
   "flex items-center justify-between gap-2 rounded-full border px-3 py-1.5 text-sm font-medium",
+  "min-w-[5rem]",
   "border-[var(--color-border-soft)] bg-[var(--color-surface-muted)]",
   "font-sans text-[var(--color-fg-muted)]",
   "transition-colors hover:bg-[var(--color-surface-hover)]",
@@ -176,7 +177,7 @@ const triggerBase = cn(
 );
 
 const menuBase = cn(
-  "absolute z-50 min-w-[180px] overflow-hidden rounded-xl border py-1 shadow-lg",
+  "absolute z-50 min-w-[180px] max-w-xs overflow-hidden rounded-xl border py-1 shadow-lg",
   "border-[var(--color-border-soft)] bg-[var(--color-surface-overlay)]"
 );
 
