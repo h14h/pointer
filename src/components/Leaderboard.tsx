@@ -1690,7 +1690,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 
 	return (
 		<div className="space-y-4">
-			<div className="overflow-x-auto overflow-y-clip">
+			<div className="overflow-x-auto overflow-y-clip pb-[1em] mb-[0.25em] border-b border-[#111111]/10 dark:border-[#333333]">
 				<table className="mt-8 w-full border-separate border-spacing-0 border-t border-[#111111]/40 text-sm text-[#111111] dark:border-[#e5e5e5]/25 dark:text-[#e5e5e5]">
 					<thead>
 						<tr>
@@ -1776,7 +1776,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					</tbody>
 				</table>
 			</div>
-			<div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#111111]/10 dark:border-[#333333] pt-4 text-xs text-[#111111]/60 sm:gap-3 dark:text-[#e5e5e5]/50">
+			<div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-2 px-[var(--space-page-x)] pt-4 text-xs text-[#111111]/60 sm:gap-3 sm:px-[var(--space-page-x-sm)] dark:text-[#e5e5e5]/50">
 				<div className="flex items-center gap-2 sm:gap-3">
 					<button
 						onClick={() =>
