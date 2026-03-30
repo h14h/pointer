@@ -12,8 +12,8 @@ export default defineConfig({
 
 	expect: {
 		toHaveScreenshot: {
-			// Allow a small pixel diff to absorb sub-pixel antialiasing variance
-			maxDiffPixelRatio: 0.01,
+			// Tight tolerance — only absorb sub-pixel antialiasing, not real styling changes
+			maxDiffPixelRatio: 0.001,
 		},
 	},
 

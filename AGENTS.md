@@ -146,14 +146,45 @@ When modifying an existing custom component substantially, prefer migrating to i
 Before completing any code change, run all checks in order and fix any failures:
 ```bash
 check whether any specs in docs/ or HOW.md need to be updated, then run:
-bun run test && bun run test:ui && bun run lint && bun run build
+bun run test && bun run test:ui && bun run test:visual && bun run lint && bun run build
 ```
 - if your change adds or modifies visual elements: (1) check `src/components/ui/` for existing components, (2) check the shadcn catalog above for an installable component, (3) only build from scratch if neither option fits
 - if you added, renamed, or removed a source file: verify it appears (or is removed) in the relevant spec's Source Files section and the HOW.md domain map
 - review relevant specs/docs for code changes and update them if needed
 - `bun run test` — unit tests for src/lib
 - `bun run test:ui` — component/UI tests (Vitest)
+- `bun run test:visual` — Playwright screenshot regression tests (see below)
 - `bun run lint` — ESLint; zero errors required (warnings are acceptable when React Compiler handles the case)
 - `bun run build` — Next.js build with TypeScript validation
 See [HOW.md](HOW.md) for full QA documentation.
+
+### Visual Regression Tests (Playwright)
+
+Screenshot tests guard the leaderboard table against visual regressions. They compare the current rendering against known-good baseline images.
+
+**When to run:** Any change that touches leaderboard styles, table layout, Tailwind classes, component structure, or CSS tokens. The `bun run test:visual` command is included in the standard QA sequence above.
+
+**How they work:**
+- A test fixture page at `src/app/(test)/leaderboard-visual/page.tsx` renders the `Leaderboard` component with deterministic data (no server dependency)
+- Tests in `e2e/leaderboard.spec.ts` navigate to this page in different states and screenshot-compare against baselines in `e2e/leaderboard.spec.ts-snapshots/`
+- Tolerance is tight (0.1% pixel diff) — real styling changes will fail, subpixel antialiasing won't
+- Requires the dev server running on port 3000 (the standard `bun run dev`). Playwright reuses it automatically.
+
+**Current baselines (5 tests):**
+
+| Test | What it covers |
+|------|---------------|
+| Full container | Filter bar + spacing + table + pagination — catches layout and margin changes |
+| Default view | All-players table with batting + pitching stat columns, PAR colors, row styling |
+| Draft mode | Drafted row dimming, keeper row tinting, D/K badges |
+| Pitchers view | Pitchers-only columns (K, W, SV, ERA, WHIP) |
+| Scrolled horizontally | All 34 stat columns enabled, scrolled right — catches frozen column z-index, backgrounds, and edge shadows |
+
+**Adding a new screenshot test:**
+1. If needed, add a new `?variant=` parameter to `src/app/(test)/leaderboard-visual/page.tsx` and handle it in the `StoreSeeder`
+2. Add a new `test()` block in `e2e/leaderboard.spec.ts` using the same pattern as existing tests
+3. Run `bun run test:visual:update` to generate the baseline image
+4. Verify the baseline looks correct, then commit it along with the test
+
+**Important:** Never run `test:visual:update` to make failing tests pass. If a test fails, the visual output has changed — fix the code, not the baseline. Only use `test:visual:update` after intentional visual changes that you've manually verified.
 </INSTRUCTIONS>

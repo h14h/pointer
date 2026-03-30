@@ -3,6 +3,9 @@
 ## Source Files
 - `src/components/Leaderboard.tsx`
 - `src/lib/leaderboardDerived.ts`
+- `src/app/(test)/leaderboard-visual/page.tsx` — test fixture page for visual regression tests
+- `e2e/leaderboard.spec.ts` — Playwright screenshot tests
+- `e2e/leaderboard.spec.ts-snapshots/` — baseline screenshots
 
 ## Dependencies
 - [State](state.md) — all major state slices
@@ -106,3 +109,11 @@ Searches both Name and Team fields, case-insensitive, using a pre-lowercased, ac
 The leaderboard treats the public 2025 baseline exactly like any other projection group once it is seeded into local state. The only special behavior is before data exists locally: the page shows a lightweight bootstrap banner while loading the public catalog and a retry action if the first fetch fails. After a successful seed, the leaderboard stays fully offline-capable because it reads from the persisted local projection group rather than refetching on every visit.
 
 Projection switching is intentionally not duplicated in the filter row anymore. The board assumes the header communicates the active dataset globally, while the filter row remains dedicated to table-local concerns.
+
+## Visual Regression Tests
+
+Playwright screenshot tests guard the leaderboard table against CSS/layout regressions. A dedicated fixture page (`src/app/(test)/leaderboard-visual/page.tsx`) renders the component with deterministic data so screenshots are stable across runs.
+
+Five baselines cover: the full container (filters + table + pagination), the default all-players table, draft mode with badges and dimming, pitchers-only columns, and a horizontally scrolled view that verifies frozen column z-index and backgrounds. Tolerance is tight (0.1% pixel diff) to catch real styling changes while absorbing subpixel antialiasing.
+
+Run `bun run test:visual` after any change to table styles, layout, or CSS tokens. See AGENTS.md for full details on adding new tests and managing baselines.

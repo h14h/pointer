@@ -17,7 +17,7 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 | MLB Stats API | Fetching real-time stats from MLB's public API for eligibility enrichment | `src/lib/mlbStatsApi.ts` | [docs/mlb-stats-api.md](docs/mlb-stats-api.md) |
 | Public Datasets | Public catalog/bootstrap flow for the built-in Tigris-backed historical dataset | `src/lib/publicDatasets.ts`, `src/server/publicDatasets/storage.ts`, `src/app/api/public-datasets/**`, `src/components/PublicDatasetBootstrap.tsx`, `scripts/publish-public-dataset.ts`, `data/public-datasets/**` | [docs/public-datasets.md](docs/public-datasets.md) |
 | State Management | Zustand store, persistence, and schema migrations | `src/store/index.ts` | [docs/state.md](docs/state.md) |
-| Leaderboard | Player ranking table with sorting, filtering, draft interactions, and extracted derivation helpers | `src/components/Leaderboard.tsx`, `src/lib/leaderboardDerived.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
+| Leaderboard | Player ranking table with sorting, filtering, draft interactions, and extracted derivation helpers | `src/components/Leaderboard.tsx`, `src/lib/leaderboardDerived.ts`, `e2e/leaderboard.spec.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
 | CSV Upload Workflow | Upload modal, file handling, eligibility import, and optional pitching-outcome estimation | `src/components/CsvUpload.tsx` | [docs/csv-upload-workflow.md](docs/csv-upload-workflow.md) |
 | Settings Page | Dedicated settings route with sectioned Projections, Scoring, Roster, Draft, and League controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx` | [docs/settings-page.md](docs/settings-page.md) |
 | Header | Top navigation, projection/league selection, and global controls | `src/components/Header.tsx` | [docs/header.md](docs/header.md) |
@@ -85,20 +85,23 @@ Run all checks before completing any code change. Failure in any step blocks the
 | `test:ui` | `bun run test:ui` | Component/UI tests (Vitest, jsdom) |
 | `lint` | `bun run lint` | ESLint (includes React Compiler checks) |
 | `build` | `bun run build` | Next.js build with TypeScript validation |
+| `test:visual` | `bun run test:visual` | Playwright screenshot regression tests (leaderboard table) |
+| `test:visual:update` | `bun run test:visual:update` | Regenerate screenshot baselines after intentional visual changes |
 
 ### Required Verification Order
 
 1. Review whether `HOW.md` or any relevant spec in `docs/` needs to be updated for the code change, and update it if needed. If you added, renamed, or removed a source file, verify it appears (or is removed) in the relevant spec's Source Files section and the domain map above
 2. `bun run test` — all unit tests must pass
 3. `bun run test:ui` — all UI tests must pass
-4. `bun run lint` — zero errors (warnings are acceptable when React Compiler is known to handle the case)
-5. `bun run build` — TypeScript must compile cleanly
+4. `bun run test:visual` — all screenshot regression tests must pass (requires dev server running on port 3000)
+5. `bun run lint` — zero errors (warnings are acceptable when React Compiler is known to handle the case)
+6. `bun run build` — TypeScript must compile cleanly
 
 ### Running Everything
 
 ```bash
 review specs/docs first, then run:
-bun run test && bun run test:ui && bun run lint && bun run build
+bun run test && bun run test:ui && bun run test:visual && bun run lint && bun run build
 ```
 
 ### Notes
@@ -107,3 +110,4 @@ bun run test && bun run test:ui && bun run lint && bun run build
 - **React Compiler** (Next.js 16 + Turbopack) handles memoization automatically. The `react-hooks/exhaustive-deps` warnings for `batters`/`pitchers`/`twoWayPlayers` in `Leaderboard.tsx` are suppressed inline because the compiler manages those dependencies.
 - **`.eslintignore` is not used** — ESLint v9 requires `globalIgnores` in `eslint.config.mjs` instead.
 - **TypeScript** is validated as part of `build`, not as a separate `tsc` call.
+- **Playwright** screenshot tests require the dev server on port 3000 and Chromium installed (`bunx playwright install chromium`). The tests reuse the running dev server in local development. See `AGENTS.md` for details on adding new visual tests.
