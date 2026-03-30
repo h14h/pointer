@@ -12,6 +12,17 @@ async function waitForTable(page: Page) {
 }
 
 // ---------------------------------------------------------------------------
+// Full container — filters + table + pagination
+// ---------------------------------------------------------------------------
+test("leaderboard — full container", async ({ page }) => {
+	await page.goto(BASE);
+	await waitForTable(page);
+
+	const container = page.getByTestId("leaderboard-visual");
+	await expect(container).toHaveScreenshot("leaderboard-full.png");
+});
+
+// ---------------------------------------------------------------------------
 // Default (all players) view
 // ---------------------------------------------------------------------------
 test("leaderboard — default view", async ({ page }) => {
