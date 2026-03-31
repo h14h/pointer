@@ -12,7 +12,7 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Toggle } from "@/components/ui/Toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/Tooltip";
-import { scoringPresets, presetNames } from "@/lib/presets";
+import { scoringPresets, presetNames } from "@/lib/league";
 import { useDebouncedCallback } from "@/lib/useDebounce";
 import { useStore } from "@/store";
 import type { ScoringSettings } from "@/types";
@@ -21,9 +21,7 @@ export function ScoringSection() {
   const {
     leagues,
     activeLeagueId,
-    setScoringSettings,
-    updateBattingScoring,
-    updatePitchingScoring,
+    updateLeague,
     projectionGroups,
     activeProjectionGroupId,
     mergeTwoWayRankings,
@@ -43,8 +41,13 @@ export function ScoringSection() {
   const debouncedUpdateBatting = useDebouncedCallback(
     useCallback(
       (key: keyof ScoringSettings["batting"], value: number) =>
-        updateBattingScoring(key, value),
-      [updateBattingScoring]
+        updateLeague({
+          scoringSettings: {
+            ...scoringSettings,
+            batting: { ...scoringSettings.batting, [key]: value },
+          },
+        }),
+      [updateLeague, scoringSettings]
     ),
     150
   );
@@ -52,8 +55,13 @@ export function ScoringSection() {
   const debouncedUpdatePitching = useDebouncedCallback(
     useCallback(
       (key: keyof ScoringSettings["pitching"], value: number) =>
-        updatePitchingScoring(key, value),
-      [updatePitchingScoring]
+        updateLeague({
+          scoringSettings: {
+            ...scoringSettings,
+            pitching: { ...scoringSettings.pitching, [key]: value },
+          },
+        }),
+      [updateLeague, scoringSettings]
     ),
     150
   );
@@ -98,7 +106,7 @@ export function ScoringSection() {
             variant="primary"
             size="md"
             onClick={() => {
-              setScoringSettings(scoringPresets[selectedPresetKey]);
+              updateLeague({ scoringSettings: scoringPresets[selectedPresetKey] });
             }}
           >
             Apply Preset

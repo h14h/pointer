@@ -2,6 +2,9 @@
 
 ## Source Files
 - `src/store/index.ts`
+- `src/lib/persistence/` (split storage adapter and state migrations)
+- `src/lib/draft/` (pure draft state transformers)
+- `src/lib/league/` (league creation, normalization, defaults, presets)
 
 ## Dependencies
 - [Types](types.md) — all major types
@@ -31,7 +34,7 @@ Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (
 
 ## Key Invariants
 
-**Drafted/keeper mutual exclusivity.** `draftPlayer` refuses keepers, and `setKeeperForTeam` removes any drafted assignment for the same player. A player cannot be both.
+**Drafted/keeper mutual exclusivity.** `draftPlayer` refuses keepers, and `setKeeper` removes any drafted assignment for the same player. A player cannot be both.
 
 **Snake draft as source of truth.** Current team, overall pick, and round context are derived from `pickIndex`, league size, and `format: "snake"`. No component owns its own draft-order math.
 
@@ -67,14 +70,14 @@ Given a first-round keeper reserved at overall pick 3, when overall picks 1, 2, 
 
 ## Action Categories
 
-The store has ~25 actions organized into:
-- **League management** — create, delete, duplicate, rename, set active, update active league
-- **Projection management** — add, seed, rename, remove, set active, clear groups, and update per-group eligibility seasons
-- **Projection seeding** — insert a public protected baseline without stealing the user's current active group
-- **Scoring** — full replacement or single-weight updates (operates on active league)
-- **League settings** — settings replacement (with normalization), individual setters for size/names/roster (operates on active league)
-- **Draft** — start session, draft player, undo last pick, assign/remove keepers with optional reserved rounds, reset (active league only), clear all
-- **Eligibility** — apply eligibility map to a projection group
+The store is a thin coordination layer (~20 actions) that delegates domain logic to pure functions in `src/lib/` modules:
+- **League management** — `createLeague`, `deleteLeague`, `duplicateLeague`, `renameLeague`, `setActiveLeague`, `updateLeague`
+- **Projection management** — `addProjectionGroup`, `seedProjectionGroup`, `removeProjectionGroup`, `setActiveProjectionGroup`, `applyEligibility`
+- **Draft** — `draftPlayer`, `undoLastPick`, `setKeeper`, `removeKeeper`, `resetDraft`
+- **Preferences** — `setDraftMode`, `setMergeTwoWayRankings`, `clearAllData`
+- **Selectors** — `getActiveLeague`
+
+Draft setup queries (`canEditDraftSetup`, `getCurrentPickContext`) are now pure functions in `@/lib/draft` rather than store methods. Fine-grained league mutators (`setScoringSettings`, `updateBattingScoring`, `updatePitchingScoring`, `setLeagueSettings`, `setLeagueSize`, `setTeamName`, `setRosterSettings`) have been consolidated into `updateLeague`.
 
 ## Default Values
 

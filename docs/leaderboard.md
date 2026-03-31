@@ -2,7 +2,7 @@
 
 ## Source Files
 - `src/components/Leaderboard.tsx`
-- `src/lib/leaderboardDerived.ts`
+- `src/lib/leaderboard/` (ranking, filtering, sorting, search, PAR)
 - `src/app/(test)/leaderboard-visual/page.tsx` — test fixture page for visual regression tests
 - `e2e/leaderboard.spec.ts` — Playwright screenshot tests
 - `e2e/leaderboard.spec.ts-snapshots/` — baseline screenshots
@@ -24,7 +24,7 @@ Split into two UI components plus a pure derivation helper:
 
 **`LeaderboardTable` (child, `React.memo`)** — owns sorting state, pagination state, and table rendering.
 
-**`leaderboardDerived.ts`** — owns the expensive ranking pipeline plus lightweight filter/sort helpers so text search and position changes do not recompute PAR or view-specific points.
+**`src/lib/leaderboard/`** — owns the expensive ranking pipeline plus lightweight filter/sort helpers so text search and position changes do not recompute PAR or view-specific points.
 
 **`PublicDatasetBootstrap` (sibling on the page)** — waits for persisted store hydration, auto-loads the default public dataset when no protected baseline is present, and renders retryable loading/failure UI above the leaderboard when the built-in 2025 stats are unavailable.
 
@@ -94,7 +94,7 @@ Users can toggle individual batting (17 options) and pitching (17 options) stat 
 
 - `useStore(..., shallow)` narrows the leaderboard subscription to only the slices this screen needs
 - `useDeferredValue` smooths projection-group switching triggered from the header and live search updates; `startTransition` is used for player-type and position changes
-- Expensive ranking/PAR derivation is isolated from lightweight search/position filtering in `leaderboardDerived.ts`
+- Expensive ranking/PAR derivation is isolated from lightweight search/position filtering in `src/lib/leaderboard/`
 - A single explicit sort pass replaces the previous duplicate TanStack table instance used only for rank derivation
 - Dev-only `performance` / `Profiler` logging can be used to confirm whether ranking, filtering, or rendering is the bottleneck during manual profiling
 - All derived data (`rankedPlayers`, metadata rows, filtered rows, sorted rows, columns, stat sets`) is memoized

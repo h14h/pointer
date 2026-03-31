@@ -1,8 +1,8 @@
 # Replacement Value (PAR)
 
 ## Source Files
-- `src/lib/calculatePAR.ts`
-- `src/lib/__tests__/calculatePAR.test.ts`
+- `src/lib/leaderboard/par.ts`
+- `src/lib/leaderboard/calculatePAR.test.ts`
 
 ## Dependencies
 - [Types](types.md) — `RankedPlayer`, `LeagueSettings`

@@ -1,7 +1,11 @@
 # Eligibility
 
 ## Source Files
-- `src/lib/eligibility.ts`
+- `src/lib/eligibility/index.ts`
+- `src/lib/eligibility/rules.ts`
+- `src/lib/eligibility/format.ts`
+- `src/lib/eligibility/import.ts`
+- `src/lib/eligibility/mlbStatsApi.ts`
 
 ## Dependencies
 - [Types](types.md) — `Eligibility`, `Position`

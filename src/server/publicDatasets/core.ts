@@ -8,7 +8,7 @@ import {
   parsePublicDatasetPayload,
   type PublicDatasetManifest,
   type PublicDatasetPayload,
-} from "@/lib/publicDatasets";
+} from "@/lib/projections";
 
 type TigrisConfig = {
   endpoint: string;

@@ -26,7 +26,7 @@ import {
 import type { RosterSlot } from "@/types";
 
 export function RosterSection() {
-  const { leagues, activeLeagueId, setLeagueSettings } = useStore();
+  const { leagues, activeLeagueId, updateLeague } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
   const leagueSettings = activeLeague?.leagueSettings;
 
@@ -41,7 +41,7 @@ export function RosterSection() {
         },
       },
     };
-    setLeagueSettings(next);
+    updateLeague({ leagueSettings: next });
   };
 
   const commitBench = (value: number) => {
@@ -52,7 +52,7 @@ export function RosterSection() {
         bench: Math.max(0, Math.round(value || 0)),
       },
     };
-    setLeagueSettings(next);
+    updateLeague({ leagueSettings: next });
   };
 
   const commitWeeklyStartLimit = (value: number) => {
@@ -60,7 +60,7 @@ export function RosterSection() {
       ...leagueSettings,
       weeklyStartLimit: value > 0 ? Math.round(value || 0) : null,
     };
-    setLeagueSettings(next);
+    updateLeague({ leagueSettings: next });
   };
 
   const toggleWeeklyStartLimit = () => {
@@ -68,7 +68,7 @@ export function RosterSection() {
       ...leagueSettings,
       weeklyStartLimit: leagueSettings.weeklyStartLimit == null ? 12 : null,
     };
-    setLeagueSettings(next);
+    updateLeague({ leagueSettings: next });
   };
 
   const totalSlots =

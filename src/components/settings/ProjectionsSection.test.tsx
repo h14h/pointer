@@ -13,10 +13,14 @@ vi.mock("@/store", () => ({
   },
 }));
 
-vi.mock("@/lib/projectionEligibilityImport", () => ({
-  runProjectionEligibilityImport: (...args: unknown[]) =>
-    runProjectionEligibilityImportMock(...args),
-}));
+vi.mock("@/lib/eligibility", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/eligibility")>("@/lib/eligibility");
+  return {
+    ...actual,
+    runProjectionEligibilityImport: (...args: unknown[]) =>
+      runProjectionEligibilityImportMock(...args),
+  };
+});
 
 function createStoreState() {
   return {
@@ -58,7 +62,7 @@ function createStoreState() {
     renameProjectionGroup: vi.fn(),
     removeProjectionGroup: vi.fn(),
     setProjectionGroupEligibilityImportSeason: vi.fn(),
-    applyEligibilityForGroup: vi.fn(),
+    applyEligibility: vi.fn(),
   };
 }
 

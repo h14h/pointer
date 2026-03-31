@@ -2,13 +2,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadEnvConfig } from "@next/env";
-import { mergePlayers, parsePlayerCSV } from "@/lib/csvParser";
 import {
+  mergePlayers,
+  parsePlayerCSV,
   parsePublicDatasetManifest,
   type PublicDatasetManifest,
   type PublicDatasetManifestEntry,
   type PublicDatasetPayload,
-} from "@/lib/publicDatasets";
+} from "@/lib/projections";
 import type { TwoWayPlayer } from "@/types";
 
 loadEnvConfig(process.cwd());

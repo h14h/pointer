@@ -1,7 +1,11 @@
 # Types
 
 ## Source Files
-- `src/types/index.ts`
+- `src/types/player.ts` — Player, BatterPlayer, PitcherPlayer, TwoWayPlayer, stat types
+- `src/types/league.ts` — League, ScoringSettings, LeagueSettings, RosterSettings, Position, RosterSlot
+- `src/types/draft.ts` — DraftState, DraftPick, DraftFormat
+- `src/types/projection.ts` — ProjectionGroup, ProjectionGroupSource, IdSource, Eligibility, RankedPlayer, AppState
+- `src/types/index.ts` — barrel re-export (all existing `@/types` imports continue to work)
 
 ## Design Decisions
 

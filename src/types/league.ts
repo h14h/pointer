@@ -1,0 +1,80 @@
+import type { DraftState } from "./draft";
+
+export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH";
+
+export type RosterSlot =
+  | Position
+  | "OF"
+  | "UTIL"
+  | "SP"
+  | "RP"
+  | "P"
+  | "CI"
+  | "MI"
+  | "IF"
+  | "IL"
+  | "NA";
+
+// League scoring configuration
+export interface ScoringSettings {
+  name: string;
+
+  // Batting points
+  batting: {
+    R: number;      // Runs
+    H: number;      // Hits (if scoring all hits, not by type)
+    "1B": number;   // Singles
+    "2B": number;   // Doubles
+    "3B": number;   // Triples
+    HR: number;     // Home runs
+    RBI: number;    // RBI
+    SB: number;     // Stolen bases
+    CS: number;     // Caught stealing (usually negative)
+    BB: number;     // Walks (non-intentional; BB minus IBB)
+    IBB: number;    // Intentional walks
+    SO: number;     // Strikeouts (usually negative)
+    HBP: number;    // Hit by pitch
+    SF: number;     // Sacrifice flies
+    GDP: number;    // Grounded into double play (usually negative)
+  };
+
+  // Pitching points
+  pitching: {
+    IP: number;     // Innings pitched
+    W: number;      // Wins
+    L: number;      // Losses (usually negative)
+    QS: number;     // Quality starts
+    CG: number;     // Complete games
+    ShO: number;    // Shutouts
+    SV: number;     // Saves
+    BS: number;     // Blown saves (usually negative)
+    HLD: number;    // Holds
+    SO: number;     // Strikeouts
+    H: number;      // Hits allowed (usually negative)
+    ER: number;     // Earned runs (usually negative)
+    HR: number;     // HR allowed (usually negative)
+    BB: number;     // Walks allowed (usually negative)
+    HBP: number;    // Hit batters (usually negative)
+  };
+}
+
+export interface RosterSettings {
+  positions: Record<RosterSlot, number>;
+  bench: number;
+}
+
+export interface LeagueSettings {
+  leagueSize: number;
+  teamNames: string[];
+  roster: RosterSettings;
+  weeklyStartLimit?: number | null;
+}
+
+export interface League {
+  id: string;
+  name: string;
+  scoringSettings: ScoringSettings;
+  leagueSettings: LeagueSettings;
+  draftState: DraftState;
+  updatedAt: number;
+}

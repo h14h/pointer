@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Toggle } from "@/components/ui/Toggle";
-import { getProjectionGroupDisplayName, getProjectionGroupSourceLabel } from "@/lib/projectionGroups";
+import { getProjectionGroupDisplayName, getProjectionGroupSourceLabel } from "@/lib/projections";
 import { useStore } from "@/store";
 
 interface HeaderProps {

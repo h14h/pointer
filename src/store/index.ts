@@ -1,236 +1,58 @@
 import { create } from "zustand";
-import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import {
-  createDraftPick,
-  getDraftPickContext,
-  getNextOpenPickIndex,
-  getPickIndexForTeamRound,
+  advancePick,
   hasManualDraftActivity,
+  migrateDraftState,
+  removeKeeper as removeKeeperFn,
+  resetDraft as resetDraftFn,
+  setKeeper as setKeeperFn,
+  undoLastPick as undoLastPickFn,
 } from "@/lib/draft";
+import {
+  createDefaultDraftState,
+  createDefaultLeague,
+  isStructureChangeSafe,
+  normalizeLeague,
+  normalizeLeagueSettings,
+} from "@/lib/league";
+import { splitStorage, migrate } from "@/lib/persistence";
+import {
+  getProjectionGroupFallbackId,
+  isProtectedProjectionGroup,
+  normalizeProjectionGroup,
+} from "@/lib/projections";
 import type {
-  Player,
-  ScoringSettings,
-  DraftState,
-  DraftPick,
-  DraftFormat,
-  TwoWayPlayer,
-  ProjectionGroup,
-  IdSource,
   Eligibility,
-  LeagueSettings,
-  RosterSettings,
-  RosterSlot,
   League,
-  ProjectionGroupSource,
+  Player,
+  ProjectionGroup,
 } from "@/types";
 
-// Default ESPN-style scoring
-const defaultScoringSettings: ScoringSettings = {
-  name: "Default",
-  batting: {
-    R: 1,
-    H: 0,       // Usually score by hit type instead
-    "1B": 1,
-    "2B": 2,
-    "3B": 3,
-    HR: 4,
-    RBI: 1,
-    SB: 1,
-    CS: -1,
-    BB: 1,
-    IBB: 0,
-    SO: -1,
-    HBP: 1,
-    SF: 0,
-    GDP: 0,
-  },
-  pitching: {
-    IP: 3,      // 3 points per IP (1 per out)
-    W: 5,
-    L: -5,
-    QS: 3,
-    CG: 0,
-    ShO: 0,
-    SV: 5,
-    BS: -3,
-    HLD: 2,
-    SO: 1,
-    H: -1,
-    ER: -2,
-    HR: -1,
-    BB: -1,
-    HBP: -1,
-  },
-};
+// ---------------------------------------------------------------------------
+// Internal helper: apply an update to the active league
+// ---------------------------------------------------------------------------
 
-const defaultRosterSettings: RosterSettings = {
-  positions: {
-    C: 1,
-    "1B": 1,
-    "2B": 1,
-    "3B": 1,
-    SS: 1,
-    LF: 0,
-    CF: 0,
-    RF: 0,
-    DH: 0,
-    CI: 0,
-    MI: 0,
-    IF: 0,
-    OF: 3,
-    UTIL: 1,
-    SP: 0,
-    RP: 0,
-    P: 7,
-    IL: 0,
-    NA: 0,
-  },
-  bench: 3,
-};
+type StoreState = Pick<Store, "leagues" | "activeLeagueId">;
 
-const defaultLeagueSettings: LeagueSettings = {
-  leagueSize: 12,
-  teamNames: Array.from({ length: 12 }, (_, i) => `Team ${i + 1}`),
-  roster: defaultRosterSettings,
-  weeklyStartLimit: null,
-};
-
-const createDefaultDraftState = (): DraftState => ({
-  format: "snake",
-  draftedByTeam: {},
-  keeperByTeam: {},
-  keeperSlotByPlayer: {},
-  pickIndex: 0,
-  history: [],
-});
-
-const UPLOAD_PROJECTION_SOURCE: ProjectionGroupSource = { kind: "upload" };
-
-function getDefaultEligibilityImportSeason(group: ProjectionGroup): number {
-  if (group.source.kind === "public-dataset") {
-    return group.source.season;
-  }
-  return 2025;
-}
-
-function isProtectedProjectionGroup(group: ProjectionGroup): boolean {
-  return group.source.kind === "public-dataset" && group.source.protected;
-}
-
-function getProjectionGroupFallbackId(groups: ProjectionGroup[]): string | null {
-  return groups.find(isProtectedProjectionGroup)?.id ?? groups[0]?.id ?? null;
-}
-
-function normalizeProjectionGroup(group: ProjectionGroup): ProjectionGroup {
-  const source = group.source ?? UPLOAD_PROJECTION_SOURCE;
+function updateActiveLeague(
+  state: StoreState,
+  updater: (league: League) => Partial<League>,
+): Partial<StoreState> {
+  const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
+  if (!activeId) return {};
   return {
-    ...group,
-    source,
-    eligibilityImportSeason:
-      Number.isFinite(group.eligibilityImportSeason) && (group.eligibilityImportSeason ?? 0) > 0
-        ? Math.round(group.eligibilityImportSeason as number)
-        : getDefaultEligibilityImportSeason({ ...group, source }),
+    leagues: state.leagues.map((l) =>
+      l.id === activeId
+        ? normalizeLeague({ ...l, ...updater(l), updatedAt: Date.now() })
+        : l,
+    ),
   };
 }
 
-function normalizeProjectionGroups(groups: ProjectionGroup[]): ProjectionGroup[] {
-  return groups.map(normalizeProjectionGroup);
-}
-
-const INITIAL_LEAGUE_ID = "default-league";
-
-const createDefaultLeague = (
-  name = "My League",
-  options?: { deterministic?: boolean }
-): League => ({
-  id: options?.deterministic ? INITIAL_LEAGUE_ID : crypto.randomUUID(),
-  name,
-  scoringSettings: { ...defaultScoringSettings },
-  leagueSettings: { ...defaultLeagueSettings },
-  draftState: createDefaultDraftState(),
-  updatedAt: options?.deterministic ? 0 : Date.now(),
-});
-
-const normalizeScoringSettings = (settings: ScoringSettings): ScoringSettings => ({
-  ...settings,
-  batting: {
-    ...settings.batting,
-    IBB: settings.batting.IBB ?? 0,
-  },
-});
-
-const normalizeLeague = (league: League): League => ({
-  ...league,
-  scoringSettings: normalizeScoringSettings(league.scoringSettings),
-  leagueSettings: normalizeLeagueSettings(league.leagueSettings),
-  updatedAt: league.updatedAt ?? Date.now(),
-});
-
-const normalizeLeagueSettings = (settings: LeagueSettings): LeagueSettings => {
-  const clampedSize = Math.min(20, Math.max(2, Math.round(settings.leagueSize || 0)));
-  const nextNames = [...(settings.teamNames ?? [])];
-  const roster = settings.roster ?? defaultRosterSettings;
-  for (let i = nextNames.length; i < clampedSize; i += 1) {
-    nextNames.push(`Team ${i + 1}`);
-  }
-  if (nextNames.length > clampedSize) {
-    nextNames.length = clampedSize;
-  }
-  const positions = Object.fromEntries(
-    Object.entries(defaultRosterSettings.positions).map(([slot, value]) => [
-      slot,
-      roster.positions[slot as RosterSlot] ?? value,
-    ])
-  ) as Record<RosterSlot, number>;
-
-  return {
-    leagueSize: clampedSize,
-    teamNames: nextNames,
-    roster: {
-      positions,
-      bench: Number.isFinite(roster.bench) ? roster.bench : defaultRosterSettings.bench,
-    },
-    weeklyStartLimit:
-      Number.isFinite(settings.weeklyStartLimit) && (settings.weeklyStartLimit ?? 0) > 0
-        ? Math.round(settings.weeklyStartLimit as number)
-        : null,
-  };
-};
-
-function areSameStringMultiset(left: string[], right: string[]): boolean {
-  if (left.length !== right.length) return false;
-  const counts = new Map<string, number>();
-  for (const value of left) {
-    counts.set(value, (counts.get(value) ?? 0) + 1);
-  }
-  for (const value of right) {
-    const count = counts.get(value);
-    if (!count) return false;
-    if (count === 1) {
-      counts.delete(value);
-    } else {
-      counts.set(value, count - 1);
-    }
-  }
-  return counts.size === 0;
-}
-
-function isBlockedDraftStructureChange(previous: LeagueSettings, next: LeagueSettings): boolean {
-  if (previous.leagueSize !== next.leagueSize) return true;
-  if (previous.teamNames.length !== next.teamNames.length) return true;
-  const sameOrder = previous.teamNames.every((teamName, index) => teamName === next.teamNames[index]);
-  if (sameOrder) return false;
-  return areSameStringMultiset(previous.teamNames, next.teamNames);
-}
-
-function getDraftCursorBase(state: DraftState): number {
-  const lastPick = state.history.at(-1);
-  if (lastPick) return lastPick.slotIndex + 1;
-  const hasKnownManualProgress = Object.keys(state.draftedByTeam).some(
-    (playerId) => state.keeperByTeam[playerId] === undefined
-  );
-  return hasKnownManualProgress ? state.pickIndex : 0;
-}
+// ---------------------------------------------------------------------------
+// Store interface
+// ---------------------------------------------------------------------------
 
 interface Store {
   // Data
@@ -248,7 +70,7 @@ interface Store {
   duplicateLeague: (id: string) => void;
   renameLeague: (id: string, name: string) => void;
   setActiveLeague: (id: string) => void;
-  updateActiveLeague: (partial: Partial<Pick<League, "scoringSettings" | "leagueSettings">>) => void;
+  updateLeague: (partial: Partial<Pick<League, "scoringSettings" | "leagueSettings">>) => void;
 
   // Projection actions
   addProjectionGroup: (group: ProjectionGroup) => void;
@@ -259,22 +81,10 @@ interface Store {
   clearProjectionGroups: () => void;
   removeProjectionGroup: (id: string) => void;
 
-  // Scoring actions (operate on active league)
-  setScoringSettings: (settings: ScoringSettings) => void;
-  updateBattingScoring: (key: keyof ScoringSettings["batting"], value: number) => void;
-  updatePitchingScoring: (key: keyof ScoringSettings["pitching"], value: number) => void;
-
-  // League settings actions (operate on active league)
-  setLeagueSettings: (settings: LeagueSettings) => void;
-  setLeagueSize: (size: number) => void;
-  setTeamName: (index: number, name: string) => void;
-  setRosterSettings: (roster: RosterSettings) => void;
-
   // Draft actions (operate on active league)
-  startDraft: () => void;
   draftPlayer: (playerId: string) => void;
-  undoLastDraftPick: () => void;
-  setKeeperForTeam: (playerId: string, teamIndex: number, round: number | null) => void;
+  undoLastPick: () => void;
+  setKeeper: (playerId: string, teamIndex: number, round: number | null) => void;
   removeKeeper: (playerId: string) => void;
 
   // Mode & data
@@ -282,22 +92,14 @@ interface Store {
   setMergeTwoWayRankings: (enabled: boolean) => void;
   resetDraft: () => void;
   clearAllData: () => void;
-  applyEligibilityForGroup: (
+  applyEligibility: (
     groupId: string,
     eligibilityById: Map<string, Eligibility>,
-    season: number
+    season: number,
   ) => void;
 
   // Selectors
   getActiveLeague: () => League | undefined;
-  canEditDraftSetup: () => boolean;
-  getCurrentPickContext: () => {
-    overallPick: number;
-    round: number;
-    pickInRound: number;
-    teamIndex: number;
-    nextTeamIndex: number;
-  } | null;
   setHasHydrated: (value: boolean) => void;
 }
 
@@ -311,148 +113,9 @@ type PersistedStoreState = Pick<
   | "mergeTwoWayRankings"
 >;
 
-type LegacyDraftState = {
-  draftedByTeam?: Record<string, string>;
-  keeperByTeam?: Record<string, string>;
-  keeperSlotByPlayer?: Record<string, number | null>;
-  activeTeamIndex?: number;
-  format?: DraftFormat;
-  pickIndex?: number;
-  history?: DraftPick[];
-};
-
-export function migrateDraftState(input?: LegacyDraftState | null): DraftState {
-  const draftedByTeam = { ...(input?.draftedByTeam ?? {}) };
-  const keeperByTeam = { ...(input?.keeperByTeam ?? {}) };
-  const keeperSlotByPlayer = { ...(input?.keeperSlotByPlayer ?? {}) };
-  const history = Array.isArray(input?.history) ? input.history : [];
-  const fallbackPickIndex = Object.keys(draftedByTeam).filter(
-    (playerId) => keeperByTeam[playerId] === undefined
-  ).length;
-  const historyCursor = history.at(-1)?.slotIndex;
-  const persistedPickIndex = Number.isFinite(input?.pickIndex)
-    ? Math.max(0, Math.round(input?.pickIndex as number))
-    : null;
-  const pickIndex = historyCursor !== undefined
-    ? Math.max((historyCursor ?? -1) + 1, persistedPickIndex ?? 0)
-    : (persistedPickIndex ?? fallbackPickIndex);
-
-  return {
-    format: input?.format ?? "snake",
-    draftedByTeam,
-    keeperByTeam,
-    keeperSlotByPlayer,
-    pickIndex,
-    history,
-  };
-}
-
 // ---------------------------------------------------------------------------
-// Split localStorage adapter
+// Store implementation
 // ---------------------------------------------------------------------------
-// Stores leagues, projections, and preferences in separate localStorage keys
-// so users can manually delete projections without losing league config.
-// Transparently migrates from the legacy single-key format ("pointer-storage").
-// ---------------------------------------------------------------------------
-const STORAGE_KEY_LEAGUES = "pointer-leagues";
-const STORAGE_KEY_PROJECTIONS = "pointer-projections";
-const STORAGE_KEY_PREFERENCES = "pointer-preferences";
-const LEGACY_STORAGE_KEY = "pointer-storage";
-
-function getStorage(): Storage | null {
-  try {
-    return typeof localStorage !== "undefined" ? localStorage : null;
-  } catch {
-    return null;
-  }
-}
-
-const splitStorage: StateStorage = {
-  getItem(name: string): string | null {
-    const storage = getStorage();
-    if (!storage) return null;
-
-    // Migration path: if legacy single-key data exists, return it as-is so
-    // Zustand's built-in migrate() processes it. On the next setItem() call
-    // the data will be written to split keys and the legacy key removed.
-    const legacy = storage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy) {
-      return legacy;
-    }
-
-    // Read from split keys
-    const leaguesRaw = storage.getItem(STORAGE_KEY_LEAGUES);
-    const projectionsRaw = storage.getItem(STORAGE_KEY_PROJECTIONS);
-    const preferencesRaw = storage.getItem(STORAGE_KEY_PREFERENCES);
-
-    if (!leaguesRaw && !projectionsRaw && !preferencesRaw) return null;
-
-    try {
-      const leagues = leaguesRaw ? JSON.parse(leaguesRaw) : {};
-      const projections = projectionsRaw ? JSON.parse(projectionsRaw) : {};
-      const preferences = preferencesRaw ? JSON.parse(preferencesRaw) : {};
-
-      return JSON.stringify({
-        state: { ...leagues, ...projections, ...preferences },
-        version: preferences._version ?? 8,
-      });
-    } catch {
-      return null;
-    }
-  },
-
-  setItem(_name: string, value: string): void {
-    const storage = getStorage();
-    if (!storage) return;
-
-    try {
-      const { state, version } = JSON.parse(value);
-
-      storage.setItem(
-        STORAGE_KEY_LEAGUES,
-        JSON.stringify({
-          leagues: state.leagues,
-          activeLeagueId: state.activeLeagueId,
-        })
-      );
-
-      storage.setItem(
-        STORAGE_KEY_PROJECTIONS,
-        JSON.stringify({
-          projectionGroups: state.projectionGroups,
-          activeProjectionGroupId: state.activeProjectionGroupId,
-        })
-      );
-
-      storage.setItem(
-        STORAGE_KEY_PREFERENCES,
-        JSON.stringify({
-          isDraftMode: state.isDraftMode,
-          mergeTwoWayRankings: state.mergeTwoWayRankings,
-          _version: version,
-        })
-      );
-
-      // Remove legacy key after successful split write
-      storage.removeItem(LEGACY_STORAGE_KEY);
-    } catch {
-      // If splitting fails, fall back to single-key write so data isn't lost
-      try {
-        storage.setItem(LEGACY_STORAGE_KEY, value);
-      } catch { /* storage full or unavailable */ }
-    }
-  },
-
-  removeItem(_name: string): void {
-    const storage = getStorage();
-    if (!storage) return;
-
-    storage.removeItem(STORAGE_KEY_LEAGUES);
-    storage.removeItem(STORAGE_KEY_PROJECTIONS);
-    storage.removeItem(STORAGE_KEY_PREFERENCES);
-    storage.removeItem(LEGACY_STORAGE_KEY);
-  },
-};
 
 export const useStore = create<Store>()(
   persist(
@@ -466,42 +129,20 @@ export const useStore = create<Store>()(
       mergeTwoWayRankings: true,
       hasHydrated: false,
 
-      // Helpers
+      // Selectors / hydration
       getActiveLeague: () => {
         const state = get();
         const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
         const league = state.leagues.find((l) => l.id === activeId);
         return league ? normalizeLeague(league) : undefined;
       },
-      canEditDraftSetup: () => {
-        const activeLeague = get().getActiveLeague();
-        return activeLeague ? !hasManualDraftActivity(activeLeague.draftState) : true;
-      },
-      getCurrentPickContext: () => {
-        const activeLeague = get().getActiveLeague();
-        if (!activeLeague) return null;
-        const nextOpenPickIndex = getNextOpenPickIndex(
-          activeLeague.leagueSettings.leagueSize,
-          getDraftCursorBase(activeLeague.draftState),
-          activeLeague.draftState.format,
-          activeLeague.draftState
-        );
-        return getDraftPickContext(
-          activeLeague.leagueSettings.leagueSize,
-          nextOpenPickIndex,
-          activeLeague.draftState.format
-        );
-      },
       setHasHydrated: (value) => set({ hasHydrated: value }),
 
-      // League actions
+      // League CRUD
       createLeague: (name) =>
         set((state) => {
           const newLeague = createDefaultLeague(name);
-          return {
-            leagues: [...state.leagues, newLeague],
-            activeLeagueId: newLeague.id,
-          };
+          return { leagues: [...state.leagues, newLeague], activeLeagueId: newLeague.id };
         }),
 
       deleteLeague: (id) =>
@@ -524,37 +165,39 @@ export const useStore = create<Store>()(
             draftState: createDefaultDraftState(),
             updatedAt: Date.now(),
           };
-          return {
-            leagues: [...state.leagues, newLeague],
-            activeLeagueId: newLeague.id,
-          };
+          return { leagues: [...state.leagues, newLeague], activeLeagueId: newLeague.id };
         }),
 
       renameLeague: (id, name) =>
         set((state) => ({
           leagues: state.leagues.map((l) =>
-            l.id === id ? { ...l, name: name.trim() || l.name, updatedAt: Date.now() } : l
+            l.id === id ? { ...l, name: name.trim() || l.name, updatedAt: Date.now() } : l,
           ),
         })),
 
       setActiveLeague: (id) => set({ activeLeagueId: id }),
 
-      updateActiveLeague: (partial) =>
+      updateLeague: (partial) =>
         set((state) => {
           const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
           if (!activeId) return state;
           return {
-            leagues: state.leagues.map((l) =>
-              l.id === activeId
-                ? normalizeLeague({
-                    ...l,
-                    ...partial,
-                    scoringSettings: partial.scoringSettings ?? l.scoringSettings,
-                    leagueSettings: partial.leagueSettings ?? l.leagueSettings,
-                    updatedAt: Date.now(),
-                  })
-                : l
-            ),
+            leagues: state.leagues.map((l) => {
+              if (l.id !== activeId) return l;
+              const merged = {
+                ...l,
+                ...partial,
+                scoringSettings: partial.scoringSettings ?? l.scoringSettings,
+                leagueSettings: partial.leagueSettings ?? l.leagueSettings,
+                updatedAt: Date.now(),
+              };
+              if (partial.leagueSettings && hasManualDraftActivity(l.draftState)) {
+                if (!isStructureChangeSafe(l.leagueSettings, normalizeLeagueSettings(partial.leagueSettings))) {
+                  return l;
+                }
+              }
+              return normalizeLeague(merged);
+            }),
           };
         }),
 
@@ -568,7 +211,7 @@ export const useStore = create<Store>()(
       seedProjectionGroup: (group) =>
         set((state) => {
           const normalized = normalizeProjectionGroup(group);
-          const existingGroup = state.projectionGroups.find((current) => {
+          const exists = state.projectionGroups.find((current) => {
             if (current.id === normalized.id) return true;
             return (
               current.source.kind === "public-dataset" &&
@@ -576,7 +219,7 @@ export const useStore = create<Store>()(
               current.source.slug === normalized.source.slug
             );
           });
-          if (existingGroup) return state;
+          if (exists) return state;
           const projectionGroups = [...state.projectionGroups, normalized];
           return {
             projectionGroups,
@@ -628,434 +271,85 @@ export const useStore = create<Store>()(
           return { projectionGroups, activeProjectionGroupId };
         }),
 
-      // Scoring actions (operate on active league)
-      setScoringSettings: (settings) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) =>
-              l.id === activeId ? { ...l, scoringSettings: settings, updatedAt: Date.now() } : l
-            ),
-          };
-        }),
-
-      updateBattingScoring: (key, value) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) =>
-              l.id === activeId
-                ? {
-                    ...l,
-                    scoringSettings: {
-                      ...l.scoringSettings,
-                      batting: { ...l.scoringSettings.batting, [key]: value },
-                    },
-                    updatedAt: Date.now(),
-                  }
-                : l
-            ),
-          };
-        }),
-
-      updatePitchingScoring: (key, value) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) =>
-              l.id === activeId
-                ? {
-                    ...l,
-                    scoringSettings: {
-                      ...l.scoringSettings,
-                      pitching: { ...l.scoringSettings.pitching, [key]: value },
-                    },
-                    updatedAt: Date.now(),
-                  }
-                : l
-            ),
-          };
-        }),
-
-      // League settings actions (operate on active league)
-      setLeagueSettings: (settings) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          const normalized = normalizeLeagueSettings(settings);
-          return {
-            leagues: state.leagues.map((l) => {
-              if (l.id !== activeId) return l;
-              if (
-                hasManualDraftActivity(l.draftState) &&
-                isBlockedDraftStructureChange(l.leagueSettings, normalized)
-              ) {
-                return l;
-              }
-              const maxTeamIndex = normalized.leagueSize - 1;
-              const draftedByTeam = Object.fromEntries(
-                Object.entries(l.draftState.draftedByTeam).filter(
-                  ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
-                )
-              );
-              const keeperByTeam = Object.fromEntries(
-                Object.entries(l.draftState.keeperByTeam).filter(
-                  ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
-                )
-              );
-              return {
-                ...l,
-                leagueSettings: normalized,
-                draftState: { ...l.draftState, draftedByTeam, keeperByTeam },
-                updatedAt: Date.now(),
-              };
-            }),
-          };
-        }),
-
-      setLeagueSize: (size) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) => {
-              if (l.id !== activeId) return l;
-              if (hasManualDraftActivity(l.draftState)) return l;
-              const normalized = normalizeLeagueSettings({ ...l.leagueSettings, leagueSize: size });
-              const maxTeamIndex = normalized.leagueSize - 1;
-              const draftedByTeam = Object.fromEntries(
-                Object.entries(l.draftState.draftedByTeam).filter(
-                  ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
-                )
-              );
-              const keeperByTeam = Object.fromEntries(
-                Object.entries(l.draftState.keeperByTeam).filter(
-                  ([, teamIndex]) => Number(teamIndex) <= maxTeamIndex
-                )
-              );
-              return {
-                ...l,
-                leagueSettings: normalized,
-                draftState: { ...l.draftState, draftedByTeam, keeperByTeam },
-                updatedAt: Date.now(),
-              };
-            }),
-          };
-        }),
-
-      setTeamName: (index, name) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) => {
-              if (l.id !== activeId) return l;
-              const nextNames = [...l.leagueSettings.teamNames];
-              if (index < 0 || index >= nextNames.length) return l;
-              nextNames[index] = name.trim().length > 0 ? name.trim() : `Team ${index + 1}`;
-              return {
-                ...l,
-                leagueSettings: { ...l.leagueSettings, teamNames: nextNames },
-                updatedAt: Date.now(),
-              };
-            }),
-          };
-        }),
-
-      setRosterSettings: (roster) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) =>
-              l.id === activeId
-                ? {
-                    ...l,
-                    leagueSettings: normalizeLeagueSettings({
-                      ...l.leagueSettings,
-                      roster,
-                    }),
-                    updatedAt: Date.now(),
-                  }
-                : l
-            ),
-          };
-        }),
-
-      // Draft actions (operate on active league)
-      startDraft: () =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) => {
-              if (l.id !== activeId) return l;
-              return {
-                ...l,
-                draftState: (() => {
-                  const draftState = migrateDraftState(l.draftState);
-                  return {
-                    ...draftState,
-                    pickIndex: getNextOpenPickIndex(
-                      l.leagueSettings.leagueSize,
-                      getDraftCursorBase(draftState),
-                      draftState.format,
-                      draftState
-                    ),
-                  };
-                })(),
-                updatedAt: Date.now(),
-              };
-            }),
-          };
-        }),
-
+      // Draft actions
       draftPlayer: (playerId) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) => {
-              if (l.id !== activeId) return l;
-              const draftState = migrateDraftState(l.draftState);
-              if (draftState.draftedByTeam[playerId] !== undefined) return l;
-              if (draftState.keeperByTeam[playerId] !== undefined) return l;
-              const openPickIndex = getNextOpenPickIndex(
-                l.leagueSettings.leagueSize,
-                draftState.pickIndex,
-                draftState.format,
-                draftState
-              );
-              const context = getDraftPickContext(
-                l.leagueSettings.leagueSize,
-                openPickIndex,
-                draftState.format
-              );
-              const teamKey = String(context.teamIndex);
-              const draftedByTeam = { ...l.draftState.draftedByTeam };
-              draftedByTeam[playerId] = teamKey;
-              const nextPick = createDraftPick(playerId, context.teamIndex, openPickIndex, context);
-              const nextDraftState = {
-                ...draftState,
-                draftedByTeam,
-                pickIndex: getNextOpenPickIndex(
-                  l.leagueSettings.leagueSize,
-                  openPickIndex + 1,
-                  draftState.format,
-                  draftState
-                ),
-                history: [...draftState.history, nextPick],
-              };
-              return {
-                ...l,
-                draftState: nextDraftState,
-                updatedAt: Date.now(),
-              };
-            }),
-          };
-        }),
+        set((state) =>
+          updateActiveLeague(state, (league) => ({
+            draftState: advancePick(
+              migrateDraftState(league.draftState),
+              playerId,
+              league.leagueSettings.leagueSize,
+              league.draftState.format,
+            ),
+          })),
+        ),
 
-      undoLastDraftPick: () =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) => {
-              if (l.id !== activeId) return l;
-              const draftState = migrateDraftState(l.draftState);
-              const lastPick = draftState.history.at(-1);
-              if (!lastPick) return l;
-              const draftedByTeam = { ...draftState.draftedByTeam };
-              delete draftedByTeam[lastPick.playerId];
-              return {
-                ...l,
-                draftState: {
-                  ...draftState,
-                  draftedByTeam,
-                  pickIndex: lastPick.slotIndex,
-                  history: draftState.history.slice(0, -1),
-                },
-                updatedAt: Date.now(),
-              };
-            }),
-          };
-        }),
+      undoLastPick: () =>
+        set((state) =>
+          updateActiveLeague(state, (league) => ({
+            draftState: undoLastPickFn(migrateDraftState(league.draftState)),
+          })),
+        ),
 
-      setKeeperForTeam: (playerId, teamIndex, round) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) => {
-              if (l.id !== activeId) return l;
-              const maxIndex = l.leagueSettings.leagueSize - 1;
-              const normalizedTeamIndex = Math.min(Math.max(0, teamIndex), maxIndex);
-              const draftState = migrateDraftState(l.draftState);
-              const reservedPickIndex =
-                round === null
-                  ? null
-                  : getPickIndexForTeamRound(
-                      l.leagueSettings.leagueSize,
-                      round,
-                      normalizedTeamIndex,
-                      draftState.format
-                    );
-              if (round !== null && reservedPickIndex === null) return l;
-              if (
-                reservedPickIndex !== null &&
-                reservedPickIndex < draftState.pickIndex
-              ) {
-                return l;
-              }
-              const existingReservationOwner = Object.entries(draftState.keeperSlotByPlayer).find(
-                ([otherPlayerId, slotIndex]) =>
-                  otherPlayerId !== playerId &&
-                  slotIndex !== null &&
-                  slotIndex === reservedPickIndex
-              );
-              if (reservedPickIndex !== null && existingReservationOwner) return l;
-              const keeperByTeam = { ...draftState.keeperByTeam, [playerId]: String(normalizedTeamIndex) };
-              const draftedByTeam = { ...draftState.draftedByTeam };
-              const keeperSlotByPlayer = {
-                ...draftState.keeperSlotByPlayer,
-                [playerId]: reservedPickIndex,
-              };
-              delete draftedByTeam[playerId];
-              const nextDraftState = {
-                ...draftState,
-                draftedByTeam,
-                keeperByTeam,
-                keeperSlotByPlayer,
-              };
-              return {
-                ...l,
-                draftState: {
-                  ...nextDraftState,
-                  pickIndex: getNextOpenPickIndex(
-                    l.leagueSettings.leagueSize,
-                    getDraftCursorBase(nextDraftState),
-                    nextDraftState.format,
-                    nextDraftState
-                  ),
-                },
-                updatedAt: Date.now(),
-              };
-            }),
-          };
-        }),
+      setKeeper: (playerId, teamIndex, round) =>
+        set((state) =>
+          updateActiveLeague(state, (league) => ({
+            draftState: setKeeperFn(
+              migrateDraftState(league.draftState),
+              playerId,
+              teamIndex,
+              round,
+              league.leagueSettings.leagueSize,
+              league.draftState.format,
+            ),
+          })),
+        ),
 
       removeKeeper: (playerId) =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) => {
-              if (l.id !== activeId) return l;
-              const draftState = migrateDraftState(l.draftState);
-              if (draftState.keeperByTeam[playerId] === undefined) return l;
-              const keeperByTeam = { ...draftState.keeperByTeam };
-              const keeperSlotByPlayer = { ...draftState.keeperSlotByPlayer };
-              delete keeperByTeam[playerId];
-              delete keeperSlotByPlayer[playerId];
-              return {
-                ...l,
-                draftState: {
-                  ...draftState,
-                  keeperByTeam,
-                  keeperSlotByPlayer,
-                  pickIndex: getNextOpenPickIndex(
-                    l.leagueSettings.leagueSize,
-                    getDraftCursorBase({
-                      ...draftState,
-                      keeperByTeam,
-                      keeperSlotByPlayer,
-                    }),
-                    draftState.format,
-                    {
-                      ...draftState,
-                      keeperByTeam,
-                      keeperSlotByPlayer,
-                    }
-                  ),
-                },
-                updatedAt: Date.now(),
-              };
-            }),
-          };
-        }),
+        set((state) =>
+          updateActiveLeague(state, (league) => ({
+            draftState: removeKeeperFn(
+              migrateDraftState(league.draftState),
+              playerId,
+              league.leagueSettings.leagueSize,
+              league.draftState.format,
+            ),
+          })),
+        ),
 
+      // Mode & data
       setDraftMode: (enabled) =>
         set((state) => {
           if (!enabled) return { isDraftMode: false };
           const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
           if (!activeId) return { isDraftMode: true };
+          // Normalize draft state on mode entry to migrate any legacy shape
           return {
             isDraftMode: true,
-            leagues: state.leagues.map((league) =>
-              league.id === activeId
-                ? {
-                    ...league,
-                    draftState: (() => {
-                      const draftState = migrateDraftState(league.draftState);
-                      return {
-                        ...draftState,
-                        pickIndex: getNextOpenPickIndex(
-                          league.leagueSettings.leagueSize,
-                          getDraftCursorBase(draftState),
-                          draftState.format,
-                          draftState
-                        ),
-                      };
-                    })(),
-                  }
-                : league
-            ),
+            ...updateActiveLeague(state, (league) => ({
+              draftState: migrateDraftState(league.draftState),
+            })),
           };
         }),
+
       setMergeTwoWayRankings: (enabled) => set({ mergeTwoWayRankings: enabled }),
 
       resetDraft: () =>
-        set((state) => {
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return state;
-          return {
-            leagues: state.leagues.map((l) =>
-              l.id === activeId
-                ? {
-                    ...l,
-                    draftState: (() => {
-                      const draftState = migrateDraftState(l.draftState);
-                      const nextDraftState: DraftState = {
-                        ...draftState,
-                        draftedByTeam: {},
-                        history: [],
-                        pickIndex: 0,
-                      };
-                      return {
-                        ...nextDraftState,
-                        pickIndex: getNextOpenPickIndex(
-                          l.leagueSettings.leagueSize,
-                          getDraftCursorBase(nextDraftState),
-                          nextDraftState.format,
-                          nextDraftState
-                        ),
-                      };
-                    })(),
-                    updatedAt: Date.now(),
-                  }
-                : l
+        set((state) =>
+          updateActiveLeague(state, (league) => ({
+            draftState: resetDraftFn(
+              migrateDraftState(league.draftState),
+              league.leagueSettings.leagueSize,
+              league.draftState.format,
             ),
-          };
-        }),
+          })),
+        ),
 
       clearAllData: () =>
         set((state) => ({
           projectionGroups: state.projectionGroups.filter(isProtectedProjectionGroup),
           activeProjectionGroupId: getProjectionGroupFallbackId(
-            state.projectionGroups.filter(isProtectedProjectionGroup)
+            state.projectionGroups.filter(isProtectedProjectionGroup),
           ),
           leagues: state.leagues.map((league) => ({
             ...league,
@@ -1063,12 +357,12 @@ export const useStore = create<Store>()(
           })),
         })),
 
-      applyEligibilityForGroup: (groupId, eligibilityById, season) =>
-        set((state) => {
-          const projectionGroups = state.projectionGroups.map((group) => {
+      applyEligibility: (groupId, eligibilityById, season) =>
+        set((state) => ({
+          projectionGroups: state.projectionGroups.map((group) => {
             if (group.id !== groupId) return group;
 
-            const applyEligibility = (player: Player): Player => {
+            const applyToPlayer = (player: Player): Player => {
               const eligibility = eligibilityById.get(player._id);
               if (!eligibility) return player;
               return { ...player, eligibility };
@@ -1076,8 +370,8 @@ export const useStore = create<Store>()(
 
             return {
               ...group,
-              batters: group.batters.map(applyEligibility),
-              pitchers: group.pitchers.map(applyEligibility),
+              batters: group.batters.map(applyToPlayer),
+              pitchers: group.pitchers.map(applyToPlayer),
               twoWayPlayers: group.twoWayPlayers.map((player) => {
                 const eligibility = eligibilityById.get(player._id);
                 if (!eligibility) return player;
@@ -1086,10 +380,8 @@ export const useStore = create<Store>()(
               eligibilityImportedAt: new Date().toISOString(),
               eligibilitySeason: season,
             };
-          });
-
-          return { projectionGroups };
-        }),
+          }),
+        })),
     }),
     {
       name: "pointer-storage",
@@ -1109,90 +401,12 @@ export const useStore = create<Store>()(
           state?.setHasHydrated(true);
         }
       },
-      migrate: (persistedState, version) => {
-        if (version === 6) {
-          const state = persistedState as PersistedStoreState;
-          const projectionGroups = normalizeProjectionGroups(state.projectionGroups ?? []);
-          return {
-            ...state,
-            leagues: (state.leagues ?? []).map(normalizeLeague),
-            projectionGroups,
-            activeProjectionGroupId:
-              state.activeProjectionGroupId ?? getProjectionGroupFallbackId(projectionGroups),
-          };
-        }
-
-        if (version === 7) {
-          const state = persistedState as PersistedStoreState;
-          const projectionGroups = normalizeProjectionGroups(state.projectionGroups ?? []);
-          return {
-            ...state,
-            leagues: (state.leagues ?? []).map(normalizeLeague),
-            projectionGroups,
-            activeProjectionGroupId:
-              state.activeProjectionGroupId ?? getProjectionGroupFallbackId(projectionGroups),
-          };
-        }
-
-        if (version >= 8) {
-          const state = persistedState as PersistedStoreState;
-          return {
-            ...state,
-            leagues: (state.leagues ?? []).map(normalizeLeague),
-            projectionGroups: normalizeProjectionGroups(state.projectionGroups ?? []),
-          };
-        }
-
-        type V4State = {
-          scoringSettings: ScoringSettings;
-          leagueSettings: LeagueSettings;
-          draftState: LegacyDraftState;
-          projectionGroups: ProjectionGroup[];
-          activeProjectionGroupId: string | null;
-          isDraftMode?: boolean;
-          mergeTwoWayRankings?: boolean;
-          batters?: Player[];
-          pitchers?: Player[];
-          twoWayPlayers?: TwoWayPlayer[];
-          batterIdSource?: IdSource | null;
-          pitcherIdSource?: IdSource | null;
-        };
-
-        const state = persistedState as V4State;
-
-        const scoringSettings = normalizeScoringSettings(state.scoringSettings ?? defaultScoringSettings);
-        const leagueSettings = state.leagueSettings
-          ? normalizeLeagueSettings(state.leagueSettings)
-          : defaultLeagueSettings;
-        const draftState = migrateDraftState(state.draftState);
-
-        const league: League = {
-          id: crypto.randomUUID(),
-          name: "My League",
-          scoringSettings,
-          leagueSettings,
-          draftState,
-          updatedAt: Date.now(),
-        };
-
-        return {
-          leagues: [league],
-          activeLeagueId: league.id,
-          projectionGroups: normalizeProjectionGroups(state.projectionGroups ?? []),
-          activeProjectionGroupId:
-            state.activeProjectionGroupId ??
-            getProjectionGroupFallbackId(normalizeProjectionGroups(state.projectionGroups ?? [])),
-          isDraftMode: state.isDraftMode ?? false,
-          mergeTwoWayRankings: state.mergeTwoWayRankings ?? true,
-        };
-      },
-    }
-  )
+      migrate: (persistedState, version) => migrate(persistedState, version),
+    },
+  ),
 );
 
-export {
-  createDefaultDraftState,
-  defaultScoringSettings,
-  defaultLeagueSettings,
-  defaultRosterSettings,
-};
+// Re-export migrateDraftState for tests that import it from @/store
+export { migrateDraftState } from "@/lib/draft";
+export { createDefaultDraftState, defaultScoringSettings, defaultLeagueSettings, defaultRosterSettings } from "@/lib/league";
+export type { PersistedStoreState };

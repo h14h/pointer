@@ -1,7 +1,7 @@
 # CSV Parsing
 
 ## Source Files
-- `src/lib/csvParser.ts`
+- `src/lib/projections/parser.ts`
 
 ## Dependencies
 - [Types](types.md) — Player variants, stat interfaces, `IdSource`

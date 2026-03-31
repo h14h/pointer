@@ -8,7 +8,7 @@
 - [Eligibility](eligibility.md) — eligibility computation functions
 - [MLB Stats API](mlb-stats-api.md) — `fetchSeasonStatsForPlayers`
 - [Settings Page](settings-page.md) — now owns post-upload projection management and retroactive eligibility actions
-- [State](state.md) — `addProjectionGroup`, `applyEligibilityForGroup`
+- [State](state.md) — `addProjectionGroup`, `applyEligibility`
 - [Types](types.md) — Player variants, `ProjectionGroup`, `IdSource`
 
 ## Three-Stage Flow
@@ -36,7 +36,7 @@ When enabled, the import runs after the projection group is added to the store:
    - Pitchers → `computePitcherEligibility` from pitching data
    - Two-way → compute both sides, then `mergeTwoWayEligibility`
    - Missing MLBAMID → warning + fallback to `eligibilityFromProfilePosition`
-3. Calls `applyEligibilityForGroup` with the eligibility map
+3. Calls `applyEligibility` with the eligibility map
 4. Uses `requestAnimationFrame` every 25 players to yield to the main thread (keeps the progress bar responsive)
 
 **Important:** The projection group is added to the store *before* the eligibility import starts. If the import fails, the group exists with players but no eligibility data. The user can retry via a Retry Import button.

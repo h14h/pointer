@@ -1,7 +1,7 @@
 # Public Datasets
 
 ## Source Files
-- `src/lib/publicDatasets.ts`
+- `src/lib/projections/publicDatasets.ts`
 - `src/server/publicDatasets/storage.ts`
 - `src/app/api/public-datasets/route.ts`
 - `src/app/api/public-datasets/[slug]/route.ts`

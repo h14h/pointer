@@ -1,7 +1,7 @@
 # Utilities
 
 ## Source Files
-- `src/lib/ipMath.ts`
+- `src/lib/scoring/ipMath.ts` (IP math is now part of the scoring module)
 - `src/lib/useDebounce.ts`
 
 ## Baseball IP Notation

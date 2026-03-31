@@ -10,13 +10,14 @@ import { DialogShell } from "@/components/ui/DialogShell";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Panel } from "@/components/ui/Panel";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { calculatePlayerPoints } from "@/lib/calculatePoints";
+import { calculatePlayerPoints } from "@/lib/scoring";
 import {
+  canEditDraftSetup,
   findNextAvailableKeeperRound,
   getDraftPickContext,
   getPickIndexForTeamRound,
 } from "@/lib/draft";
-import { matchesPlayerSearch } from "@/lib/playerSearch";
+import { matchesPlayerSearch } from "@/lib/leaderboard";
 import { useStore } from "@/store";
 import type { LeagueSettings, Player, ProjectionGroup } from "@/types";
 
@@ -64,13 +65,12 @@ export function DraftSection() {
   const {
     leagues,
     activeLeagueId,
-    setLeagueSettings,
+    updateLeague,
     projectionGroups,
     activeProjectionGroupId,
-    setKeeperForTeam,
+    setKeeper,
     removeKeeper,
     resetDraft,
-    canEditDraftSetup,
   } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
   const leagueSettings = activeLeague?.leagueSettings;
@@ -82,11 +82,7 @@ export function DraftSection() {
     Object.keys(draftState?.draftedByTeam ?? {}).filter(
       (playerId) => draftState?.keeperByTeam?.[playerId] === undefined
     ).length > 0;
-  const setupUnlocked =
-    typeof canEditDraftSetup === "function"
-      ? canEditDraftSetup()
-      : Object.keys(draftState?.draftedByTeam ?? {}).length === 0 &&
-        Object.keys(draftState?.keeperByTeam ?? {}).length === 0;
+  const setupUnlocked = draftState ? canEditDraftSetup(draftState) : true;
 
   const teamNameDraftByIndexRef = useRef<Record<number, string>>({});
   const [keeperSearchByTeam, setKeeperSearchByTeam] = useState<Record<number, string>>({});
@@ -112,7 +108,7 @@ export function DraftSection() {
       teamNames: nextNames,
       leagueSize: nextNames.length,
     });
-    setLeagueSettings(next);
+    updateLeague({ leagueSettings: next });
   };
 
   const maxKeeperRound = getTeamRosterSize(leagueSettings);
@@ -210,7 +206,7 @@ export function DraftSection() {
       ...current,
       [teamIndex]: playerId,
     }));
-    setKeeperForTeam(playerId, teamIndex, normalizedRound);
+    setKeeper(playerId, teamIndex, normalizedRound);
     resetKeeperRoundDraft(playerId);
   };
 
@@ -260,7 +256,7 @@ export function DraftSection() {
       ...current,
       [teamIndex]: playerId,
     }));
-    setKeeperForTeam(playerId, teamIndex, targetRound);
+    setKeeper(playerId, teamIndex, targetRound);
     resetKeeperRoundDraft(playerId);
   };
 
@@ -443,7 +439,7 @@ export function DraftSection() {
                 }))
               }
               onAssignKeeper={(playerId) => {
-                setKeeperForTeam(playerId, index, getNextAvailableKeeperRound(index));
+                setKeeper(playerId, index, getNextAvailableKeeperRound(index));
                 setKeeperSearchByTeam((current) => ({
                   ...current,
                   [index]: "",

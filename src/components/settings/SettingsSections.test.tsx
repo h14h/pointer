@@ -133,15 +133,11 @@ function createBatter(id: string, name: string, team: string) {
 }
 
 describe("settings sections", () => {
-  const setScoringSettingsSpy = vi.fn();
-  const updateBattingScoringSpy = vi.fn();
-  const updatePitchingScoringSpy = vi.fn();
-  const setLeagueSettingsSpy = vi.fn();
+  const updateLeagueSpy = vi.fn();
   const setMergeTwoWayRankingsSpy = vi.fn();
-  const setKeeperForTeamSpy = vi.fn();
+  const setKeeperSpy = vi.fn();
   const removeKeeperSpy = vi.fn();
   const resetDraftSpy = vi.fn();
-  const canEditDraftSetupSpy = vi.fn(() => true);
   type TestLeague = {
     id: string;
     name: string;
@@ -186,10 +182,7 @@ describe("settings sections", () => {
   const createStoreState = () => ({
     leagues: [createLeague()],
     activeLeagueId: "league-1",
-    setScoringSettings: setScoringSettingsSpy,
-    updateBattingScoring: updateBattingScoringSpy,
-    updatePitchingScoring: updatePitchingScoringSpy,
-    setLeagueSettings: setLeagueSettingsSpy,
+    updateLeague: updateLeagueSpy,
     projectionGroups: [
       {
         id: "group-1",
@@ -204,17 +197,15 @@ describe("settings sections", () => {
       },
     ],
     activeProjectionGroupId: "group-1",
-    setKeeperForTeam: setKeeperForTeamSpy,
+    setKeeper: setKeeperSpy,
     removeKeeper: removeKeeperSpy,
     resetDraft: resetDraftSpy,
-    canEditDraftSetup: canEditDraftSetupSpy,
     mergeTwoWayRankings: true,
     setMergeTwoWayRankings: setMergeTwoWayRankingsSpy,
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
-    canEditDraftSetupSpy.mockReturnValue(true);
     useStoreMock.mockReturnValue(createStoreState());
   });
 
@@ -232,7 +223,9 @@ describe("settings sections", () => {
     await user.keyboard("7");
     await user.tab();
 
-    expect(updateBattingScoringSpy).toHaveBeenCalledWith("H", 7);
+    expect(updateLeagueSpy).toHaveBeenCalled();
+    const scoringCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { scoringSettings?: { batting?: { H?: number } } };
+    expect(scoringCall.scoringSettings?.batting?.H).toBe(7);
   });
 
   it("commits roster slot and bench updates", async () => {
@@ -245,8 +238,8 @@ describe("settings sections", () => {
     await user.keyboard("4");
     await user.tab();
 
-    const lfLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
-    expect(lfLeagueSettings.roster.positions.LF).toBe(4);
+    const lfCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    expect(lfCall.leagueSettings?.roster.positions.LF).toBe(4);
 
     const benchInput = screen.getByLabelText("Bench");
     await user.click(benchInput);
@@ -254,8 +247,8 @@ describe("settings sections", () => {
     await user.keyboard("9");
     await user.tab();
 
-    const benchLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
-    expect(benchLeagueSettings.roster.bench).toBe(9);
+    const benchCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    expect(benchCall.leagueSettings?.roster.bench).toBe(9);
 
     const weeklyStartLimitInput = screen.getByLabelText("Weekly Start Limit");
     expect(weeklyStartLimitInput).toBeDisabled();
@@ -265,7 +258,8 @@ describe("settings sections", () => {
     });
     await user.click(weeklyStartLimitToggle);
 
-    const enabledWeeklyStartLimitLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    const enabledWeeklyStartLimitCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    const enabledWeeklyStartLimitLeagueSettings = enabledWeeklyStartLimitCall.leagueSettings!;
     expect(enabledWeeklyStartLimitLeagueSettings.weeklyStartLimit).toBe(12);
 
     useStoreMock.mockReturnValue({
@@ -285,8 +279,8 @@ describe("settings sections", () => {
     await user.keyboard("14");
     await user.tab();
 
-    const weeklyStartLimitLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
-    expect(weeklyStartLimitLeagueSettings.weeklyStartLimit).toBe(14);
+    const weeklyStartLimitCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    expect(weeklyStartLimitCall.leagueSettings?.weeklyStartLimit).toBe(14);
   });
 
   it("applies draft controls for team management", async () => {
@@ -297,20 +291,20 @@ describe("settings sections", () => {
     expect(screen.getAllByText("No Keepers")).toHaveLength(12);
 
     await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
-    const addTeamLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
-    expect(addTeamLeagueSettings.teamNames.length).toBe(13);
+    const addTeamCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    expect(addTeamCall.leagueSettings?.teamNames.length).toBe(13);
 
     await user.click(screen.getAllByRole("button", { name: /Remove/i })[0]);
-    const removeTeamLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
-    expect(removeTeamLeagueSettings.teamNames.length).toBe(11);
+    const removeTeamCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    expect(removeTeamCall.leagueSettings?.teamNames.length).toBe(11);
 
     const teamNameInput = screen.getByLabelText("Team 1 name");
     await user.clear(teamNameInput);
     await user.keyboard("My Team");
     await user.tab();
 
-    const renameLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
-    expect(renameLeagueSettings.teamNames[0]).toBe("My Team");
+    const renameCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    expect(renameCall.leagueSettings?.teamNames[0]).toBe("My Team");
   });
 
   it("reorders a team when the draft position control changes", async () => {
@@ -320,8 +314,8 @@ describe("settings sections", () => {
     await user.click(screen.getByRole("button", { name: "Draft position for Team 1" }));
     await user.click(screen.getByRole("button", { name: "3" }));
 
-    const reorderedLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
-    expect(reorderedLeagueSettings.teamNames.slice(0, 4)).toEqual([
+    const reorderCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    expect(reorderCall.leagueSettings?.teamNames.slice(0, 4)).toEqual([
       "Team 2",
       "Team 3",
       "Team 1",
@@ -336,7 +330,7 @@ describe("settings sections", () => {
     await user.click(screen.getByRole("button", { name: "Draft position for Team 1" }));
     await user.click(screen.getByRole("button", { name: "1" }));
 
-    expect(setLeagueSettingsSpy).not.toHaveBeenCalled();
+    expect(updateLeagueSpy).not.toHaveBeenCalled();
   });
 
   it("expands a team to reveal keeper controls", async () => {
@@ -365,7 +359,8 @@ describe("settings sections", () => {
     await user.click(screen.getByRole("button", { name: "Draft position for Beta" }));
     await user.click(screen.getByRole("button", { name: "4" }));
 
-    const reorderedLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    const reorderCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    const reorderedLeagueSettings = reorderCall.leagueSettings!;
 
     useStoreMock.mockReturnValue({
       ...createStoreState(),
@@ -391,7 +386,8 @@ describe("settings sections", () => {
     await user.click(screen.getByRole("button", { name: "Draft position for Alpha" }));
     await user.click(screen.getByRole("button", { name: "4" }));
 
-    const reorderedLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
+    const reorderCall2 = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    const reorderedLeagueSettings = reorderCall2.leagueSettings!;
 
     useStoreMock.mockReturnValue({
       ...createStoreState(),
@@ -405,7 +401,6 @@ describe("settings sections", () => {
 
   it("locks risky draft setup edits once manual picks exist", async () => {
     const user = userEvent.setup();
-    canEditDraftSetupSpy.mockReturnValue(false);
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       leagues: [
@@ -421,7 +416,6 @@ describe("settings sections", () => {
           },
         },
       ],
-      canEditDraftSetup: canEditDraftSetupSpy,
     });
 
     render(<DraftSection />);
@@ -431,20 +425,19 @@ describe("settings sections", () => {
     expect(screen.getByRole("button", { name: "Draft position for Team 1" })).toBeDisabled();
 
     await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
-    expect(setLeagueSettingsSpy).not.toHaveBeenCalled();
+    expect(updateLeagueSpy).not.toHaveBeenCalled();
 
     const teamNameInput = screen.getByLabelText("Team 1 name");
     await user.clear(teamNameInput);
     await user.keyboard("Locked Team");
     await user.tab();
 
-    const renamedLeagueSettings = setLeagueSettingsSpy.mock.calls.at(-1)?.[0] as LeagueSettings;
-    expect(renamedLeagueSettings.teamNames[0]).toBe("Locked Team");
+    const renamedCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { leagueSettings?: LeagueSettings };
+    expect(renamedCall.leagueSettings?.teamNames[0]).toBe("Locked Team");
   });
 
   it("keeps structural draft setup edits available when only keepers exist", async () => {
     const user = userEvent.setup();
-    canEditDraftSetupSpy.mockReturnValue(true);
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       leagues: [
@@ -460,7 +453,6 @@ describe("settings sections", () => {
           },
         },
       ],
-      canEditDraftSetup: canEditDraftSetupSpy,
     });
 
     render(<DraftSection />);
@@ -471,12 +463,11 @@ describe("settings sections", () => {
     expect(screen.getByLabelText("League size")).not.toBeDisabled();
 
     await user.click(screen.getAllByRole("button", { name: /Add team below/i })[0]);
-    expect(setLeagueSettingsSpy).toHaveBeenCalled();
+    expect(updateLeagueSpy).toHaveBeenCalled();
   });
 
   it("keeps keeper editing available when draft setup is locked", async () => {
     const user = userEvent.setup();
-    canEditDraftSetupSpy.mockReturnValue(false);
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       projectionGroups: [
@@ -513,7 +504,7 @@ describe("settings sections", () => {
     await user.click(screen.getByRole("button", { name: /Mike Trout/i }));
     await user.click(screen.getByRole("button", { name: "Remove keeper Mookie Betts" }));
 
-    expect(setKeeperForTeamSpy).toHaveBeenCalledWith("batter-1", 0, 2);
+    expect(setKeeperSpy).toHaveBeenCalledWith("batter-1", 0, 2);
     expect(removeKeeperSpy).toHaveBeenCalledWith("keeper-1");
   });
 
@@ -628,7 +619,7 @@ describe("settings sections", () => {
     await user.click(screen.getByRole("button", { name: "Show keepers for Team 1" }));
     await user.type(screen.getByLabelText("Search keepers for Team 1"), "mike");
     await user.click(screen.getByRole("button", { name: /Mike Trout/i }));
-    expect(setKeeperForTeamSpy).toHaveBeenCalledWith("batter-1", 0, 2);
+    expect(setKeeperSpy).toHaveBeenCalledWith("batter-1", 0, 2);
 
     await user.click(screen.getByRole("button", { name: "Remove keeper Mookie Betts" }));
     expect(removeKeeperSpy).toHaveBeenCalledWith("keeper-1");
@@ -716,8 +707,8 @@ describe("settings sections", () => {
     await user.click(screen.getByRole("button", { name: "Move keeper Mike Trout earlier" }));
     await user.click(screen.getByRole("button", { name: "Move keeper Mookie Betts later" }));
 
-    expect(setKeeperForTeamSpy).toHaveBeenNthCalledWith(1, "keeper-2", 0, 4);
-    expect(setKeeperForTeamSpy).toHaveBeenNthCalledWith(2, "keeper-1", 0, 7);
+    expect(setKeeperSpy).toHaveBeenNthCalledWith(1, "keeper-2", 0, 4);
+    expect(setKeeperSpy).toHaveBeenNthCalledWith(2, "keeper-1", 0, 7);
     expect(screen.getByLabelText("Keeper round for Mike Trout")).toBeVisible();
   });
 
@@ -842,7 +833,7 @@ describe("settings sections", () => {
     await user.type(roundInput, "6");
     await user.tab();
 
-    expect(setKeeperForTeamSpy).not.toHaveBeenCalled();
+    expect(setKeeperSpy).not.toHaveBeenCalled();
     expect(toastSpy).toHaveBeenCalledWith("Round 6 is already occupied");
     expect(screen.getByLabelText("Keeper round for Mookie Betts")).toHaveValue("5");
   });
@@ -936,7 +927,7 @@ describe("settings sections", () => {
     await user.type(roundInput, "4");
     await user.tab();
 
-    expect(setKeeperForTeamSpy).not.toHaveBeenCalled();
+    expect(setKeeperSpy).not.toHaveBeenCalled();
     expect(toastSpy).toHaveBeenCalledWith("That keeper slot has already passed");
     expect(screen.getByRole("button", { name: "Move keeper Mike Trout earlier" })).toBeDisabled();
   });
@@ -1150,7 +1141,6 @@ describe("settings sections", () => {
 
   it("resets the draft from the draft settings view", async () => {
     const user = userEvent.setup();
-    canEditDraftSetupSpy.mockReturnValue(false);
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       leagues: [
@@ -1188,7 +1178,6 @@ describe("settings sections", () => {
   });
 
   it("hides reset draft when draft activity exists but no manual picks exist", () => {
-    canEditDraftSetupSpy.mockReturnValue(false);
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       leagues: [

@@ -7,14 +7,12 @@ import {
   type ParseResult,
   type IdConfig,
   type PitchingOutcomeStat,
-} from "@/lib/csvParser";
-import { isValidBaseballIp } from "@/lib/ipMath";
-import {
   applyPitchingOutcomeEstimates,
   DEFAULT_PITCHING_OUTCOME_ESTIMATE_SELECTION,
   type PitchingOutcomeEstimateSelection,
-} from "@/lib/pitchingOutcomeImport";
-import { runProjectionEligibilityImport } from "@/lib/projectionEligibilityImport";
+} from "@/lib/projections";
+import { isValidBaseballIp } from "@/lib/scoring";
+import { runProjectionEligibilityImport } from "@/lib/eligibility";
 import { AppDialog } from "@/components/ui/AppDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
@@ -76,7 +74,7 @@ const PITCHING_OUTCOME_LABELS: Record<PitchingOutcomeStat, string> = {
 };
 
 export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
-  const { projectionGroups, addProjectionGroup, applyEligibilityForGroup } = useStore();
+  const { projectionGroups, addProjectionGroup, applyEligibility } = useStore();
   const [dragActive, setDragActive] = useState(false);
   const [uploadType, setUploadType] = useState<UploadType>("auto");
   const [groupName, setGroupName] = useState("");
@@ -209,7 +207,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
       return runProjectionEligibilityImport({
         group,
         season: group.eligibilityImportSeason ?? 2025,
-        applyEligibilityForGroup,
+        applyEligibilityForGroup: applyEligibility,
         callbacks: {
           onStart: () => {
             setIsImportingEligibility(true);
@@ -228,7 +226,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         },
       });
     },
-    [applyEligibilityForGroup]
+    [applyEligibility]
   );
 
   const resetState = () => {

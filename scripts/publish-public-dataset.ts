@@ -7,7 +7,7 @@ import {
   parsePublicDatasetManifest,
   parsePublicDatasetPayload,
   type PublicDatasetManifest,
-} from "@/lib/publicDatasets";
+} from "@/lib/projections";
 import { getPublicDatasetObjectKey, putPublicDatasetObject } from "@/server/publicDatasets/core";
 
 const DATASET_DIR = path.join(process.cwd(), "data", "public-datasets");

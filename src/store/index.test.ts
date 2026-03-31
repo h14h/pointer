@@ -161,9 +161,11 @@ describe("draft setup structure changes", () => {
       activeLeagueId: activeLeague.id,
     });
 
-    storeModule.useStore.getState().setLeagueSettings({
-      ...storeModule.useStore.getState().getActiveLeague()!.leagueSettings,
-      teamNames: ["Team 2", "Team 1", "Team 3"],
+    storeModule.useStore.getState().updateLeague({
+      leagueSettings: {
+        ...storeModule.useStore.getState().getActiveLeague()!.leagueSettings,
+        teamNames: ["Team 2", "Team 1", "Team 3"],
+      },
     });
 
     expect(storeModule.useStore.getState().getActiveLeague()!.leagueSettings.teamNames).toEqual([
@@ -202,9 +204,11 @@ describe("draft setup structure changes", () => {
       activeLeagueId: activeLeague.id,
     });
 
-    storeModule.useStore.getState().setLeagueSettings({
-      ...storeModule.useStore.getState().getActiveLeague()!.leagueSettings,
-      teamNames: ["Team 2", "Team 1", "Team 3"],
+    storeModule.useStore.getState().updateLeague({
+      leagueSettings: {
+        ...storeModule.useStore.getState().getActiveLeague()!.leagueSettings,
+        teamNames: ["Team 2", "Team 1", "Team 3"],
+      },
     });
 
     expect(storeModule.useStore.getState().getActiveLeague()!.leagueSettings.teamNames).toEqual([
@@ -296,7 +300,7 @@ describe("keeper slot cursor normalization", () => {
       activeLeagueId: activeLeague.id,
     });
 
-    storeModule.useStore.getState().setKeeperForTeam("keeper-1", 0, 3);
+    storeModule.useStore.getState().setKeeper("keeper-1", 0, 3);
 
     const draftState = storeModule.useStore.getState().getActiveLeague()!.draftState;
     expect(draftState.keeperSlotByPlayer["keeper-1"]).toBe(6);

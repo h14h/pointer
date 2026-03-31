@@ -1,8 +1,8 @@
 # Pitching Outcomes
 
 ## Source Files
-- `src/lib/pitchingOutcomes.ts`
-- `src/lib/pitchingOutcomeImport.ts`
+- `src/lib/projections/pitchingOutcomes.ts`
+- `src/lib/projections/pitchingOutcomeImport.ts`
 
 ## Dependencies
 - [Types](types.md) — pitcher stat shape

@@ -8,21 +8,79 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 
 | Domain | Description | Source Files | Spec |
 |--------|-------------|-------------|------|
-| Types & Schemas | Core data structures used across the app | `src/types/index.ts` | [docs/types.md](docs/types.md) |
-| CSV Parsing | Upload, detect, and normalize player data from CSV/TSV files | `src/lib/csvParser.ts` | [docs/csv-parsing.md](docs/csv-parsing.md) |
-| Scoring | Point calculation, scoring presets, and league-specific weight application | `src/lib/calculatePoints.ts`, `src/lib/presets.ts` | [docs/scoring.md](docs/scoring.md) |
-| Replacement Value (PAR) | Points Above Replacement calculation using slot-based replacement levels | `src/lib/calculatePAR.ts` | [docs/paring-value.md](docs/paring-value.md) |
-| Pitching Outcomes | Regression estimators for QS/CG/ShO used when import-time estimation is explicitly selected | `src/lib/pitchingOutcomes.ts`, `src/lib/qualityStarts.ts`, `src/lib/pitchingOutcomeImport.ts` | [docs/pitching-outcomes.md](docs/pitching-outcomes.md) |
-| Eligibility | Position eligibility computation and pitcher role classification | `src/lib/eligibility.ts` | [docs/eligibility.md](docs/eligibility.md) |
-| MLB Stats API | Fetching real-time stats from MLB's public API for eligibility enrichment | `src/lib/mlbStatsApi.ts` | [docs/mlb-stats-api.md](docs/mlb-stats-api.md) |
-| Public Datasets | Public catalog/bootstrap flow for the built-in Tigris-backed historical dataset | `src/lib/publicDatasets.ts`, `src/server/publicDatasets/storage.ts`, `src/app/api/public-datasets/**`, `src/components/PublicDatasetBootstrap.tsx`, `scripts/publish-public-dataset.ts`, `data/public-datasets/**` | [docs/public-datasets.md](docs/public-datasets.md) |
-| State Management | Zustand store, persistence, and schema migrations | `src/store/index.ts` | [docs/state.md](docs/state.md) |
-| Leaderboard | Player ranking table with sorting, filtering, draft interactions, and extracted derivation helpers | `src/components/Leaderboard.tsx`, `src/lib/leaderboardDerived.ts`, `e2e/leaderboard.spec.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
+| Types & Schemas | Core data structures used across the app | `src/types/` (`player.ts`, `league.ts`, `draft.ts`, `projection.ts`, `index.ts`) | [docs/types.md](docs/types.md) |
+| Scoring | Point calculation, scoring presets, and league-specific weight application | `src/lib/scoring/` | [docs/scoring.md](docs/scoring.md) |
+| Draft | Snake draft math, keeper reservations, pick tracking, and pure state transformers | `src/lib/draft/` | [docs/state.md](docs/state.md) |
+| League | League creation, normalization, validation, defaults, and scoring presets | `src/lib/league/` | [docs/state.md](docs/state.md) |
+| Eligibility | Position eligibility computation, pitcher role classification, MLB Stats API, and import orchestration | `src/lib/eligibility/` | [docs/eligibility.md](docs/eligibility.md) |
+| Projections | CSV parsing, pitching outcome estimation, public datasets, and projection group helpers | `src/lib/projections/` | [docs/csv-parsing.md](docs/csv-parsing.md) |
+| Leaderboard | Ranking pipeline, PAR calculation, filtering, sorting, and search | `src/lib/leaderboard/` | [docs/leaderboard.md](docs/leaderboard.md) |
+| Persistence | Split localStorage adapter and state migrations | `src/lib/persistence/` | [docs/state.md](docs/state.md) |
+| Replacement Value (PAR) | Points Above Replacement calculation using slot-based replacement levels | `src/lib/leaderboard/par.ts` | [docs/paring-value.md](docs/paring-value.md) |
+| Pitching Outcomes | Regression estimators for QS/CG/ShO used when import-time estimation is explicitly selected | `src/lib/projections/pitchingOutcomes.ts`, `src/lib/projections/pitchingOutcomeImport.ts` | [docs/pitching-outcomes.md](docs/pitching-outcomes.md) |
+| MLB Stats API | Fetching real-time stats from MLB's public API for eligibility enrichment | `src/lib/eligibility/mlbStatsApi.ts` | [docs/mlb-stats-api.md](docs/mlb-stats-api.md) |
+| Public Datasets | Public catalog/bootstrap flow for the built-in Tigris-backed historical dataset | `src/lib/projections/publicDatasets.ts`, `src/server/publicDatasets/storage.ts`, `src/app/api/public-datasets/**`, `src/components/PublicDatasetBootstrap.tsx`, `scripts/publish-public-dataset.ts`, `data/public-datasets/**` | [docs/public-datasets.md](docs/public-datasets.md) |
+| State Management | Zustand store as thin coordination layer over domain modules | `src/store/index.ts` | [docs/state.md](docs/state.md) |
+| Leaderboard UI | Player ranking table with sorting, filtering, draft interactions | `src/components/Leaderboard.tsx`, `e2e/leaderboard.spec.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
 | CSV Upload Workflow | Upload modal, file handling, eligibility import, and optional pitching-outcome estimation | `src/components/CsvUpload.tsx` | [docs/csv-upload-workflow.md](docs/csv-upload-workflow.md) |
 | Settings Page | Dedicated settings route with sectioned Projections, Scoring, Roster, Draft, and League controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx` | [docs/settings-page.md](docs/settings-page.md) |
 | Header | Top navigation, projection/league selection, and global controls | `src/components/Header.tsx` | [docs/header.md](docs/header.md) |
 | UI System | Shared visual tokens, shadcn/ui integration, and reusable UI primitives for consistent styling | `src/app/globals.css`, `src/components/ui/*.tsx`, `src/lib/utils.ts`, `components.json` | [docs/ui-system.md](docs/ui-system.md) |
-| Utilities | IP math, debounce hook, and other shared helpers | `src/lib/ipMath.ts`, `src/lib/useDebounce.ts` | [docs/utilities.md](docs/utilities.md) |
+| Utilities | Debounce hook and other shared helpers | `src/lib/useDebounce.ts` | [docs/utilities.md](docs/utilities.md) |
+
+## Module Architecture
+
+Business logic lives in 7 deep modules under `src/lib/`. Each module exposes a simple public interface through `index.ts` and hides implementation details in internal files.
+
+### Modules
+
+| Module | Public Interface | Key Exports |
+|--------|-----------------|-------------|
+| `lib/scoring/` | Score any player type against league weights | `calculatePlayerPoints`, `calculateBatterPoints`, `calculatePitcherPoints`, `normalizeIp`, `isValidBaseballIp` |
+| `lib/draft/` | Pure state transformers for snake-draft lifecycle | `advancePick`, `undoLastPick`, `setKeeper`, `removeKeeper`, `resetDraft`, `getDraftPickContext`, `canEditDraftSetup`, `getPickContext` |
+| `lib/league/` | League creation, normalization, validation, and scoring presets | `createDefaultLeague`, `normalizeLeague`, `normalizeLeagueSettings`, `isStructureChangeSafe`, `scoringPresets`, `presetNames` |
+| `lib/eligibility/` | Position eligibility computation, formatting, MLB API fetch, and import orchestration | `computeHitterEligibility`, `computePitcherEligibility`, `mergeTwoWayEligibility`, `formatEligibilityForLeaderboard`, `fetchSeasonStatsForPlayers`, `runProjectionEligibilityImport` |
+| `lib/projections/` | CSV parsing, pitching outcome estimation, public dataset handling, and projection group helpers | `parsePlayerCSV`, `mergePlayers`, `applyPitchingOutcomeEstimates`, `parsePublicDatasetManifest`, `createProjectionGroupFromPublicDataset`, `isProtectedProjectionGroup` |
+| `lib/leaderboard/` | Stepped ranking pipeline (build, filter, sort) and PAR calculation | `buildBaseRankedPlayers`, `buildFilterMetadata`, `filterRankedPlayers`, `sortLeaderboardRows`, `calculatePAR`, `buildPlayerSearchText` |
+| `lib/persistence/` | Split localStorage adapter and version migration | `splitStorage`, `migrate` |
+
+### Dependency Graph
+
+```
+scoring  draft  league        (leaf modules — no lib/ dependencies)
+   |              |
+   v              v
+projections    persistence    (projections depends on scoring; persistence depends on league)
+   |
+   v
+eligibility                   (no lib/ dependencies, but leaderboard depends on it)
+   |
+   v
+leaderboard                   (depends on scoring + eligibility)
+```
+
+- **scoring**, **draft**, **league** are leaf modules with no cross-module dependencies
+- **projections** imports from scoring (IP normalization for pitching outcome estimation)
+- **leaderboard** imports from scoring (point calculation) and eligibility (position formatting)
+- **persistence** imports from league (normalization functions for migrations)
+- **eligibility** has no lib/ module dependencies
+
+### Store as Coordination Layer
+
+The Zustand store (`src/store/index.ts`) is a thin coordinator, not a logic owner. Each store action is a one-liner that calls a pure domain function from the appropriate module, then writes the result back. The store provides ~20 actions across league management, projections, draft, and preferences. See [docs/state.md](docs/state.md) for the full action list.
+
+### Types Split
+
+Types are split into 4 domain files under `src/types/` with a barrel re-export in `index.ts`:
+
+| File | Contents |
+|------|----------|
+| `player.ts` | `Player`, `BatterPlayer`, `PitcherPlayer`, `TwoWayPlayer`, stat types |
+| `league.ts` | `League`, `ScoringSettings`, `LeagueSettings`, `RosterSettings`, `Position`, `RosterSlot` |
+| `draft.ts` | `DraftState`, `DraftPick`, `DraftFormat` |
+| `projection.ts` | `ProjectionGroup`, `ProjectionGroupSource`, `IdSource`, `Eligibility`, `RankedPlayer`, `AppState` |
+
+All existing `@/types` imports continue to work through the barrel.
 
 ## Cross-Cutting Concerns
 

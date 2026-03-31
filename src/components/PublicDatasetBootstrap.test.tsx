@@ -14,10 +14,14 @@ vi.mock("@/store", () => ({
   },
 }));
 
-vi.mock("@/lib/projectionEligibilityImport", () => ({
-  runProjectionEligibilityImport: (...args: unknown[]) =>
-    runProjectionEligibilityImportMock(...args),
-}));
+vi.mock("@/lib/eligibility", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/eligibility")>("@/lib/eligibility");
+  return {
+    ...actual,
+    runProjectionEligibilityImport: (...args: unknown[]) =>
+      runProjectionEligibilityImportMock(...args),
+  };
+});
 
 const manifestResponse = {
   datasets: [
@@ -61,7 +65,7 @@ function createStoreState(overrides?: Partial<{
       state.projectionGroups = [...state.projectionGroups, group];
       state.activeProjectionGroupId = state.activeProjectionGroupId ?? group.id;
     }),
-    applyEligibilityForGroup: vi.fn(),
+    applyEligibility: vi.fn(),
   };
   return state;
 }

@@ -1,7 +1,7 @@
 # MLB Stats API
 
 ## Source Files
-- `src/lib/mlbStatsApi.ts`
+- `src/lib/eligibility/mlbStatsApi.ts`
 
 ## Dependencies
 - [Types](types.md) — `Position`

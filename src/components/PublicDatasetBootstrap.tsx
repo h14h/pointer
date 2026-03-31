@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { createProjectionGroupFromPublicDataset, type PublicDatasetManifest, type PublicDatasetPayload } from "@/lib/publicDatasets";
-import { runProjectionEligibilityImport } from "@/lib/projectionEligibilityImport";
+import { createProjectionGroupFromPublicDataset, type PublicDatasetManifest, type PublicDatasetPayload } from "@/lib/projections";
+import { runProjectionEligibilityImport } from "@/lib/eligibility";
 import type { ProjectionGroup } from "@/types";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/Button";
@@ -26,13 +26,13 @@ export function PublicDatasetBootstrap() {
     hasHydrated,
     projectionGroups,
     seedProjectionGroup,
-    applyEligibilityForGroup,
+    applyEligibility,
   } = useStore(
     useShallow((state) => ({
       hasHydrated: state.hasHydrated,
       projectionGroups: state.projectionGroups,
       seedProjectionGroup: state.seedProjectionGroup,
-      applyEligibilityForGroup: state.applyEligibilityForGroup,
+      applyEligibility: state.applyEligibility,
     }))
   );
   const [status, setStatus] = useState<BootstrapStatus>("idle");
@@ -58,7 +58,7 @@ export function PublicDatasetBootstrap() {
       const importSucceeded = await runProjectionEligibilityImport({
         group,
         season: group.eligibilityImportSeason ?? (group.source.kind === "public-dataset" ? group.source.season : 2025),
-        applyEligibilityForGroup,
+        applyEligibilityForGroup: applyEligibility,
         callbacks: {
           onError: (message) => {
             if (message) {
@@ -77,7 +77,7 @@ export function PublicDatasetBootstrap() {
       setErrorMessage((current) => current ?? "Unable to import position eligibility for 2025 Leaders.");
       return false;
     },
-    [applyEligibilityForGroup]
+    [applyEligibility]
   );
 
   const loadDefaultDataset = useCallback(async () => {

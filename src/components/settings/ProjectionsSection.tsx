@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { runProjectionEligibilityImport } from "@/lib/projectionEligibilityImport";
+import { runProjectionEligibilityImport } from "@/lib/eligibility";
 import { Badge } from "@/components/ui/badge";
 import {
   getProjectionGroupDisplayName,
   getProjectionGroupPlayerCounts,
   getProjectionGroupSourceLabel,
-} from "@/lib/projectionGroups";
+} from "@/lib/projections";
 import { Button } from "@/components/ui/Button";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,7 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
     renameProjectionGroup,
     removeProjectionGroup,
     setProjectionGroupEligibilityImportSeason,
-    applyEligibilityForGroup,
+    applyEligibility,
   } = useStore(
     useShallow((state) => ({
       projectionGroups: state.projectionGroups,
@@ -48,7 +48,7 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
       renameProjectionGroup: state.renameProjectionGroup,
       removeProjectionGroup: state.removeProjectionGroup,
       setProjectionGroupEligibilityImportSeason: state.setProjectionGroupEligibilityImportSeason,
-      applyEligibilityForGroup: state.applyEligibilityForGroup,
+      applyEligibility: state.applyEligibility,
     }))
   );
   const [renameDrafts, setRenameDrafts] = useState<Record<string, string>>({});
@@ -84,7 +84,7 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
     await runProjectionEligibilityImport({
       group,
       season: group.eligibilityImportSeason ?? 2025,
-      applyEligibilityForGroup,
+      applyEligibilityForGroup: applyEligibility,
       callbacks: {
         onStart: () => {
           setActiveImportGroupId(group.id);

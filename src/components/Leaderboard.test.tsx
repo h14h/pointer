@@ -456,7 +456,7 @@ function createStoreState() {
 		setActiveProjectionGroup: vi.fn(),
 		isDraftMode: false,
 		draftPlayer: vi.fn(),
-		undoLastDraftPick: vi.fn(),
+		undoLastPick: vi.fn(),
 		mergeTwoWayRankings: true,
 		leagues: [league],
 		activeLeagueId: league.id,
@@ -646,7 +646,7 @@ describe("Leaderboard", () => {
 				},
 			],
 		};
-		currentState.undoLastDraftPick = vi.fn(() => {
+		currentState.undoLastPick = vi.fn(() => {
 			currentState = {
 				...currentState,
 				leagues: currentState.leagues.map((activeLeague) =>

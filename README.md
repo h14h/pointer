@@ -19,9 +19,10 @@ Open `http://localhost:3000`.
 ## Project Structure
 - `src/app`: Next.js app shell
 - `src/components`: UI and workflow components
-- `src/lib`: parsing, scoring, and eligibility helpers
-- `src/store`: app state and persistence
+- `src/lib`: deep modules (scoring, draft, league, eligibility, projections, leaderboard, persistence)
+- `src/store`: thin Zustand coordination layer
+- `src/types`: domain types split by concern (player, league, draft, projection)
 
 ## Notes
 - CSV files can include `MLBAMID` or a custom ID column for precise player matching.
-- Draft mode is optional; when enabled, clicks mark drafted players and right-clicks mark keepers.
+- Draft mode is optional; when enabled, clicks draft players via snake-draft. Keepers are assigned in Settings.

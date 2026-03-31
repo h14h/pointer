@@ -43,7 +43,7 @@ import {
 	type DraftFilter,
 	type LeaderboardRow,
 	type PlayerView,
-} from "@/lib/leaderboardDerived";
+} from "@/lib/leaderboard";
 import type {
 	RankedPlayer,
 	DraftState,
@@ -245,7 +245,7 @@ export function Leaderboard() {
 		activeProjectionGroupId,
 		isDraftMode,
 		draftPlayer,
-		undoLastDraftPick,
+		undoLastPick,
 		mergeTwoWayRankings,
 		leagues,
 		activeLeagueId,
@@ -255,7 +255,7 @@ export function Leaderboard() {
 			activeProjectionGroupId: state.activeProjectionGroupId,
 			isDraftMode: state.isDraftMode,
 			draftPlayer: state.draftPlayer,
-			undoLastDraftPick: state.undoLastDraftPick,
+			undoLastPick: state.undoLastPick,
 			mergeTwoWayRankings: state.mergeTwoWayRankings,
 			leagues: state.leagues,
 			activeLeagueId: state.activeLeagueId,
@@ -465,8 +465,8 @@ export function Leaderboard() {
 			clearTimeout(undoToastTimeoutRef.current);
 			undoToastTimeoutRef.current = null;
 		}
-		undoLastDraftPick();
-	}, [allPlayersById, lastDraftPick, leagueSettings, undoLastDraftPick]);
+		undoLastPick();
+	}, [allPlayersById, lastDraftPick, leagueSettings, undoLastPick]);
 	useEffect(() => {
 		if (!isDraftMode || !draftState) {
 			if (autoActionToastTimeoutRef.current) {

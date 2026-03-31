@@ -1,8 +1,11 @@
 # Scoring
 
 ## Source Files
-- `src/lib/calculatePoints.ts`
-- `src/lib/presets.ts`
+- `src/lib/scoring/index.ts`
+- `src/lib/scoring/batterScoring.ts`
+- `src/lib/scoring/pitcherScoring.ts`
+- `src/lib/scoring/ipMath.ts`
+- `src/lib/league/` (scoring presets now live in the league module)
 
 ## Dependencies
 - [Types](types.md) — Player variants, `ScoringSettings`
@@ -37,4 +40,4 @@ Each counting stat is multiplied by its configured weight and the results are su
 
 ## Presets
 
-Four presets are available: `espn`, `yahoo`, `fantrax`, `blank`. The preset values are in `src/lib/presets.ts`. The store's default scoring settings match ESPN.
+Four presets are available: `espn`, `yahoo`, `fantrax`, `blank`. The preset values are in `src/lib/league/`. The store's default scoring settings match ESPN.
