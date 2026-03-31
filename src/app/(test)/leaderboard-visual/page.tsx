@@ -12,7 +12,7 @@
  *   ?variant=pitchers      — pitchers-only view
  */
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Leaderboard } from "@/components/Leaderboard";
 import { useStore } from "@/store";
@@ -230,7 +230,7 @@ function StoreSeeder({ variant, onReady }: { variant: string; onReady: () => voi
 	return null;
 }
 
-export default function LeaderboardVisualTestPage() {
+function LeaderboardVisualTestPageInner() {
 	const variant = useVariant();
 	const [ready, setReady] = useState(false);
 
@@ -243,5 +243,13 @@ export default function LeaderboardVisualTestPage() {
 				</main>
 			)}
 		</div>
+	);
+}
+
+export default function LeaderboardVisualTestPage() {
+	return (
+		<Suspense>
+			<LeaderboardVisualTestPageInner />
+		</Suspense>
 	);
 }
