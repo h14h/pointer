@@ -56,7 +56,7 @@ Custom components have shadcn equivalents (see [docs/ui-system.md](docs/ui-syste
 
 ### shadcn Component Catalog
 
-Not-yet-installed components available via `npx shadcn@latest add <name>`:
+Not-yet-installed components available via `bunx shadcn@latest add <name>`:
 
 | Component | Description | Docs |
 |-----------|-------------|------|
@@ -117,7 +117,7 @@ Not-yet-installed components available via `npx shadcn@latest add <name>`:
 
 ### Installing a shadcn Component
 
-1. `npx shadcn@latest add <component-name>`
+1. `bunx shadcn@latest add <component-name>`
 2. Component lands in `src/components/ui/<name>.tsx`
 3. Review styling — adjust to use Pointer's token variables if the component introduces new color/spacing values
 4. Update `docs/ui-system.md` Source Files and move the component from the catalog to the installed table above

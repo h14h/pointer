@@ -9,7 +9,7 @@
     "test": "bun test src/lib",
     "test:ui": "vitest run",
     "test:ui:watch": "vitest",
-    "test:all": "npm run test && npm run test:ui",
+    "test:all": "bun run test && bun run test:ui",
     "test:visual": "bunx playwright test",
     "test:visual:update": "bunx playwright test --update-snapshots",
     "lint": "eslint",

@@ -45,7 +45,7 @@ shadcn/ui is the project's first-class component system. It provides accessible,
 
 ### Installing a Component
 
-1. `npx shadcn@latest add <component-name>`
+1. `bunx shadcn@latest add <component-name>`
 2. Component lands in `src/components/ui/<name>.tsx`
 3. Review styling against Pointer's design language (see Styling Customization below)
 4. Add the file to this spec's Source Files list
