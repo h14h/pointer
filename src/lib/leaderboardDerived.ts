@@ -483,10 +483,18 @@ export function sortLeaderboardRows(
 
   return [...rows].sort((left, right) => {
     for (const sortEntry of sorting) {
-      const comparison = compareSortValues(
-        getSortValue(left, sortEntry.id),
-        getSortValue(right, sortEntry.id)
-      );
+      const leftVal = getSortValue(left, sortEntry.id);
+      const rightVal = getSortValue(right, sortEntry.id);
+
+      // Nulls (displayed as "-") always sort to the bottom, regardless of direction
+      const leftNull = leftVal == null;
+      const rightNull = rightVal == null;
+      if (leftNull || rightNull) {
+        if (leftNull && rightNull) continue;
+        return leftNull ? 1 : -1;
+      }
+
+      const comparison = compareSortValues(leftVal, rightVal);
 
       if (comparison !== 0) {
         return sortEntry.desc ? -comparison : comparison;
