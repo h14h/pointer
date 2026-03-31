@@ -1411,7 +1411,11 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								: null,
 					cell: ({ getValue }) => {
 						const val = getValue() as number | null;
-						return <span className="font-mono">{val ?? "-"}</span>;
+						return val != null ? (
+							<span className="font-mono">{val.toFixed(1)}</span>
+						) : (
+							"-"
+						);
 					},
 				},
 				{
