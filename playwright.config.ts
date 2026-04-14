@@ -20,7 +20,9 @@ export default defineConfig({
 	use: {
 		baseURL: `http://localhost:${PORT}`,
 		// Disable animations so screenshots are deterministic
-		reducedMotion: "reduce",
+		contextOptions: {
+			reducedMotion: "reduce",
+		},
 	},
 
 	projects: [

@@ -19,9 +19,11 @@ import { useStore } from "@/store";
 import type {
 	BatterPlayer,
 	DraftState,
+	Eligibility,
 	League,
 	LeagueSettings,
 	PitcherPlayer,
+	Position,
 	ProjectionGroup,
 	ScoringSettings,
 	TwoWayPlayer,
@@ -36,7 +38,7 @@ function scoringSettings(): ScoringSettings {
 		name: "Default",
 		batting: {
 			R: 1, H: 0, "1B": 1, "2B": 2, "3B": 3, HR: 4,
-			RBI: 1, SB: 1, CS: -1, BB: 1, SO: -1, HBP: 1, SF: 0, GDP: 0,
+			RBI: 1, SB: 1, CS: -1, BB: 1, IBB: 0, SO: -1, HBP: 1, SF: 0, GDP: 0,
 		},
 		pitching: {
 			IP: 3, W: 5, L: -5, QS: 3, CG: 0, ShO: 0, SV: 5, BS: -3,
@@ -102,7 +104,7 @@ function league(variant: string): League {
 
 // -- Player factories -------------------------------------------------------
 
-const elig = (positions: string[], sp = false, rp = false) => ({
+const elig = (positions: Position[], sp = false, rp = false): Eligibility => ({
 	positionGames: { C: 0, "1B": 0, "2B": 0, "3B": 0, SS: 0, LF: 0, CF: 0, RF: 0, DH: 0 },
 	eligiblePositions: positions,
 	isSP: sp,
@@ -209,7 +211,7 @@ function projectionGroup(): ProjectionGroup {
 
 function useVariant(): string {
 	const params = useSearchParams();
-	return params.get("variant") ?? "default";
+	return params?.get("variant") ?? "default";
 }
 
 function StoreSeeder({ variant, onReady }: { variant: string; onReady: () => void }) {

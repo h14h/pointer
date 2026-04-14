@@ -15,7 +15,7 @@ import { resolveSettingsSection } from "@/components/settings/types";
 function SettingsPageContent() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const searchParams = useSearchParams();
-  const activeSection = resolveSettingsSection(searchParams.get("section"));
+  const activeSection = resolveSettingsSection(searchParams?.get("section"));
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-base)]">
