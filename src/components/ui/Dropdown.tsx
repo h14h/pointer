@@ -169,7 +169,7 @@ function ChevronIcon() {
 
 const triggerBase = cn(
   "flex items-center justify-between gap-2 rounded-full border px-3 py-1.5 text-sm font-medium",
-  "min-w-[5rem]",
+  "min-w-[7rem]",
   "border-[var(--color-border-soft)] bg-[var(--color-surface-muted)]",
   "font-sans text-[var(--color-fg-muted)]",
   "transition-colors hover:bg-[var(--color-surface-hover)]",
@@ -273,7 +273,7 @@ export function Dropdown<T extends string | number>(
             {label}
           </span>
         ) : null}
-        <span className="min-w-0 flex-1 truncate text-[var(--color-fg-default)]">
+        <span className={cn("min-w-0 flex-1 truncate", label ? "text-[var(--color-fg-default)]" : "")}>
           {(props as CustomContentProps).triggerValue}
         </span>
       </>
@@ -283,16 +283,14 @@ export function Dropdown<T extends string | number>(
     triggerContent = (
       <>
         <span>{multiProps.triggerLabel}</span>
-        <span
-          className="flex h-4 w-4 items-center justify-center"
-          aria-hidden="true"
-        >
-          {selectedValues.length > 0 ? (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-accent)] text-[10px] font-bold leading-none text-white">
-              {selectedValues.length}
-            </span>
-          ) : null}
-        </span>
+        {selectedValues.length > 0 ? (
+          <span
+            className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-accent)] text-[10px] font-bold leading-none text-white"
+            aria-hidden="true"
+          >
+            {selectedValues.length}
+          </span>
+        ) : null}
       </>
     );
   } else {

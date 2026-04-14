@@ -20,7 +20,6 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
 import { Dropdown } from "@/components/ui/Dropdown";
@@ -196,6 +195,110 @@ function getNextSorting(columnId: string, currentSorting: SortingState): Sorting
 	return [{ id: columnId, desc: !current.desc }];
 }
 
+/* ---------------------------------------------------------------------------
+   Columns picker — stat-visibility control
+   --------------------------------------------------------------------------- */
+
+function StatGroupHeader({
+	label,
+	count,
+	onClear,
+}: {
+	label: string;
+	count: number;
+	onClear: () => void;
+}) {
+	return (
+		<div className="flex min-h-5 items-center justify-between">
+			<FieldLabel style={{ fontVariant: "small-caps" }}>{label}</FieldLabel>
+			{count > 0 ? (
+				<button
+					type="button"
+					onClick={onClear}
+					className="flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--color-fg-subtle)] hover:text-[var(--color-fg-default)]"
+					aria-label={`Clear ${label}`}
+				>
+					<svg viewBox="0 0 12 12" fill="none" className="size-3" aria-hidden="true">
+						<path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+					</svg>
+					Clear
+				</button>
+			) : null}
+		</div>
+	);
+}
+
+function ColumnsPicker({
+	battingStatSet,
+	pitchingStatSet,
+	toggleStat,
+	clearAllStats,
+}: {
+	battingStatSet: Set<string>;
+	pitchingStatSet: Set<string>;
+	toggleStat: (group: "batting" | "pitching", statId: string, checked: boolean) => void;
+	clearAllStats: (group: "batting" | "pitching") => void;
+}) {
+	return (
+		<Dropdown
+			triggerValue="Columns"
+			ariaLabel="Column visibility"
+			placement="bottom-right"
+			menuClassName="w-[min(28rem,calc(100vw-1.5rem))] max-w-none rounded-[var(--radius-lg)] py-0"
+		>
+			<div className="grid sm:grid-cols-2">
+				{/* Batting */}
+				<div className="border-b border-[var(--color-border-soft)] p-3 sm:border-b-0 sm:border-r sm:p-4">
+					<StatGroupHeader label="Batting" count={battingStatSet.size} onClear={() => clearAllStats("batting")} />
+					<div className="mt-2.5 grid grid-cols-4 gap-1.5 sm:grid-cols-3">
+						{BATTING_STAT_OPTIONS.map((stat) => {
+							const active = battingStatSet.has(stat.id);
+							return (
+								<button
+									key={stat.id}
+									type="button"
+									onClick={() => toggleStat("batting", stat.id, !active)}
+									className={
+										active
+											? "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-accent)] text-white"
+											: "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-surface-raised)] text-[var(--color-fg-subtle)]"
+									}
+								>
+									{stat.label}
+								</button>
+							);
+						})}
+					</div>
+				</div>
+
+				{/* Pitching */}
+				<div className="p-3 sm:p-4">
+					<StatGroupHeader label="Pitching" count={pitchingStatSet.size} onClear={() => clearAllStats("pitching")} />
+					<div className="mt-2.5 grid grid-cols-4 gap-1.5 sm:grid-cols-3">
+						{PITCHING_STAT_OPTIONS.map((stat) => {
+							const active = pitchingStatSet.has(stat.id);
+							return (
+								<button
+									key={stat.id}
+									type="button"
+									onClick={() => toggleStat("pitching", stat.id, !active)}
+									className={
+										active
+											? "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-accent)] text-white"
+											: "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-surface-raised)] text-[var(--color-fg-subtle)]"
+									}
+								>
+									{stat.label}
+								</button>
+							);
+						})}
+					</div>
+				</div>
+			</div>
+		</Dropdown>
+	);
+}
+
 function PlayerViewFilter({
 	value,
 	onChange,
@@ -314,7 +417,7 @@ export function Leaderboard() {
 	const [appliedGlobalFilter, setAppliedGlobalFilter] = useState("");
 	const [playerView, setPlayerView] = useState<PlayerView>("all");
 	const [draftFilter, setDraftFilter] = useState<DraftFilter>("available");
-	const [isStatsOpen, setIsStatsOpen] = useState(false);
+
 	const [selectedPositions, setSelectedPositions] = useState<Set<string>>(new Set());
 	const [appliedSelectedPositions, setAppliedSelectedPositions] = useState<Set<string>>(
 		new Set(),
@@ -741,122 +844,14 @@ export function Leaderboard() {
 						</span>
 					)}
 
-					<Button
-						onClick={() => setIsStatsOpen((open) => !open)}
-						variant={isStatsOpen ? "toolbarActive" : "toolbar"}
-						size="sm"
-						className="relative"
-						aria-expanded={isStatsOpen}
-						aria-controls="stat-visibility-panel"
-					>
-						<span className="invisible">Customize Stats</span>
-						<span className="absolute inset-0 flex items-center justify-center">
-							{isStatsOpen ? "Hide Stats" : "Customize Stats"}
-						</span>
-					</Button>
+					<ColumnsPicker
+						battingStatSet={battingStatSet}
+						pitchingStatSet={pitchingStatSet}
+						toggleStat={toggleStat}
+						clearAllStats={clearAllStats}
+					/>
 				</div>
 			</div>
-
-			{isStatsOpen && (
-				<div
-					id="stat-visibility-panel"
-					className="mb-6 border-b border-[#111111]/10 dark:border-[#333333] pb-5"
-				>
-					<div className="flex flex-wrap items-center justify-between gap-3">
-						<div>
-							<p className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-								Visible Stats
-							</p>
-							<p className="text-xs text-[#111111]/50 dark:text-[#e5e5e5]/40">
-								Toggle columns without changing scoring.
-							</p>
-						</div>
-						<Button
-							onClick={() => setIsStatsOpen(false)}
-							variant="ghost"
-							size="sm"
-						>
-							Close
-						</Button>
-					</div>
-					<div className="mt-4 grid gap-6 lg:grid-cols-2">
-						<div>
-							<div className="flex items-center justify-between mb-3">
-								<FieldLabel style={{ fontVariant: "small-caps" }}>Batting</FieldLabel>
-								<div className="flex items-center gap-3">
-									<Button
-										onClick={() => applyAllStats("batting")}
-										variant="destructiveGhost"
-										size="sm"
-									>
-										All
-									</Button>
-									<Button
-										onClick={() => clearAllStats("batting")}
-										variant="ghost"
-										size="sm"
-									>
-										None
-									</Button>
-								</div>
-							</div>
-							<div className="flex flex-wrap gap-2">
-								{BATTING_STAT_OPTIONS.map((stat) => (
-									<label
-										key={stat.id}
-										className="flex items-center gap-1.5 border border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2.5 py-1.5 text-xs font-medium text-[#111111] dark:text-[#e5e5e5] rounded-sm"
-									>
-										<Checkbox
-											checked={battingStatSet.has(stat.id)}
-											onCheckedChange={(checked) =>
-												toggleStat("batting", stat.id, Boolean(checked))
-											}
-										/>
-										<span>{stat.label}</span>
-									</label>
-								))}
-							</div>
-						</div>
-						<div>
-							<div className="flex items-center justify-between mb-3">
-								<FieldLabel style={{ fontVariant: "small-caps" }}>Pitching</FieldLabel>
-								<div className="flex items-center gap-3">
-									<Button
-										onClick={() => applyAllStats("pitching")}
-										variant="destructiveGhost"
-										size="sm"
-									>
-										All
-									</Button>
-									<Button
-										onClick={() => clearAllStats("pitching")}
-										variant="ghost"
-										size="sm"
-									>
-										None
-									</Button>
-								</div>
-							</div>
-							<div className="flex flex-wrap gap-2">
-								{PITCHING_STAT_OPTIONS.map((stat) => (
-									<label
-										key={stat.id}
-										className="flex items-center gap-1.5 border border-[#111111]/10 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] px-2.5 py-1.5 text-xs font-medium text-[#111111] dark:text-[#e5e5e5] rounded-sm"
-									>
-										<Checkbox
-											checked={pitchingStatSet.has(stat.id)}
-											onCheckedChange={(checked) =>
-												toggleStat("pitching", stat.id, Boolean(checked))
-											}
-										/>
-										<span>{stat.label}</span>
-									</label>
-								))}
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
 			{/* Table */}
 			{tableNode}
 		</div>
