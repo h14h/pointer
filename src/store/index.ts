@@ -410,3 +410,8 @@ export const useStore = create<Store>()(
 export { migrateDraftState } from "@/lib/draft";
 export { createDefaultDraftState, defaultScoringSettings, defaultLeagueSettings, defaultRosterSettings } from "@/lib/league";
 export type { PersistedStoreState };
+
+// Dev-only: expose store for agent-executable BDD seeding
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  (window as unknown as Record<string, unknown>).__pointerStore = useStore;
+}

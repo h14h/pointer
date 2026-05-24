@@ -153,7 +153,29 @@ File inputs in modern UIs are often hidden inside styled labels. Tell the agent 
 When I select the file "/tmp/bdd-batters.csv" in the file input inside the "Browse Files" label
 ```
 
-### 8. Timeouts and Wait States
+### 8. Seeding Test Data for Mutation Scenarios
+
+When a scenario requires an uploaded projection group (or other user-created entity) to already exist, the agent should not attempt a UI file upload if the upload mechanism is not reliably automatable with its current toolset. Instead, the agent may seed the data programmatically via a dev-only hook and then verify the UI mutation.
+
+In this app, the Zustand store is exposed on `window.__pointerStore` in development builds. The agent can navigate to the app, wait for hydration, and then evaluate JavaScript in the browser console to seed a projection group:
+
+```js
+window.__pointerStore.getState().seedProjectionGroup({
+  id: "bdd-test-group",
+  name: "BDD Rename Target",
+  createdAt: new Date().toISOString(),
+  source: { kind: "upload" },
+  batters: [],
+  pitchers: [],
+  twoWayPlayers: [],
+  batterIdSource: null,
+  pitcherIdSource: null,
+});
+```
+
+After seeding, the agent reloads the page or navigates to the relevant settings tab and proceeds with the UI steps (rename, delete, etc.). This keeps `.feature` files free of implementation details while allowing reliable agent execution.
+
+### 9. Timeouts and Wait States
 
 Agents should wait for async operations (network, parsing, imports). Scenarios should describe **observable signals** that indicate completion, not arbitrary timers.
 
