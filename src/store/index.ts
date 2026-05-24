@@ -16,7 +16,7 @@ import {
   normalizeLeague,
   normalizeLeagueSettings,
 } from "@/lib/league";
-import { splitStorage, migrate } from "@/lib/persistence";
+import { dexieStorage, migrate } from "@/lib/persistence";
 import {
   getProjectionGroupFallbackId,
   isProtectedProjectionGroup,
@@ -385,7 +385,7 @@ export const useStore = create<Store>()(
     }),
     {
       name: "pointer-storage",
-      storage: createJSONStorage(() => splitStorage),
+      storage: createJSONStorage(() => dexieStorage),
       version: 8,
       skipHydration: true,
       partialize: (state): PersistedStoreState => ({
