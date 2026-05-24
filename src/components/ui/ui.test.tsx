@@ -64,7 +64,41 @@ describe("shared ui primitives", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("supports multi-select mode with count badge and clear action", () => {
+  it("renders multi-select count badge with correct value", () => {
+    cleanup();
+    const onChange = vi.fn();
+
+    render(
+      <Dropdown
+        mode="multi"
+        values={["C", "SS"]}
+        onChange={onChange}
+        triggerLabel="Position"
+        menuLabel="Filter by Position"
+        clearLabel="Clear"
+        options={[
+          { value: "C", label: "C" },
+          { value: "1B", label: "1B" },
+          { value: "SS", label: "SS" },
+        ]}
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: /position/i });
+    expect(trigger).toHaveTextContent("2");
+
+    const badge = trigger.querySelector(
+      '[aria-hidden="true"].flex.h-4.w-4.items-center.justify-center'
+    );
+    expect(badge).not.toBeNull();
+    expect(badge).toHaveTextContent("2");
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "1B" }));
+    expect(onChange).toHaveBeenCalledWith(["C", "SS", "1B"]);
+  });
+
+  it("hides multi-select badge when selection is empty", () => {
     cleanup();
     const onChange = vi.fn();
 
@@ -84,20 +118,11 @@ describe("shared ui primitives", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: /position/i })).toHaveTextContent("2");
-    expect(
-      screen
-        .getByRole("button", { name: /position/i })
-        .querySelector('[aria-hidden="true"].flex.h-4.w-4.items-center.justify-center')
-    ).not.toBeNull();
-
     fireEvent.click(screen.getByRole("button", { name: /position/i }));
-    fireEvent.click(screen.getByRole("button", { name: "1B" }));
-    expect(onChange).toHaveBeenCalledWith(["C", "SS", "1B"]);
-
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
     expect(onChange).toHaveBeenCalledWith([]);
 
+    // Simulate parent updating values to empty — badge should be hidden
     rerender(
       <Dropdown
         mode="multi"
@@ -118,7 +143,7 @@ describe("shared ui primitives", () => {
       screen
         .getByRole("button", { name: /position/i })
         .querySelector('[aria-hidden="true"].flex.h-4.w-4.items-center.justify-center')
-    ).not.toBeNull();
+    ).toBeNull();
   });
 
   it("renders dropdown with an optional label and custom content", () => {

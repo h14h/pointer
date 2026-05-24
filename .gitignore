@@ -45,3 +45,4 @@ next-env.d.ts
 # public dataset payloads (stored in Tigris; generate locally with scripts/generate-public-dataset.ts)
 data/public-datasets/*.json
 !data/public-datasets/manifest.json
+!data/public-datasets/historical-2025.json
