@@ -118,7 +118,7 @@ describe("shared ui primitives", () => {
       screen
         .getByRole("button", { name: /position/i })
         .querySelector('[aria-hidden="true"].flex.h-4.w-4.items-center.justify-center')
-    ).not.toBeNull();
+    ).toBeNull();
   });
 
   it("renders dropdown with an optional label and custom content", () => {
