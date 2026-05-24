@@ -45,28 +45,31 @@ The agent:
 
 BDD scenarios in this repo are intended to be run by autonomous agents (e.g. Pi/Codex with GPT-5.5 xhigh). An agent has no prior knowledge of the codebase, no memory of past runs, and only the tools you would expect: code execution, file I/O, browser automation, and vision. Write scenarios so that such an agent can execute them correctly on the first attempt.
 
-### 1. Explicit Preconditions — Tell the Agent What to Create
+### 1. Preconditions — Tell the Agent What to Create, Not How
 
-If a scenario needs files, data, or external state, provide the **exact content** in the scenario itself. Do not assume the agent knows CSV schemas, API payloads, or test fixtures.
+If a scenario needs files or data, describe the requirements in terms the agent can fulfill using its own reasoning and codebase context. Do not inline exact file content — that creates a split-brain problem where schema changes require updating both the code and the BDD test.
 
 ✅ **Good:**
 ```gherkin
-Given I have generated the following CSV files:
-  """
-  /tmp/bdd-batters.csv
-  Name,Team,PA,AB,H,HR,R,RBI,BB,SO
-  John Doe,NYY,600,550,160,25,90,85,60,120
-
-  /tmp/bdd-pitchers.csv
-  Name,Team,W,L,GS,IP,SO,ERA,WHIP
-  Ace Pitcher,LAD,15,5,30,190,210,2.60,0.97
-  """
+Given I have generated a valid batter CSV file at "/tmp/batters.csv"
+  with columns such as Name, Team, PA, AB, H, HR, R, RBI, BB, SO
+  and at least one row of sample data
+And I have generated a valid pitcher CSV file at "/tmp/pitchers.csv"
+  with columns such as Name, Team, W, L, IP, SO, ERA, WHIP
+  and at least one row of sample data
 ```
 
 ❌ **Bad:**
 ```gherkin
-Given I have a valid batter CSV
+Given I have generated the following CSV files:
+  """
+  /tmp/batters.csv
+  Name,Team,PA,AB,H,HR,R,RBI,BB,SO
+  John Doe,NYY,600,550,160,25,90,85,60,120
+  """
 ```
+
+The burden of producing valid data belongs to the agent. If agents repeatedly fail to generate correct fixtures, invest in developer tooling (e.g., a script that validates CSVs against the same parser the app uses) rather than duplicating schemas in BDD files.
 
 ### 2. Observable UI References — Use Exact Visible Text
 
