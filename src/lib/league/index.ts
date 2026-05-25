@@ -6,6 +6,7 @@ import type {
   RosterSlot,
   League,
 } from "@/types";
+import { randomUUID } from "@/lib/uuid";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -105,7 +106,7 @@ export const createDefaultLeague = (
   name = "My League",
   options?: { deterministic?: boolean }
 ): League => ({
-  id: options?.deterministic ? INITIAL_LEAGUE_ID : crypto.randomUUID(),
+  id: options?.deterministic ? INITIAL_LEAGUE_ID : randomUUID(),
   name,
   scoringSettings: { ...defaultScoringSettings },
   leagueSettings: { ...defaultLeagueSettings },

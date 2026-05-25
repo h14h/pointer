@@ -28,6 +28,7 @@ import type {
   Player,
   ProjectionGroup,
 } from "@/types";
+import { randomUUID } from "@/lib/uuid";
 
 // ---------------------------------------------------------------------------
 // Internal helper: apply an update to the active league
@@ -160,7 +161,7 @@ export const useStore = create<Store>()(
           if (!source) return state;
           const newLeague: League = {
             ...source,
-            id: crypto.randomUUID(),
+            id: randomUUID(),
             name: `Copy of ${source.name}`,
             draftState: createDefaultDraftState(),
             updatedAt: Date.now(),

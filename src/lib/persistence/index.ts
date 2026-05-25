@@ -21,6 +21,7 @@ import {
   normalizeProjectionGroups,
 } from "@/lib/projections";
 import { db } from "@/lib/db";
+import { randomUUID } from "@/lib/uuid";
 
 // ---------------------------------------------------------------------------
 // Dexie-backed storage adapter
@@ -121,7 +122,7 @@ export function migrate(
   const draftState = migrateDraftState(state.draftState);
 
   const league: League = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     name: "My League",
     scoringSettings,
     leagueSettings,

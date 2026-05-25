@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { randomUUID } from "@/lib/uuid";
 import { Panel } from "@/components/ui/Panel";
 import { Toggle } from "@/components/ui/Toggle";
 import { useStore } from "@/store";
@@ -285,7 +286,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
     }
 
     const group: ProjectionGroup = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       name: trimmedName,
       createdAt: new Date().toISOString(),
       source: { kind: "upload" },
