@@ -20,120 +20,30 @@ import {
   getProjectionGroupFallbackId,
   normalizeProjectionGroups,
 } from "@/lib/projections";
+import { db } from "@/lib/db";
+import { randomUUID } from "@/lib/uuid";
 
 // ---------------------------------------------------------------------------
-// Storage key constants
+// Dexie-backed storage adapter
 // ---------------------------------------------------------------------------
 
-export const STORAGE_KEY_LEAGUES = "pointer-leagues";
-export const STORAGE_KEY_PROJECTIONS = "pointer-projections";
-export const STORAGE_KEY_PREFERENCES = "pointer-preferences";
-export const LEGACY_STORAGE_KEY = "pointer-storage";
+export const dexieStorage: StateStorage = {
+  async getItem(name: string): Promise<string | null> {
+    const record = await db.store.where("key").equals(name).first();
+    return record?.value ?? null;
+  },
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-export function getStorage(): Storage | null {
-  try {
-    return typeof localStorage !== "undefined" ? localStorage : null;
-  } catch {
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Split localStorage adapter
-// ---------------------------------------------------------------------------
-// Stores leagues, projections, and preferences in separate localStorage keys
-// so users can manually delete projections without losing league config.
-// Transparently migrates from the legacy single-key format ("pointer-storage").
-// ---------------------------------------------------------------------------
-
-export const splitStorage: StateStorage = {
-  getItem(name: string): string | null {
-    const storage = getStorage();
-    if (!storage) return null;
-
-    // Migration path: if legacy single-key data exists, return it as-is so
-    // Zustand's built-in migrate() processes it. On the next setItem() call
-    // the data will be written to split keys and the legacy key removed.
-    const legacy = storage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy) {
-      return legacy;
-    }
-
-    // Read from split keys
-    const leaguesRaw = storage.getItem(STORAGE_KEY_LEAGUES);
-    const projectionsRaw = storage.getItem(STORAGE_KEY_PROJECTIONS);
-    const preferencesRaw = storage.getItem(STORAGE_KEY_PREFERENCES);
-
-    if (!leaguesRaw && !projectionsRaw && !preferencesRaw) return null;
-
-    try {
-      const leagues = leaguesRaw ? JSON.parse(leaguesRaw) : {};
-      const projections = projectionsRaw ? JSON.parse(projectionsRaw) : {};
-      const preferences = preferencesRaw ? JSON.parse(preferencesRaw) : {};
-
-      return JSON.stringify({
-        state: { ...leagues, ...projections, ...preferences },
-        version: preferences._version ?? 8,
-      });
-    } catch {
-      return null;
+  async setItem(name: string, value: string): Promise<void> {
+    const existing = await db.store.where("key").equals(name).first();
+    if (existing?.id != null) {
+      await db.store.update(existing.id, { value, updatedAt: Date.now() });
+    } else {
+      await db.store.add({ key: name, value, updatedAt: Date.now() });
     }
   },
 
-  setItem(_name: string, value: string): void {
-    const storage = getStorage();
-    if (!storage) return;
-
-    try {
-      const { state, version } = JSON.parse(value);
-
-      storage.setItem(
-        STORAGE_KEY_LEAGUES,
-        JSON.stringify({
-          leagues: state.leagues,
-          activeLeagueId: state.activeLeagueId,
-        })
-      );
-
-      storage.setItem(
-        STORAGE_KEY_PROJECTIONS,
-        JSON.stringify({
-          projectionGroups: state.projectionGroups,
-          activeProjectionGroupId: state.activeProjectionGroupId,
-        })
-      );
-
-      storage.setItem(
-        STORAGE_KEY_PREFERENCES,
-        JSON.stringify({
-          isDraftMode: state.isDraftMode,
-          mergeTwoWayRankings: state.mergeTwoWayRankings,
-          _version: version,
-        })
-      );
-
-      // Remove legacy key after successful split write
-      storage.removeItem(LEGACY_STORAGE_KEY);
-    } catch {
-      // If splitting fails, fall back to single-key write so data isn't lost
-      try {
-        storage.setItem(LEGACY_STORAGE_KEY, value);
-      } catch { /* storage full or unavailable */ }
-    }
-  },
-
-  removeItem(_name: string): void {
-    const storage = getStorage();
-    if (!storage) return;
-
-    storage.removeItem(STORAGE_KEY_LEAGUES);
-    storage.removeItem(STORAGE_KEY_PROJECTIONS);
-    storage.removeItem(STORAGE_KEY_PREFERENCES);
-    storage.removeItem(LEGACY_STORAGE_KEY);
+  async removeItem(name: string): Promise<void> {
+    await db.store.where("key").equals(name).delete();
   },
 };
 
@@ -212,7 +122,7 @@ export function migrate(
   const draftState = migrateDraftState(state.draftState);
 
   const league: League = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     name: "My League",
     scoringSettings,
     leagueSettings,

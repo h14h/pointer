@@ -1,12 +1,5 @@
+import "fake-indexeddb/auto";
 import { describe, test, expect, beforeEach } from "bun:test";
-import {
-  splitStorage,
-  migrate,
-  STORAGE_KEY_LEAGUES,
-  STORAGE_KEY_PROJECTIONS,
-  STORAGE_KEY_PREFERENCES,
-  LEGACY_STORAGE_KEY,
-} from "@/lib/persistence";
 import type { ProjectionGroup, League } from "@/types";
 import {
   defaultScoringSettings,
@@ -15,24 +8,16 @@ import {
 } from "@/lib/league";
 
 // ---------------------------------------------------------------------------
-// Mock localStorage
+// Dynamic imports for Dexie-dependent modules (must happen AFTER polyfill)
 // ---------------------------------------------------------------------------
 
-function createMockStorage(): Storage {
-  const store = new Map<string, string>();
+async function loadPersistenceModules() {
+  const persistence = await import("@/lib/persistence");
+  const dbModule = await import("@/lib/db");
   return {
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: (key: string, value: string) => {
-      store.set(key, value);
-    },
-    removeItem: (key: string) => {
-      store.delete(key);
-    },
-    clear: () => store.clear(),
-    get length() {
-      return store.size;
-    },
-    key: (index: number) => [...store.keys()][index] ?? null,
+    migrate: persistence.migrate,
+    dexieStorage: persistence.dexieStorage,
+    db: dbModule.db,
   };
 }
 
@@ -72,7 +57,14 @@ function makeProjectionGroup(overrides?: Partial<ProjectionGroup>): ProjectionGr
 // ---------------------------------------------------------------------------
 
 describe("migrate", () => {
-  test("version 6 produces valid state with leagues array", () => {
+  let migrate: Awaited<ReturnType<typeof loadPersistenceModules>>["migrate"];
+
+  beforeEach(async () => {
+    const modules = await loadPersistenceModules();
+    migrate = modules.migrate;
+  });
+
+  test("version 6 produces valid state with leagues array", async () => {
     const input = {
       leagues: [makeLeague()],
       activeLeagueId: "league-1",
@@ -89,7 +81,7 @@ describe("migrate", () => {
     expect(result.leagues[0].id).toBe("league-1");
   });
 
-  test("version 7 produces valid state with leagues array", () => {
+  test("version 7 produces valid state with leagues array", async () => {
     const input = {
       leagues: [makeLeague()],
       activeLeagueId: "league-1",
@@ -106,7 +98,7 @@ describe("migrate", () => {
     expect(result.leagues[0].id).toBe("league-1");
   });
 
-  test("version 8 normalizes leagues and projectionGroups", () => {
+  test("version 8 normalizes leagues and projectionGroups", async () => {
     const group = makeProjectionGroup({
       source: undefined as unknown as ProjectionGroup["source"],
       eligibilityImportSeason: undefined,
@@ -130,7 +122,7 @@ describe("migrate", () => {
     expect(typeof result.projectionGroups[0].eligibilityImportSeason).toBe("number");
   });
 
-  test("pre-v6 (v4 shape with flat settings) produces leagues array", () => {
+  test("pre-v6 (v4 shape with flat settings) produces leagues array", async () => {
     const v4State = {
       scoringSettings: { ...defaultScoringSettings },
       leagueSettings: { ...defaultLeagueSettings },
@@ -159,37 +151,39 @@ describe("migrate", () => {
     expect(typeof result.activeLeagueId).toBe("string");
   });
 
-  test("handles undefined state gracefully", () => {
+  test("handles undefined state gracefully", async () => {
     const result = migrate(undefined, 6);
     // Should not throw; result may vary but should be object-ish
     expect(result).toBeDefined();
   });
 
-  test("handles null state gracefully", () => {
+  test("handles null state gracefully", async () => {
     const result = migrate(null, 6);
     expect(result).toBeDefined();
   });
 });
 
 // ---------------------------------------------------------------------------
-// splitStorage
+// dexieStorage
 // ---------------------------------------------------------------------------
 
-describe("splitStorage", () => {
-  let mockStorage: Storage;
+describe("dexieStorage", () => {
+  let dexieStorage: Awaited<ReturnType<typeof loadPersistenceModules>>["dexieStorage"];
+  let db: Awaited<ReturnType<typeof loadPersistenceModules>>["db"];
 
-  beforeEach(() => {
-    mockStorage = createMockStorage();
-    // Inject into globalThis so getStorage() finds it
-    globalThis.localStorage = mockStorage;
+  beforeEach(async () => {
+    const modules = await loadPersistenceModules();
+    dexieStorage = modules.dexieStorage;
+    db = modules.db;
+    await db.store.clear();
   });
 
-  test("getItem returns null when nothing stored", () => {
-    const result = splitStorage.getItem("pointer-storage");
+  test("getItem returns null when nothing stored", async () => {
+    const result = await dexieStorage.getItem("pointer-storage");
     expect(result).toBeNull();
   });
 
-  test("setItem + getItem round-trips correctly", () => {
+  test("setItem + getItem round-trips correctly", async () => {
     const state = {
       leagues: [makeLeague()],
       activeLeagueId: "league-1",
@@ -199,9 +193,10 @@ describe("splitStorage", () => {
       mergeTwoWayRankings: true,
     };
 
-    splitStorage.setItem("pointer-storage", JSON.stringify({ state, version: 8 }));
+    const blob = JSON.stringify({ state, version: 8 });
+    await dexieStorage.setItem("pointer-storage", blob);
 
-    const raw = splitStorage.getItem("pointer-storage");
+    const raw = await dexieStorage.getItem("pointer-storage");
     expect(raw).not.toBeNull();
 
     const parsed = JSON.parse(raw!);
@@ -211,85 +206,11 @@ describe("splitStorage", () => {
     expect(parsed.version).toBe(8);
   });
 
-  test("setItem splits data into separate localStorage keys", () => {
-    const state = {
-      leagues: [makeLeague()],
-      activeLeagueId: "league-1",
-      projectionGroups: [makeProjectionGroup()],
-      activeProjectionGroupId: "pg-1",
-      isDraftMode: false,
-      mergeTwoWayRankings: true,
-    };
+  test("removeItem clears the key", async () => {
+    await dexieStorage.setItem("pointer-storage", JSON.stringify({ state: {}, version: 8 }));
+    expect(await dexieStorage.getItem("pointer-storage")).not.toBeNull();
 
-    splitStorage.setItem("pointer-storage", JSON.stringify({ state, version: 8 }));
-
-    // Verify individual keys were written
-    expect(mockStorage.getItem(STORAGE_KEY_LEAGUES)).not.toBeNull();
-    expect(mockStorage.getItem(STORAGE_KEY_PROJECTIONS)).not.toBeNull();
-    expect(mockStorage.getItem(STORAGE_KEY_PREFERENCES)).not.toBeNull();
-
-    // Verify content of split keys
-    const leagues = JSON.parse(mockStorage.getItem(STORAGE_KEY_LEAGUES)!);
-    expect(leagues.leagues).toEqual(state.leagues);
-    expect(leagues.activeLeagueId).toBe("league-1");
-
-    const projections = JSON.parse(mockStorage.getItem(STORAGE_KEY_PROJECTIONS)!);
-    expect(projections.projectionGroups).toEqual(state.projectionGroups);
-
-    const preferences = JSON.parse(mockStorage.getItem(STORAGE_KEY_PREFERENCES)!);
-    expect(preferences.isDraftMode).toBe(false);
-    expect(preferences._version).toBe(8);
-  });
-
-  test("removeItem clears all keys", () => {
-    const state = {
-      leagues: [makeLeague()],
-      activeLeagueId: "league-1",
-      projectionGroups: [makeProjectionGroup()],
-      activeProjectionGroupId: "pg-1",
-      isDraftMode: false,
-      mergeTwoWayRankings: true,
-    };
-
-    splitStorage.setItem("pointer-storage", JSON.stringify({ state, version: 8 }));
-
-    // All split keys should be set
-    expect(mockStorage.getItem(STORAGE_KEY_LEAGUES)).not.toBeNull();
-
-    splitStorage.removeItem("pointer-storage");
-
-    // All keys should now be cleared
-    expect(mockStorage.getItem(STORAGE_KEY_LEAGUES)).toBeNull();
-    expect(mockStorage.getItem(STORAGE_KEY_PROJECTIONS)).toBeNull();
-    expect(mockStorage.getItem(STORAGE_KEY_PREFERENCES)).toBeNull();
-    expect(mockStorage.getItem(LEGACY_STORAGE_KEY)).toBeNull();
-  });
-
-  test("getItem reads from legacy key when present", () => {
-    const legacyData = JSON.stringify({
-      state: { leagues: [], projectionGroups: [] },
-      version: 5,
-    });
-    mockStorage.setItem(LEGACY_STORAGE_KEY, legacyData);
-
-    const result = splitStorage.getItem("pointer-storage");
-    expect(result).toBe(legacyData);
-  });
-
-  test("setItem removes legacy key after split write", () => {
-    mockStorage.setItem(LEGACY_STORAGE_KEY, "old-data");
-
-    const state = {
-      leagues: [],
-      activeLeagueId: null,
-      projectionGroups: [],
-      activeProjectionGroupId: null,
-      isDraftMode: false,
-      mergeTwoWayRankings: true,
-    };
-
-    splitStorage.setItem("pointer-storage", JSON.stringify({ state, version: 8 }));
-
-    expect(mockStorage.getItem(LEGACY_STORAGE_KEY)).toBeNull();
+    await dexieStorage.removeItem("pointer-storage");
+    expect(await dexieStorage.getItem("pointer-storage")).toBeNull();
   });
 });

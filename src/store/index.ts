@@ -16,7 +16,7 @@ import {
   normalizeLeague,
   normalizeLeagueSettings,
 } from "@/lib/league";
-import { splitStorage, migrate } from "@/lib/persistence";
+import { dexieStorage, migrate } from "@/lib/persistence";
 import {
   getProjectionGroupFallbackId,
   isProtectedProjectionGroup,
@@ -28,6 +28,7 @@ import type {
   Player,
   ProjectionGroup,
 } from "@/types";
+import { randomUUID } from "@/lib/uuid";
 
 // ---------------------------------------------------------------------------
 // Internal helper: apply an update to the active league
@@ -160,7 +161,7 @@ export const useStore = create<Store>()(
           if (!source) return state;
           const newLeague: League = {
             ...source,
-            id: crypto.randomUUID(),
+            id: randomUUID(),
             name: `Copy of ${source.name}`,
             draftState: createDefaultDraftState(),
             updatedAt: Date.now(),
@@ -385,7 +386,7 @@ export const useStore = create<Store>()(
     }),
     {
       name: "pointer-storage",
-      storage: createJSONStorage(() => splitStorage),
+      storage: createJSONStorage(() => dexieStorage),
       version: 8,
       skipHydration: true,
       partialize: (state): PersistedStoreState => ({
@@ -410,3 +411,8 @@ export const useStore = create<Store>()(
 export { migrateDraftState } from "@/lib/draft";
 export { createDefaultDraftState, defaultScoringSettings, defaultLeagueSettings, defaultRosterSettings } from "@/lib/league";
 export type { PersistedStoreState };
+
+// Dev-only: expose store for agent-executable BDD seeding
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  (window as unknown as Record<string, unknown>).__pointerStore = useStore;
+}
