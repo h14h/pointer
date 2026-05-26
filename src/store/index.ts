@@ -122,7 +122,7 @@ export const useStore = create<Store>()(
   persist(
     (set, get) => ({
       // Initial state
-      leagues: [createDefaultLeague("My League", { deterministic: true })],
+      leagues: [createDefaultLeague("My League", { deterministic: true, sport: "baseball" })],
       activeLeagueId: null,
       projectionGroups: [],
       activeProjectionGroupId: null,
@@ -366,6 +366,7 @@ export const useStore = create<Store>()(
             const applyToPlayer = (player: Player): Player => {
               const eligibility = eligibilityById.get(player._id);
               if (!eligibility) return player;
+              if (player._type === "football-player") return player;
               return { ...player, eligibility };
             };
 
@@ -387,7 +388,7 @@ export const useStore = create<Store>()(
     {
       name: "pointer-storage",
       storage: createJSONStorage(() => dexieStorage),
-      version: 8,
+      version: 9,
       skipHydration: true,
       partialize: (state): PersistedStoreState => ({
         leagues: state.leagues,

@@ -1,10 +1,11 @@
-import type { Player, ScoringSettings, PitcherStats, TwoWayPlayer } from "@/types";
+import type { Player, ScoringSettings, PitcherStats, TwoWayPlayer, BaseballScoringSettings } from "@/types";
 import { normalizeIp } from "./ipMath";
 import { calculateBatterPoints } from "./batterScoring";
+import { calculateFootballPlayerPoints } from "./footballScoring";
 
 export function calculatePitcherPoints(
   player: PitcherStats,
-  settings: ScoringSettings["pitching"],
+  settings: BaseballScoringSettings["pitching"],
   useBaseballIp = false
 ): number {
   let points = 0;
@@ -35,7 +36,7 @@ export function calculatePitcherPoints(
 
 function calculateTwoWayBattingPoints(
   stats: TwoWayPlayer["_battingStats"],
-  settings: ScoringSettings["batting"]
+  settings: BaseballScoringSettings["batting"]
 ): number {
   let points = 0;
 
@@ -63,7 +64,7 @@ function calculateTwoWayBattingPoints(
 
 function calculateTwoWayPitchingPoints(
   stats: TwoWayPlayer["_pitchingStats"],
-  settings: ScoringSettings["pitching"],
+  settings: BaseballScoringSettings["pitching"],
   useBaseballIp = false
 ): number {
   let points = 0;
@@ -92,16 +93,29 @@ function calculateTwoWayPitchingPoints(
   return points;
 }
 
+function isBaseballScoringSettings(settings: ScoringSettings): settings is BaseballScoringSettings {
+  return "batting" in settings;
+}
+
 export function calculatePlayerPoints(
   player: Player,
   settings: ScoringSettings,
   viewMode?: "all" | "batters" | "pitchers",
   useBaseballIp = false
 ): number {
+  if (player._type === "football-player") {
+    if ("passing" in settings) {
+      return calculateFootballPlayerPoints(player, settings);
+    }
+    return 0;
+  }
+  if (!isBaseballScoringSettings(settings)) {
+    return 0;
+  }
   if (player._type === "batter") {
-    return calculateBatterPoints(player as import("@/types").BatterStats, settings.batting);
+    return calculateBatterPoints(player, settings.batting);
   } else if (player._type === "pitcher") {
-    return calculatePitcherPoints(player as PitcherStats, settings.pitching, useBaseballIp);
+    return calculatePitcherPoints(player, settings.pitching, useBaseballIp);
   } else {
     // Two-way player
     const twoWay = player as TwoWayPlayer;

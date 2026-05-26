@@ -33,6 +33,11 @@ function getPlayersForView(
   const batters = activeGroup.batters;
   const pitchers = activeGroup.pitchers;
   const twoWayPlayers = activeGroup.twoWayPlayers;
+  const footballPlayers = activeGroup.footballPlayers;
+
+  if (footballPlayers?.length > 0) {
+    return [...footballPlayers];
+  }
 
   const canMergeTwoWay =
     activeGroup.batterIdSource !== null &&
@@ -96,6 +101,7 @@ function meetsPitcherProjectionMinimum(player: Player): boolean {
 }
 
 function meetsProjectionMinimumForView(player: Player, view: PlayerView): boolean {
+  if (player._type === "football-player") return true;
   if (view === "batters") return meetsBatterProjectionMinimum(player);
   if (view === "pitchers") return meetsPitcherProjectionMinimum(player);
   return meetsBatterProjectionMinimum(player) || meetsPitcherProjectionMinimum(player);
@@ -180,11 +186,14 @@ export function buildBaseRankedPlayers({
 
 export function buildFilterMetadata(rows: RankedPlayer[]): LeaderboardRow[] {
   return rows.map((row) => {
-    const positionTokens = [
-      ...(row.player.eligibility?.eligiblePositions ?? []),
-      ...(row.player.eligibility?.isSP ? ["SP"] : []),
-      ...(row.player.eligibility?.isRP ? ["RP"] : []),
-    ];
+    const positionTokens =
+      row.player._type === "football-player"
+        ? [row.player.Position]
+        : [
+            ...(row.player.eligibility?.eligiblePositions ?? []),
+            ...(row.player.eligibility?.isSP ? ["SP"] : []),
+            ...(row.player.eligibility?.isRP ? ["RP"] : []),
+          ];
 
     return {
       ...row,

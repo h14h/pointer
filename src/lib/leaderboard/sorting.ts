@@ -124,44 +124,48 @@ function getStatValue(row: LeaderboardRow, columnId: string): number | null {
     }
   }
 
-  switch (columnId) {
-    case "H":
-      return row.player.H;
-    case "1B":
-      return row.player["1B"];
-    case "2B":
-      return row.player["2B"];
-    case "3B":
-      return row.player["3B"];
-    case "TB":
-      return row.player["1B"] + row.player["2B"] * 2 + row.player["3B"] * 3 + row.player.HR * 4;
-    case "HR":
-      return row.player.HR;
-    case "R":
-      return row.player.R;
-    case "RBI":
-      return row.player.RBI;
-    case "BB":
-      return row.player.BB;
-    case "IBB":
-      return row.player.IBB;
-    case "HBP":
-      return row.player.HBP;
-    case "SO":
-      return row.player.SO;
-    case "SB":
-      return row.player.SB;
-    case "CS":
-      return row.player.CS;
-    case "SF":
-      return row.player.SF;
-    case "GDP":
-      return row.player.GDP;
-    case "AVG":
-      return row.player.AVG;
-    default:
-      return null;
+  if (row.player._type === "batter") {
+    switch (columnId) {
+      case "H":
+        return row.player.H;
+      case "1B":
+        return row.player["1B"];
+      case "2B":
+        return row.player["2B"];
+      case "3B":
+        return row.player["3B"];
+      case "TB":
+        return row.player["1B"] + row.player["2B"] * 2 + row.player["3B"] * 3 + row.player.HR * 4;
+      case "HR":
+        return row.player.HR;
+      case "R":
+        return row.player.R;
+      case "RBI":
+        return row.player.RBI;
+      case "BB":
+        return row.player.BB;
+      case "IBB":
+        return row.player.IBB;
+      case "HBP":
+        return row.player.HBP;
+      case "SO":
+        return row.player.SO;
+      case "SB":
+        return row.player.SB;
+      case "CS":
+        return row.player.CS;
+      case "SF":
+        return row.player.SF;
+      case "GDP":
+        return row.player.GDP;
+      case "AVG":
+        return row.player.AVG;
+      default:
+        return null;
+    }
   }
+
+  return null;
 }
 
 function getSortValue(row: LeaderboardRow, columnId: string): number | string | null {

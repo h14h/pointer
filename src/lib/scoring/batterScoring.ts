@@ -1,8 +1,8 @@
-import type { BatterStats, ScoringSettings } from "@/types";
+import type { BatterStats, BaseballScoringSettings } from "@/types";
 
 export function calculateBatterPoints(
   player: BatterStats,
-  settings: ScoringSettings["batting"]
+  settings: BaseballScoringSettings["batting"]
 ): number {
   let points = 0;
 

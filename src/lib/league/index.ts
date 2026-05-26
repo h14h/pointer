@@ -1,5 +1,8 @@
 import type {
   ScoringSettings,
+  BaseballScoringSettings,
+  FootballScoringSettings,
+  Sport,
   DraftState,
   LeagueSettings,
   RosterSettings,
@@ -7,6 +10,11 @@ import type {
   League,
 } from "@/types";
 import { randomUUID } from "@/lib/uuid";
+import {
+  defaultFootballScoringSettings,
+  defaultFootballRosterSettings,
+  defaultFootballLeagueSettings,
+} from "./footballDefaults";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -19,7 +27,7 @@ export const INITIAL_LEAGUE_ID = "default-league";
 // ---------------------------------------------------------------------------
 
 // Default ESPN-style scoring
-export const defaultScoringSettings: ScoringSettings = {
+export const defaultScoringSettings: BaseballScoringSettings = {
   name: "Default",
   batting: {
     R: 1,
@@ -78,6 +86,14 @@ export const defaultRosterSettings: RosterSettings = {
     P: 7,
     IL: 0,
     NA: 0,
+    QB: 0,
+    RB: 0,
+    WR: 0,
+    TE: 0,
+    Flex: 0,
+    K: 0,
+    DST: 0,
+    Bench: 0,
   },
   bench: 3,
 };
@@ -104,32 +120,64 @@ export const createDefaultDraftState = (): DraftState => ({
 
 export const createDefaultLeague = (
   name = "My League",
-  options?: { deterministic?: boolean }
-): League => ({
-  id: options?.deterministic ? INITIAL_LEAGUE_ID : randomUUID(),
-  name,
-  scoringSettings: { ...defaultScoringSettings },
-  leagueSettings: { ...defaultLeagueSettings },
-  draftState: createDefaultDraftState(),
-  updatedAt: options?.deterministic ? 0 : Date.now(),
-});
+  options?: { deterministic?: boolean; sport?: Sport }
+): League => {
+  const sport = options?.sport ?? "baseball";
+  const scoringSettings =
+    sport === "football"
+      ? { ...defaultFootballScoringSettings }
+      : { ...defaultScoringSettings };
+  const leagueSettings =
+    sport === "football"
+      ? { ...defaultFootballLeagueSettings }
+      : { ...defaultLeagueSettings };
+  return {
+    id: options?.deterministic ? INITIAL_LEAGUE_ID : randomUUID(),
+    name,
+    sport,
+    scoringSettings,
+    leagueSettings,
+    draftState: createDefaultDraftState(),
+    updatedAt: options?.deterministic ? 0 : Date.now(),
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Normalization
 // ---------------------------------------------------------------------------
 
-export const normalizeScoringSettings = (settings: ScoringSettings): ScoringSettings => ({
-  ...settings,
-  batting: {
-    ...settings.batting,
-    IBB: settings.batting.IBB ?? 0,
-  },
-});
+export function normalizeBaseballScoringSettings(
+  settings: BaseballScoringSettings
+): BaseballScoringSettings {
+  return {
+    ...settings,
+    batting: {
+      ...settings.batting,
+      IBB: settings.batting.IBB ?? 0,
+    },
+  };
+}
+
+export function normalizeFootballScoringSettings(
+  settings: FootballScoringSettings
+): FootballScoringSettings {
+  return { ...settings };
+}
+
+export function normalizeScoringSettings(settings: ScoringSettings): ScoringSettings {
+  if ("passing" in settings) {
+    return normalizeFootballScoringSettings(settings);
+  }
+  return normalizeBaseballScoringSettings(settings);
+}
 
 export const normalizeLeagueSettings = (settings: LeagueSettings): LeagueSettings => {
   const clampedSize = Math.min(20, Math.max(2, Math.round(settings.leagueSize || 0)));
   const nextNames = [...(settings.teamNames ?? [])];
-  const roster = settings.roster ?? defaultRosterSettings;
+  const sport = settings.sport ?? "baseball";
+  const baseRoster =
+    sport === "football" ? defaultFootballRosterSettings : defaultRosterSettings;
+  const roster = settings.roster ?? baseRoster;
   for (let i = nextNames.length; i < clampedSize; i += 1) {
     nextNames.push(`Team ${i + 1}`);
   }
@@ -137,18 +185,19 @@ export const normalizeLeagueSettings = (settings: LeagueSettings): LeagueSetting
     nextNames.length = clampedSize;
   }
   const positions = Object.fromEntries(
-    Object.entries(defaultRosterSettings.positions).map(([slot, value]) => [
+    Object.entries(baseRoster.positions).map(([slot, value]) => [
       slot,
       roster.positions[slot as RosterSlot] ?? value,
     ])
   ) as Record<RosterSlot, number>;
 
   return {
+    sport,
     leagueSize: clampedSize,
     teamNames: nextNames,
     roster: {
       positions,
-      bench: Number.isFinite(roster.bench) ? roster.bench : defaultRosterSettings.bench,
+      bench: Number.isFinite(roster.bench) ? roster.bench : baseRoster.bench,
     },
     weeklyStartLimit:
       Number.isFinite(settings.weeklyStartLimit) && (settings.weeklyStartLimit ?? 0) > 0
@@ -159,6 +208,7 @@ export const normalizeLeagueSettings = (settings: LeagueSettings): LeagueSetting
 
 export const normalizeLeague = (league: League): League => ({
   ...league,
+  sport: league.sport ?? "baseball",
   scoringSettings: normalizeScoringSettings(league.scoringSettings),
   leagueSettings: normalizeLeagueSettings(league.leagueSettings),
   updatedAt: league.updatedAt ?? Date.now(),
@@ -208,7 +258,7 @@ export function isStructureChangeSafe(previous: LeagueSettings, next: LeagueSett
 // Scoring presets (absorbed from src/lib/presets.ts)
 // ---------------------------------------------------------------------------
 
-export const scoringPresets: Record<string, ScoringSettings> = {
+export const scoringPresets: Record<string, BaseballScoringSettings> = {
   espn: {
     name: "ESPN Standard",
     batting: {

@@ -53,6 +53,7 @@ import type {
 import { useShallow } from "zustand/react/shallow";
 
 const POSITION_FILTER_OPTIONS: string[] = [...POSITION_ORDER, "SP", "RP"];
+const FOOTBALL_POSITION_FILTER_OPTIONS: string[] = ["QB", "RB", "WR", "TE"];
 type StatOption = { id: string; label: string };
 
 const BATTING_STAT_OPTIONS: StatOption[] = [
@@ -95,9 +96,25 @@ const PITCHING_STAT_OPTIONS: StatOption[] = [
 	{ id: "WHIP", label: "WHIP" },
 ];
 
+const FOOTBALL_STAT_OPTIONS: StatOption[] = [
+	{ id: "PassYds", label: "PaYd" },
+	{ id: "PassTD", label: "PaTD" },
+	{ id: "Int", label: "INT" },
+	{ id: "RushYds", label: "RuYd" },
+	{ id: "RushTD", label: "RuTD" },
+	{ id: "Rec", label: "Rec" },
+	{ id: "RecYds", label: "ReYd" },
+	{ id: "RecTD", label: "ReTD" },
+	{ id: "2PT", label: "2PT" },
+	{ id: "FumLost", label: "Fum" },
+];
+
+const DEFAULT_FOOTBALL_STATS = ["PassYds", "PassTD", "RushYds", "RushTD", "RecYds"];
+
 const STORAGE_KEYS = {
 	batting: "leaderboard:batting-stats",
 	pitching: "leaderboard:pitching-stats",
+	football: "leaderboard:football-stats",
 } as const;
 
 const DEFAULT_BATTING_STATS = ["R", "HR", "RBI", "SB", "AVG"];
@@ -231,14 +248,52 @@ function StatGroupHeader({
 function ColumnsPicker({
 	battingStatSet,
 	pitchingStatSet,
+	footballStatSet,
+	sport,
 	toggleStat,
 	clearAllStats,
 }: {
 	battingStatSet: Set<string>;
 	pitchingStatSet: Set<string>;
-	toggleStat: (group: "batting" | "pitching", statId: string, checked: boolean) => void;
-	clearAllStats: (group: "batting" | "pitching") => void;
+	footballStatSet: Set<string>;
+	sport?: "baseball" | "football";
+	toggleStat: (group: "batting" | "pitching" | "offense", statId: string, checked: boolean) => void;
+	clearAllStats: (group: "batting" | "pitching" | "offense") => void;
 }) {
+	if (sport === "football") {
+		return (
+			<Dropdown
+				triggerValue="Columns"
+				ariaLabel="Column visibility"
+				placement="bottom-right"
+				menuClassName="w-[min(28rem,calc(100vw-1.5rem))] max-w-none rounded-[var(--radius-lg)] py-0"
+			>
+				<div className="p-3 sm:p-4">
+					<StatGroupHeader label="Offense" count={footballStatSet.size} onClear={() => clearAllStats("offense")} />
+					<div className="mt-2.5 grid grid-cols-4 gap-1.5 sm:grid-cols-3">
+						{FOOTBALL_STAT_OPTIONS.map((stat) => {
+							const active = footballStatSet.has(stat.id);
+							return (
+								<button
+									key={stat.id}
+									type="button"
+									onClick={() => toggleStat("offense", stat.id, !active)}
+									className={
+										active
+											? "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-accent)] text-white"
+											: "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-surface-raised)] text-[var(--color-fg-subtle)]"
+									}
+								>
+									{stat.label}
+								</button>
+							);
+						})}
+					</div>
+				</div>
+			</Dropdown>
+		);
+	}
+
 	return (
 		<Dropdown
 			triggerValue="Columns"
@@ -403,6 +458,7 @@ export function Leaderboard() {
 					...(activeGroup?.batters ?? []),
 					...(activeGroup?.pitchers ?? []),
 					...(activeGroup?.twoWayPlayers ?? []),
+					...(activeGroup?.footballPlayers ?? []),
 				].map((player) => [player._id, player]),
 			),
 		[activeGroup],
@@ -469,6 +525,9 @@ export function Leaderboard() {
 				(statId) => pitchingOptions.has(statId),
 			),
 	);
+	const [selectedFootballStats, setSelectedFootballStats] = useState<string[]>(
+		() => parseStored(STORAGE_KEYS.football, DEFAULT_FOOTBALL_STATS),
+	);
 
 	const battingStatSet = useMemo(
 		() => new Set(selectedBattingStats),
@@ -477,6 +536,10 @@ export function Leaderboard() {
 	const pitchingStatSet = useMemo(
 		() => new Set(selectedPitchingStats),
 		[selectedPitchingStats],
+	);
+	const footballStatSet = useMemo(
+		() => new Set(selectedFootballStats),
+		[selectedFootballStats],
 	);
 
 	useEffect(() => {
@@ -495,9 +558,17 @@ export function Leaderboard() {
 		);
 	}, [selectedPitchingStats]);
 
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		window.localStorage.setItem(
+			STORAGE_KEYS.football,
+			JSON.stringify(selectedFootballStats),
+		);
+	}, [selectedFootballStats]);
+
 	const toggleStat = useCallback(
 		(
-			group: "batting" | "pitching",
+			group: "batting" | "pitching" | "offense",
 			statId: string,
 			checked: boolean,
 		) => {
@@ -509,7 +580,14 @@ export function Leaderboard() {
 				);
 				return;
 			}
-
+			if (group === "offense") {
+				setSelectedFootballStats((current) =>
+					checked
+						? Array.from(new Set([...current, statId]))
+						: current.filter((id) => id !== statId),
+				);
+				return;
+			}
 			setSelectedPitchingStats((current) =>
 				checked
 					? Array.from(new Set([...current, statId]))
@@ -519,21 +597,27 @@ export function Leaderboard() {
 		[],
 	);
 
-	const applyAllStats = useCallback((group: "batting" | "pitching") => {
+	const applyAllStats = useCallback((group: "batting" | "pitching" | "offense") => {
 		if (group === "batting") {
 			setSelectedBattingStats(BATTING_STAT_OPTIONS.map((stat) => stat.id));
 			return;
 		}
-
+		if (group === "offense") {
+			setSelectedFootballStats(FOOTBALL_STAT_OPTIONS.map((stat) => stat.id));
+			return;
+		}
 		setSelectedPitchingStats(PITCHING_STAT_OPTIONS.map((stat) => stat.id));
 	}, []);
 
-	const clearAllStats = useCallback((group: "batting" | "pitching") => {
+	const clearAllStats = useCallback((group: "batting" | "pitching" | "offense") => {
 		if (group === "batting") {
 			setSelectedBattingStats([]);
 			return;
 		}
-
+		if (group === "offense") {
+			setSelectedFootballStats([]);
+			return;
+		}
 		setSelectedPitchingStats([]);
 	}, []);
 	const resetPagination = useCallback(() => {
@@ -741,6 +825,7 @@ export function Leaderboard() {
 				draftFilter={draftFilter}
 				battingStatIds={selectedBattingStats}
 				pitchingStatIds={selectedPitchingStats}
+				footballStatIds={selectedFootballStats}
 				selectedPositions={appliedSelectedPositions}
 				pagination={pagination}
 				setPagination={setPagination}
@@ -847,6 +932,8 @@ export function Leaderboard() {
 					<ColumnsPicker
 						battingStatSet={battingStatSet}
 						pitchingStatSet={pitchingStatSet}
+						footballStatSet={footballStatSet}
+						sport={activeLeague?.sport}
 						toggleStat={toggleStat}
 						clearAllStats={clearAllStats}
 					/>
@@ -872,6 +959,7 @@ type LeaderboardTableProps = {
 	draftFilter: DraftFilter;
 	battingStatIds: string[];
 	pitchingStatIds: string[];
+	footballStatIds: string[];
 	selectedPositions: Set<string>;
 	pagination: { pageIndex: number; pageSize: number };
 	setPagination: Dispatch<
@@ -893,6 +981,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 	draftFilter,
 	battingStatIds,
 	pitchingStatIds,
+	footballStatIds,
 	selectedPositions,
 	pagination,
 	setPagination,
@@ -1064,14 +1153,20 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								? "text-[#111111]/60 dark:text-[#e5e5e5]/50"
 								: row.original.player._type === "pitcher"
 									? "text-[#111111]/60 dark:text-[#e5e5e5]/50"
-									: "text-[#dc2626] dark:text-[#ef4444]"
+									: row.original.player._type === "two-way"
+										? "text-[#dc2626] dark:text-[#ef4444]"
+										: "text-[#111111]/60 dark:text-[#e5e5e5]/50"
 						}`}
 					>
 						{row.original.player._type === "batter"
 							? "BAT"
 							: row.original.player._type === "pitcher"
 								? "PIT"
-								: "2W"}
+								: row.original.player._type === "two-way"
+									? "2W"
+										: row.original.player._type === "football-player"
+											? "OFF"
+											: "-"}
 					</span>
 				),
 			},
@@ -1127,6 +1222,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 		const addPitchingSeparator = playerView === "all";
 		const battingStatSet = new Set(battingStatIds);
 		const pitchingStatSet = new Set(pitchingStatIds);
+		const footballStatSet = new Set(footballStatIds);
 
 		const withLeadingSeparator = (
 			columnDefs: ColumnDef<LeaderboardRow>[],
@@ -1642,6 +1738,111 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			);
 		}
 
+		const footballCols: ColumnDef<LeaderboardRow>[] = [
+			{
+				id: "PassYds",
+				header: "PaYd",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player.PassYds
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+			{
+				id: "PassTD",
+				header: "PaTD",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player.PassTD
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+			{
+				id: "Int",
+				header: "INT",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player.Int
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+			{
+				id: "RushYds",
+				header: "RuYd",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player.RushYds
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+			{
+				id: "RushTD",
+				header: "RuTD",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player.RushTD
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+			{
+				id: "Rec",
+				header: "Rec",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player.Rec
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+			{
+				id: "RecYds",
+				header: "ReYd",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player.RecYds
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+			{
+				id: "RecTD",
+				header: "ReTD",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player.RecTD
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+			{
+				id: "2PT",
+				header: "2PT",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player["2PT"]
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+			{
+				id: "FumLost",
+				header: "Fum",
+				size: 60,
+				accessorFn: (row) =>
+					row.player._type === "football-player"
+						? row.player.FumLost
+						: null,
+				cell: ({ getValue }) => formatCountingStat(getValue() as number | null),
+			},
+		];
+		const visibleFootball = footballCols.filter((col) => footballStatSet.has(col.id as string));
+		baseColumns.push(...withLeadingSeparator(visibleFootball, true));
+
 		return baseColumns;
 		}, [
 			playerView,
@@ -1649,6 +1850,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			leagueSettings,
 			battingStatIds,
 			pitchingStatIds,
+			footballStatIds,
 		]);
 
 	const currentPageRows = useMemo(() => {

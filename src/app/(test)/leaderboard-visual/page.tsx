@@ -58,6 +58,7 @@ function leagueSettings(): LeagueSettings {
 				LF: 0, CF: 0, RF: 0, DH: 0,
 				CI: 0, MI: 0, IF: 0, OF: 3, UTIL: 1,
 				SP: 0, RP: 0, P: 5, IL: 0, NA: 0,
+				QB: 0, RB: 0, WR: 0, TE: 0, Flex: 0, K: 0, DST: 0, Bench: 0,
 			},
 			bench: 3,
 		},
@@ -202,6 +203,7 @@ function projectionGroup(): ProjectionGroup {
 				eligibility: elig(["DH"], true),
 			}),
 		],
+		footballPlayers: [],
 	};
 }
 

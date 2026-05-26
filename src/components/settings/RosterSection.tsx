@@ -23,12 +23,17 @@ import {
   reserveSlots,
   rosterSlotLabels,
 } from "@/components/settings/constants";
+import { FootballRosterSection } from "@/components/settings/FootballRosterSection";
 import type { RosterSlot } from "@/types";
 
 export function RosterSection() {
   const { leagues, activeLeagueId, updateLeague } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
   const leagueSettings = activeLeague?.leagueSettings;
+
+  if (activeLeague?.sport === "football") {
+    return <FootballRosterSection />;
+  }
 
   const commitRosterSlot = (slot: RosterSlot, value: number) => {
     const next = {

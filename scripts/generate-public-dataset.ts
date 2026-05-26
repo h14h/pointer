@@ -127,6 +127,7 @@ export async function generatePublicDataset(options: GenerateOptions): Promise<P
       batters: batterResult.players,
       pitchers: pitcherResult.players,
       twoWayPlayers: merged as TwoWayPlayer[],
+      footballPlayers: [],
       batterIdSource: batterResult.idSource,
       pitcherIdSource: pitcherResult.idSource,
     },

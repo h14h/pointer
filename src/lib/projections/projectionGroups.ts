@@ -21,6 +21,7 @@ export function normalizeProjectionGroup(group: ProjectionGroup): ProjectionGrou
   const source = group.source ?? UPLOAD_PROJECTION_SOURCE;
   return {
     ...group,
+    footballPlayers: group.footballPlayers ?? [],
     source,
     eligibilityImportSeason:
       Number.isFinite(group.eligibilityImportSeason) && (group.eligibilityImportSeason ?? 0) > 0
@@ -50,5 +51,6 @@ export function getProjectionGroupPlayerCounts(group: ProjectionGroup) {
     batters: group.batters.length,
     pitchers: group.pitchers.length,
     twoWayPlayers: group.twoWayPlayers.length,
+    footballPlayers: group.footballPlayers?.length ?? 0,
   };
 }

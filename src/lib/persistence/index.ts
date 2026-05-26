@@ -103,7 +103,19 @@ export function migrate(
     };
   }
 
-  if (version >= 8) {
+  if (version >= 9) {
+    const state = (persistedState ?? {}) as PersistedStoreState;
+    return {
+      ...state,
+      leagues: (state.leagues ?? []).map((l) => ({
+        ...normalizeLeague(l),
+        sport: l.sport ?? "baseball",
+      })),
+      projectionGroups: normalizeProjectionGroups(state.projectionGroups ?? []),
+    };
+  }
+
+  if (version === 8) {
     const state = (persistedState ?? {}) as PersistedStoreState;
     return {
       ...state,

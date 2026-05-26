@@ -15,7 +15,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { scoringPresets, presetNames } from "@/lib/league";
 import { useDebouncedCallback } from "@/lib/useDebounce";
 import { useStore } from "@/store";
-import type { ScoringSettings } from "@/types";
+import { FootballScoringSection } from "@/components/settings/FootballScoringSection";
+import type { ScoringSettings, BaseballScoringSettings } from "@/types";
 
 export function ScoringSection() {
   const {
@@ -29,6 +30,11 @@ export function ScoringSection() {
   } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
   const scoringSettings = activeLeague?.scoringSettings;
+
+  if (!scoringSettings || "passing" in scoringSettings) {
+    return <FootballScoringSection />;
+  }
+
   const activePresetKey =
     presetNames.find((key) => scoringPresets[key].name === scoringSettings.name) ??
     presetNames[0];
@@ -40,7 +46,7 @@ export function ScoringSection() {
 
   const debouncedUpdateBatting = useDebouncedCallback(
     useCallback(
-      (key: keyof ScoringSettings["batting"], value: number) =>
+      (key: keyof BaseballScoringSettings["batting"], value: number) =>
         updateLeague({
           scoringSettings: {
             ...scoringSettings,
@@ -54,7 +60,7 @@ export function ScoringSection() {
 
   const debouncedUpdatePitching = useDebouncedCallback(
     useCallback(
-      (key: keyof ScoringSettings["pitching"], value: number) =>
+      (key: keyof BaseballScoringSettings["pitching"], value: number) =>
         updateLeague({
           scoringSettings: {
             ...scoringSettings,
@@ -106,6 +112,10 @@ export function ScoringSection() {
             variant="primary"
             size="md"
             onClick={() => {
+              if ("passing" in scoringPresets[selectedPresetKey]) {
+                // Football preset — skip for now
+                return;
+              }
               updateLeague({ scoringSettings: scoringPresets[selectedPresetKey] });
             }}
           >

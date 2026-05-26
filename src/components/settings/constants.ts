@@ -1,4 +1,4 @@
-import type { LeagueSettings, RosterSlot, ScoringSettings } from "@/types";
+import type { LeagueSettings, RosterSlot, BaseballScoringSettings } from "@/types";
 import type { SettingsSectionMeta } from "@/components/settings/types";
 
 export const settingsSections: SettingsSectionMeta[] = [
@@ -31,8 +31,8 @@ export const settingsSections: SettingsSectionMeta[] = [
 
 type ScoringCategory<T> = { key: keyof T; label: string };
 
-export type BattingCategory = ScoringCategory<ScoringSettings["batting"]>;
-export type PitchingCategory = ScoringCategory<ScoringSettings["pitching"]>;
+export type BattingCategory = ScoringCategory<BaseballScoringSettings["batting"]>;
+export type PitchingCategory = ScoringCategory<BaseballScoringSettings["pitching"]>;
 
 export const battingGroups: { label: string; categories: BattingCategory[] }[] = [
   {
@@ -135,6 +135,14 @@ export const rosterSlotLabels: Record<RosterSlot, string> = {
   P: "P",
   IL: "IL",
   NA: "NA",
+  QB: "QB",
+  RB: "RB",
+  WR: "WR",
+  TE: "TE",
+  Flex: "Flex",
+  K: "K",
+  DST: "DST",
+  Bench: "Bench",
 };
 
 export const outfieldSlots: RosterSlot[] = ["LF", "CF", "RF"];

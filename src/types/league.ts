@@ -1,5 +1,7 @@
 import type { DraftState } from "./draft";
 
+export type Sport = "baseball" | "football";
+
 export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH";
 
 export type RosterSlot =
@@ -13,10 +15,18 @@ export type RosterSlot =
   | "MI"
   | "IF"
   | "IL"
-  | "NA";
+  | "NA"
+  | "QB"
+  | "RB"
+  | "WR"
+  | "TE"
+  | "Flex"
+  | "K"
+  | "DST"
+  | "Bench";
 
-// League scoring configuration
-export interface ScoringSettings {
+// Baseball scoring configuration
+export interface BaseballScoringSettings {
   name: string;
 
   // Batting points
@@ -58,12 +68,17 @@ export interface ScoringSettings {
   };
 }
 
+import type { FootballScoringSettings } from "./football";
+
+export type ScoringSettings = BaseballScoringSettings | FootballScoringSettings;
+
 export interface RosterSettings {
   positions: Record<RosterSlot, number>;
   bench: number;
 }
 
 export interface LeagueSettings {
+  sport?: Sport;
   leagueSize: number;
   teamNames: string[];
   roster: RosterSettings;
@@ -73,6 +88,7 @@ export interface LeagueSettings {
 export interface League {
   id: string;
   name: string;
+  sport?: Sport; // old data lacks this
   scoringSettings: ScoringSettings;
   leagueSettings: LeagueSettings;
   draftState: DraftState;

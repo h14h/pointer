@@ -7,7 +7,7 @@ import {
   mergeWarnings,
 } from "./rules";
 import { fetchSeasonStatsForPlayers } from "./mlbStatsApi";
-import type { Eligibility, ProjectionGroup } from "@/types";
+import type { Eligibility, ProjectionGroup, BatterPlayer, PitcherPlayer, TwoWayPlayer } from "@/types";
 
 type RetryState = {
   attempt: number;
@@ -44,7 +44,9 @@ export async function runProjectionEligibilityImport({
   const batters = group.batters ?? [];
   const pitchers = group.pitchers ?? [];
   const twoWayPlayers = group.twoWayPlayers ?? [];
-  const players = [...batters, ...pitchers, ...twoWayPlayers];
+  const players = [...batters, ...pitchers, ...twoWayPlayers].filter(
+    (p): p is BatterPlayer | PitcherPlayer | TwoWayPlayer => p._type !== "football-player"
+  );
 
   callbacks?.onStart?.();
   callbacks?.onProgress?.(0);

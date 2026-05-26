@@ -12,6 +12,11 @@ export {
 } from "./parser";
 
 export {
+  isFootballCsv,
+  parseFootballCsv,
+} from "./footballParser";
+
+export {
   type PitchingOutcomeParams,
   type QsFilterParams,
   DEFAULT_PITCHING_OUTCOME_PARAMS,

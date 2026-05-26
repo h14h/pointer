@@ -1,4 +1,4 @@
-import type { IdSource, ProjectionGroup, ProjectionGroupSource, TwoWayPlayer, Player } from "@/types";
+import type { IdSource, ProjectionGroup, ProjectionGroupSource, TwoWayPlayer, Player, FootballPlayer } from "@/types";
 
 export const PUBLIC_DATASET_MANIFEST_KEY = "public-datasets/manifest.json";
 export const DEFAULT_PUBLIC_DATASET_SLUG = "historical-2025";
@@ -12,6 +12,7 @@ export type SeedProjectionGroupInput = {
   batters: Player[];
   pitchers: Player[];
   twoWayPlayers: TwoWayPlayer[];
+  footballPlayers: FootballPlayer[];
   batterIdSource: IdSource | null;
   pitcherIdSource: IdSource | null;
   eligibilityImportedAt?: string;
@@ -98,6 +99,7 @@ function assertSeedProjectionGroupInput(value: unknown): SeedProjectionGroupInpu
     batters: value.batters,
     pitchers: value.pitchers,
     twoWayPlayers: value.twoWayPlayers as TwoWayPlayer[],
+    footballPlayers: Array.isArray(value.footballPlayers) ? (value.footballPlayers as FootballPlayer[]) : [],
     batterIdSource: (value.batterIdSource as IdSource | null | undefined) ?? null,
     pitcherIdSource: (value.pitcherIdSource as IdSource | null | undefined) ?? null,
     eligibilityImportedAt:

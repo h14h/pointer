@@ -1,4 +1,5 @@
 import type { Position } from "./league";
+import type { FootballPlayer } from "./football";
 
 // Player data from FanGraphs CSV upload
 export interface BatterStats {
@@ -118,4 +119,4 @@ export type TwoWayPlayer = {
   eligibility?: Eligibility;
 };
 
-export type Player = BatterPlayer | PitcherPlayer | TwoWayPlayer;
+export type Player = BatterPlayer | PitcherPlayer | TwoWayPlayer | FootballPlayer;

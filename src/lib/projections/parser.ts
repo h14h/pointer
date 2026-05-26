@@ -7,7 +7,9 @@ import type {
   BatterPlayer,
   PitcherPlayer,
   IdSource,
+  FootballPlayer,
 } from "@/types";
+import { isFootballCsv, parseFootballCsv } from "./footballParser";
 
 // Parse numeric value, returning 0 for empty/invalid
 function parseNumber(value: string | undefined): number {
@@ -40,6 +42,20 @@ function detectPlayerType(headers: string[]): "batter" | "pitcher" {
   const pitcherMatches = pitcherColumns.filter((col) => headers.includes(col)).length;
 
   return batterMatches > pitcherMatches ? "batter" : "pitcher";
+}
+
+export function detectCsvType(headers: string[]): "batter" | "pitcher" | "football" | null {
+  if (isFootballCsv(headers)) return "football";
+  const batterColumns = ["PA", "AB", "1B", "2B", "3B", "SB", "CS", "AVG", "OBP", "SLG"];
+  const pitcherColumns = ["ERA", "WHIP", "IP", "GS", "SV", "QS", "CG", "ShO", "K/9", "BB/9"];
+
+  const batterMatches = batterColumns.filter((col) => headers.includes(col)).length;
+  const pitcherMatches = pitcherColumns.filter((col) => headers.includes(col)).length;
+
+  if (batterMatches > 0 || pitcherMatches > 0) {
+    return batterMatches > pitcherMatches ? "batter" : "pitcher";
+  }
+  return null;
 }
 
 export interface IdConfig {
@@ -176,7 +192,7 @@ export function parsePitcherRow(
 
 export interface ParseResult {
   players: Player[];
-  type: "batter" | "pitcher";
+  type: "batter" | "pitcher" | "football";
   rowCount: number;
   errors: string[];
   idSource: IdSource;
@@ -200,7 +216,7 @@ function detectIdSource(headers: string[]): { source: IdSource; needsSelection: 
 
 export function parsePlayerCSV(
   content: string,
-  forceType?: "batter" | "pitcher",
+  forceType?: "batter" | "pitcher" | "football",
   idConfig?: IdConfig
 ): ParseResult {
   const delimiter = detectDelimiter(content);
@@ -220,7 +236,24 @@ export function parsePlayerCSV(
   }
 
   const headers = result.meta.fields || [];
-  const type = forceType || detectPlayerType(headers);
+  const detectedType = detectCsvType(headers);
+  const type = forceType || detectedType || "batter";
+
+  // Football path
+  if (type === "football") {
+    const footballPlayers = parseFootballCsv(content);
+    return {
+      players: footballPlayers as Player[],
+      type: "football",
+      rowCount: footballPlayers.length,
+      errors,
+      idSource: "generated",
+      availableColumns: headers,
+      needsIdSelection: false,
+      missingPitchingOutcomes: null,
+    };
+  }
+
   const { source: detectedSource, needsSelection } = detectIdSource(headers);
 
   // If no ID config provided and we need selection, return early with metadata

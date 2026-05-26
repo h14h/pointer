@@ -293,6 +293,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
       batters,
       pitchers,
       twoWayPlayers,
+      footballPlayers: [],
       batterIdSource: batterFile?.parseResult.idSource ?? null,
       pitcherIdSource: pitcherFile?.parseResult.idSource ?? null,
       eligibilityImportSeason: 2025,

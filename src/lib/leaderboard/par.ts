@@ -24,6 +24,14 @@ const SLOT_POSITION_MAP: Record<SlotType, Position[]> = {
   P: [],
   IL: [],
   NA: [],
+  QB: [],
+  RB: [],
+  WR: [],
+  TE: [],
+  Flex: [],
+  K: [],
+  DST: [],
+  Bench: [],
 };
 
 function isBatterSlot(slot: SlotType): boolean {
@@ -34,12 +42,22 @@ function isPitcherSlot(slot: SlotType): boolean {
   return slot === "SP" || slot === "RP" || slot === "P";
 }
 
+function isFootballSlot(slot: SlotType): boolean {
+  return ["QB", "RB", "WR", "TE", "Flex"].includes(slot);
+}
+
 function getTotalRosterSlots(settings: LeagueSettings, slot: SlotType): number {
   return (settings.roster.positions[slot] ?? 0) * settings.leagueSize;
 }
 
 export function getEligibleSlotTypes(player: Player): SlotType[] {
   const slots: SlotType[] = [];
+
+  if (player._type === "football-player") {
+    slots.push(player.Position);
+    if (["RB", "WR", "TE"].includes(player.Position)) slots.push("Flex");
+    return slots;
+  }
 
   if (player._type === "batter" || player._type === "two-way") {
     const eligibility = player.eligibility;
@@ -82,6 +100,12 @@ export function getEligibleSlotTypes(player: Player): SlotType[] {
 }
 
 function playerMeetsSlotRequirement(player: Player, slot: SlotType): boolean {
+  if (player._type === "football-player") {
+    if (slot === "Flex") {
+      return ["RB", "WR", "TE"].includes(player.Position);
+    }
+    return player.Position === slot;
+  }
   if (slot === "SP") {
     return player.eligibility?.isSP === true;
   }
@@ -172,6 +196,9 @@ function getReplacementLevelFromRemainingPool(
 }
 
 function getProjectedPitchingGames(player: Player): PitchingUsage | null {
+  if (player._type === "football-player") {
+    return null;
+  }
   if (player._type === "pitcher") {
     return { G: player.G, GS: player.GS };
   }
@@ -323,14 +350,30 @@ function computePitcherPAR(
   return Math.round(blendedPar * 10) / 10;
 }
 
+function computeFootballPAR(
+  player: Player,
+  projectedPoints: number,
+  replacementLevels: Record<SlotType, number>
+): number {
+  const eligibleSlots = getEligibleSlotTypes(player).filter(isFootballSlot);
+  if (eligibleSlots.length === 0) return 0;
+
+  let maxPar = Number.NEGATIVE_INFINITY;
+  for (const slot of eligibleSlots) {
+    if (!(slot in replacementLevels)) continue;
+    const par = computePlayerPARForSlot(projectedPoints, slot, replacementLevels);
+    if (par > maxPar) maxPar = par;
+  }
+  return maxPar === Number.NEGATIVE_INFINITY ? 0 : maxPar;
+}
+
 export function calculatePAR(
   rankedPlayers: RankedPlayer[],
   settings: LeagueSettings
 ): RankedPlayer[] {
-  const relevantSlots: SlotType[] = [
-    "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH", "OF", "IF", "CI", "MI", "UTIL",
-    "SP", "RP", "P"
-  ];
+  const relevantSlots: SlotType[] = settings.sport === "football"
+    ? ["QB", "RB", "WR", "TE", "Flex"]
+    : ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH", "OF", "IF", "CI", "MI", "UTIL", "SP", "RP", "P"];
 
   const activeSlotCounts = Object.fromEntries(
     relevantSlots
@@ -381,6 +424,8 @@ export function calculatePAR(
       par = Math.max(battingPar, pitchingPar);
     } else if (player._type === "batter") {
       par = computeBatterPAR(player, projectedPoints, replacementLevels);
+    } else if (player._type === "football-player") {
+      par = computeFootballPAR(player, projectedPoints, replacementLevels);
     } else {
       par = computePitcherPAR(player, projectedPoints, replacementLevels, settings);
     }

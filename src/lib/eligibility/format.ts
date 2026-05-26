@@ -2,6 +2,7 @@ import type { Player } from "@/types";
 import { POSITION_ORDER } from "./rules";
 
 export function formatEligibilityForLeaderboard(player: Player): string {
+  if (player._type === "football-player") return player.Position;
   const eligibility = player.eligibility;
   if (!eligibility) return "-";
 
