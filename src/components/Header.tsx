@@ -26,6 +26,7 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
     leagues,
     activeLeagueId,
     setActiveLeague,
+    createLeague,
     projectionGroups,
     activeProjectionGroupId,
     setActiveProjectionGroup,
@@ -48,7 +49,8 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
 
   const settingsHref = isSettingsPage ? "/" : "/settings?section=scoring";
   const settingsTitle = isSettingsPage ? "Back to leaderboard" : "Settings";
-  const pageLabel = isSettingsPage ? "Settings" : "Leaderboard";
+  const sportLabel = activeSport === "football" ? "Football" : "Baseball";
+  const pageLabel = isSettingsPage ? `${sportLabel} · Settings` : `${sportLabel} · Leaderboard`;
 
   const closeAllMenus = () => {
     setIsLeagueOpen(false);
@@ -86,14 +88,37 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
     </Link>
   );
 
+  const quickCreateLeague = (sport: "baseball" | "football") => {
+    createLeague(sport === "football" ? "My Football League" : "My Baseball League", sport);
+    closeAllMenus();
+  };
+
   const leagueFooter = (
-    <Link
-      href="/settings?section=leagues"
-      onClick={closeAllMenus}
-      className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-[var(--color-fg-subtle)] hover:bg-[var(--color-surface-hover)]"
-    >
-      Manage leagues...
-    </Link>
+    <div className="divide-y divide-[var(--color-border-soft)]">
+      <button
+        type="button"
+        onClick={() => quickCreateLeague("baseball")}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-[var(--color-fg-subtle)] hover:bg-[var(--color-surface-hover)]"
+      >
+        <span aria-hidden="true" className="text-[var(--color-accent)]">+</span>
+        New baseball league
+      </button>
+      <button
+        type="button"
+        onClick={() => quickCreateLeague("football")}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-[var(--color-fg-subtle)] hover:bg-[var(--color-surface-hover)]"
+      >
+        <span aria-hidden="true" className="text-[var(--color-accent)]">+</span>
+        New football league
+      </button>
+      <Link
+        href="/settings?section=leagues"
+        onClick={closeAllMenus}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-[var(--color-fg-subtle)] hover:bg-[var(--color-surface-hover)]"
+      >
+        Manage leagues...
+      </Link>
+    </div>
   );
 
   return (

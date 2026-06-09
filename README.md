@@ -12,7 +12,8 @@ bun dev
 Open `http://localhost:3000`.
 
 ## What You Can Do
-- Create baseball or football leagues, each with its own scoring, roster, and draft state.
+- Pick your sport on first launch — a welcome screen sets up your first baseball or football league.
+- Create baseball or football leagues, each with its own scoring, roster, and draft state (quick-create from the header's league menu).
 - Upload projection CSV/TSV files (batters/pitchers for baseball; combined or per-position files for football).
 - Tune scoring settings with presets (ESPN/Yahoo/Fantrax for baseball; Standard/Half PPR/Full PPR for football) or custom values.
 - Toggle draft mode to track drafted players and keepers via snake draft.
