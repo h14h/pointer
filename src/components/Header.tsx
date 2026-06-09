@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Toggle } from "@/components/ui/Toggle";
+import { AccountControls } from "@/components/pro/AccountControls";
 import { getProjectionGroupDisplayName, getProjectionGroupSourceLabel } from "@/lib/projections";
 import { useStore } from "@/store";
 
@@ -30,9 +31,14 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
     setActiveProjectionGroup,
   } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
+  const activeSport = activeLeague?.sport ?? "baseball";
+  const sportProjectionGroups = useMemo(
+    () => projectionGroups.filter((group) => (group.sport ?? "baseball") === activeSport),
+    [projectionGroups, activeSport]
+  );
   const activeProjectionGroup =
-    projectionGroups.find((group) => group.id === activeProjectionGroupId) ??
-    projectionGroups[0] ??
+    sportProjectionGroups.find((group) => group.id === activeProjectionGroupId) ??
+    sportProjectionGroups[0] ??
     null;
   const pathname = usePathname();
   const isSettingsPage = pathname === "/settings";
@@ -52,16 +58,21 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
 
   const projectionOptions = useMemo(
     () =>
-      projectionGroups.map((group) => ({
+      sportProjectionGroups.map((group) => ({
         value: group.id,
         label: getProjectionGroupDisplayName(group),
         description: getProjectionGroupSourceLabel(group),
       })),
-    [projectionGroups]
+    [sportProjectionGroups]
   );
 
   const leagueOptions = useMemo(
-    () => leagues.map((league) => ({ value: league.id, label: league.name })),
+    () =>
+      leagues.map((league) => ({
+        value: league.id,
+        label: league.name,
+        description: league.sport === "football" ? "Football" : "Baseball",
+      })),
     [leagues]
   );
 
@@ -115,6 +126,7 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
             </div>
 
             <div className="flex items-center gap-2 lg:hidden">
+              <AccountControls />
               <label className="flex items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-3 py-1.5 font-sans text-sm font-medium text-[var(--color-fg-muted)]">
                 Draft
                 <Toggle
@@ -176,6 +188,7 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
                   onClick={() => setDraftMode(!isDraftMode)}
                 />
               </label>
+              <AccountControls />
               <Link
                 href={settingsHref}
                 aria-label="Settings"

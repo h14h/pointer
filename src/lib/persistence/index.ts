@@ -58,6 +58,7 @@ type PersistedStoreState = {
   activeProjectionGroupId: string | null;
   isDraftMode: boolean;
   mergeTwoWayRankings: boolean;
+  deletedLeagueIds?: string[];
 };
 
 type V4State = {
@@ -109,6 +110,7 @@ export function migrate(
       ...state,
       leagues: (state.leagues ?? []).map(normalizeLeague),
       projectionGroups: normalizeProjectionGroups(state.projectionGroups ?? []),
+      deletedLeagueIds: state.deletedLeagueIds ?? [],
     };
   }
 

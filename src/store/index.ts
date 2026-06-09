@@ -65,6 +65,9 @@ interface Store {
   isDraftMode: boolean;
   mergeTwoWayRankings: boolean;
   hasHydrated: boolean;
+  // League ids deleted locally but possibly still in cloud storage (Pro sync
+  // tombstones — cleared once the cloud copy is removed)
+  deletedLeagueIds: string[];
 
   // League actions
   createLeague: (name?: string, sport?: Sport) => void;
@@ -72,7 +75,9 @@ interface Store {
   duplicateLeague: (id: string) => void;
   renameLeague: (id: string, name: string) => void;
   setActiveLeague: (id: string) => void;
-  updateLeague: (partial: Partial<Pick<League, "scoringSettings" | "leagueSettings">>) => void;
+  updateLeague: (
+    partial: Partial<Pick<League, "scoringSettings" | "leagueSettings" | "football">>,
+  ) => void;
 
   // Projection actions
   addProjectionGroup: (group: ProjectionGroup) => void;
@@ -100,6 +105,10 @@ interface Store {
     season: number,
   ) => void;
 
+  // Cloud sync (Pro)
+  applyCloudLeagues: (incoming: League[]) => void;
+  clearDeletedLeagueIds: (ids: string[]) => void;
+
   // Selectors
   getActiveLeague: () => League | undefined;
   setHasHydrated: (value: boolean) => void;
@@ -113,6 +122,7 @@ type PersistedStoreState = Pick<
   | "activeProjectionGroupId"
   | "isDraftMode"
   | "mergeTwoWayRankings"
+  | "deletedLeagueIds"
 >;
 
 // ---------------------------------------------------------------------------
@@ -130,6 +140,30 @@ export const useStore = create<Store>()(
       isDraftMode: false,
       mergeTwoWayRankings: true,
       hasHydrated: false,
+      deletedLeagueIds: [],
+
+      // Cloud sync (Pro): merge remote leagues without bumping updatedAt so
+      // last-write-wins stays stable across devices
+      applyCloudLeagues: (incoming) =>
+        set((state) => {
+          if (incoming.length === 0) return state;
+          const incomingById = new Map(incoming.map((league) => [league.id, league]));
+          const merged = state.leagues.map((league) => {
+            const remote = incomingById.get(league.id);
+            if (!remote) return league;
+            incomingById.delete(league.id);
+            return remote.updatedAt > (league.updatedAt ?? 0) ? normalizeLeague(remote) : league;
+          });
+          const added = [...incomingById.values()]
+            .filter((league) => !state.deletedLeagueIds.includes(league.id))
+            .map(normalizeLeague);
+          return { leagues: [...merged, ...added] };
+        }),
+
+      clearDeletedLeagueIds: (ids) =>
+        set((state) => ({
+          deletedLeagueIds: state.deletedLeagueIds.filter((id) => !ids.includes(id)),
+        })),
 
       // Selectors / hydration
       getActiveLeague: () => {
@@ -153,7 +187,11 @@ export const useStore = create<Store>()(
           const leagues = state.leagues.filter((l) => l.id !== id);
           const activeLeagueId =
             state.activeLeagueId === id ? (leagues[0]?.id ?? null) : state.activeLeagueId;
-          return { leagues, activeLeagueId };
+          return {
+            leagues,
+            activeLeagueId,
+            deletedLeagueIds: [...new Set([...state.deletedLeagueIds, id])],
+          };
         }),
 
       duplicateLeague: (id) =>
@@ -191,6 +229,7 @@ export const useStore = create<Store>()(
                 ...partial,
                 scoringSettings: partial.scoringSettings ?? l.scoringSettings,
                 leagueSettings: partial.leagueSettings ?? l.leagueSettings,
+                football: partial.football ?? l.football,
                 updatedAt: Date.now(),
               };
               if (partial.leagueSettings && hasManualDraftActivity(l.draftState)) {
@@ -397,6 +436,7 @@ export const useStore = create<Store>()(
         activeProjectionGroupId: state.activeProjectionGroupId,
         isDraftMode: state.isDraftMode,
         mergeTwoWayRankings: state.mergeTwoWayRankings,
+        deletedLeagueIds: state.deletedLeagueIds,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (!error) {

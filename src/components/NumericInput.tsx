@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { cx } from "@/components/ui/cx";
 
-export type NumericIncrement = 0.5 | 1;
+export type NumericIncrement = 0.01 | 0.5 | 1;
 
 interface NumericInputProps {
   value: number;
@@ -23,6 +23,7 @@ interface NumericInputProps {
 }
 
 const precisionByIncrement: Record<NumericIncrement, number> = {
+  0.01: 2,
   0.5: 1,
   1: 0,
 };

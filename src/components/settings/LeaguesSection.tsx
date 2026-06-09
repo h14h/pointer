@@ -3,11 +3,18 @@
 import { useState, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
 import { Panel } from "@/components/ui/Panel";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { useStore } from "@/store";
-import type { League } from "@/types";
+import type { League, Sport } from "@/types";
+
+const sportLabels: Record<Sport, string> = {
+  baseball: "Baseball",
+  football: "Football",
+};
 
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp);
@@ -32,6 +39,7 @@ export function LeaguesSection() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [newLeagueSport, setNewLeagueSport] = useState<Sport>("baseball");
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const startEditing = (league: League) => {
@@ -49,7 +57,7 @@ export function LeaguesSection() {
   };
 
   const handleCreateLeague = () => {
-    createLeague();
+    createLeague(undefined, newLeagueSport);
   };
 
   return (
@@ -60,8 +68,22 @@ export function LeaguesSection() {
         description="Manage your league profiles. Each league has its own settings and draft state."
       />
 
-      {/* Create league button */}
-      <div className="mb-6">
+      {/* Create league controls */}
+      <div className="mb-6 flex flex-wrap items-end gap-3">
+        <div className="grid gap-1.5">
+          <FieldLabel>Sport</FieldLabel>
+          <Dropdown
+            value={newLeagueSport}
+            onChange={setNewLeagueSport}
+            ariaLabel="New league sport"
+            triggerClassName="h-9"
+            menuClassName="min-w-[160px]"
+            options={[
+              { value: "baseball", label: "Baseball" },
+              { value: "football", label: "Football" },
+            ]}
+          />
+        </div>
         <Button variant="primary" onClick={handleCreateLeague}>
           Create New League
         </Button>
@@ -136,6 +158,9 @@ export function LeaguesSection() {
                     </button>
                   )}
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#111111]/50 dark:text-[#e5e5e5]/40">
+                    <Badge variant={league.sport === "football" ? "accent" : "neutral"}>
+                      {sportLabels[league.sport ?? "baseball"]}
+                    </Badge>
                     <Badge variant="neutral">{league.leagueSettings.leagueSize} teams</Badge>
                     <span className="text-[#111111]/20 dark:text-[#e5e5e5]/15">|</span>
                     <span>Updated {formatDate(league.updatedAt)}</span>

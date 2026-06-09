@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/Button";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
 import { Dropdown } from "@/components/ui/Dropdown";
-import type { Player } from "@/types";
+import type { FootballPlayer, Player } from "@/types";
+
+export type KeeperPlayer = Player | FootballPlayer;
 
 export type DraftKeeperEntry = {
-  player: Player | null;
+  player: KeeperPlayer | null;
   playerId: string;
   teamIndex: number;
   slotIndex: number | null;
@@ -32,7 +34,7 @@ interface DraftTeamRowProps {
   minTeamsReached: boolean;
   teamNameDraftByIndexRef: MutableRefObject<Record<number, string>>;
   keeperSearch: string;
-  keeperCandidates: Player[];
+  keeperCandidates: KeeperPlayer[];
   hasActiveProjectionGroup: boolean;
   keeperRoundDraftByPlayer: Record<string, string>;
   recentlyEditedKeeperId: string | null;

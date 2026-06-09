@@ -10,6 +10,7 @@ import { DialogShell } from "@/components/ui/DialogShell";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Panel } from "@/components/ui/Panel";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { calculateFootballPoints, normalizeFootballConfig } from "@/lib/football";
 import { calculatePlayerPoints } from "@/lib/scoring";
 import {
   canEditDraftSetup,
@@ -19,25 +20,37 @@ import {
 } from "@/lib/draft";
 import { matchesPlayerSearch } from "@/lib/leaderboard";
 import { useStore } from "@/store";
-import type { LeagueSettings, Player, ProjectionGroup } from "@/types";
+import type { League, LeagueSettings, ProjectionGroup, Sport } from "@/types";
+import type { KeeperPlayer } from "@/components/settings/DraftTeamRow";
 
 function getActiveGroup(
   projectionGroups: ProjectionGroup[],
-  activeProjectionGroupId: string | null
+  activeProjectionGroupId: string | null,
+  sport: Sport
 ) {
+  const sportGroups = projectionGroups.filter(
+    (group) => (group.sport ?? "baseball") === sport
+  );
   return (
-    projectionGroups.find((group) => group.id === activeProjectionGroupId) ??
-    projectionGroups[0] ??
+    sportGroups.find((group) => group.id === activeProjectionGroupId) ??
+    sportGroups[0] ??
     null
   );
 }
 
-function getAllPlayers(activeGroup: ProjectionGroup | null): Player[] {
+function getAllPlayers(activeGroup: ProjectionGroup | null): KeeperPlayer[] {
   if (!activeGroup) return [];
+  if (activeGroup.sport === "football") return [...(activeGroup.footballPlayers ?? [])];
   return [...activeGroup.batters, ...activeGroup.pitchers, ...activeGroup.twoWayPlayers];
 }
 
-function getTeamRosterSize(leagueSettings: LeagueSettings) {
+function getTeamRosterSize(league: League, leagueSettings: LeagueSettings) {
+  if (league.sport === "football") {
+    const roster = normalizeFootballConfig(league.football).roster;
+    return (
+      Object.values(roster.positions).reduce((total, value) => total + value, 0) + roster.bench
+    );
+  }
   return (
     Object.values(leagueSettings.roster.positions).reduce((total, value) => total + value, 0) +
     leagueSettings.roster.bench
@@ -75,8 +88,12 @@ export function DraftSection() {
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
   const leagueSettings = activeLeague?.leagueSettings;
   const draftState = activeLeague?.draftState;
-  const activeGroup = getActiveGroup(projectionGroups, activeProjectionGroupId);
-  const allPlayers = useMemo(() => getAllPlayers(activeGroup), [activeGroup]);
+  const activeSport: Sport = activeLeague?.sport === "football" ? "football" : "baseball";
+  const allPlayers = useMemo(
+    () => getAllPlayers(getActiveGroup(projectionGroups, activeProjectionGroupId, activeSport)),
+    [projectionGroups, activeProjectionGroupId, activeSport]
+  );
+  const activeGroup = getActiveGroup(projectionGroups, activeProjectionGroupId, activeSport);
   const keeperSlotByPlayer = draftState?.keeperSlotByPlayer ?? {};
   const hasInProgressDraft =
     Object.keys(draftState?.draftedByTeam ?? {}).filter(
@@ -111,7 +128,7 @@ export function DraftSection() {
     updateLeague({ leagueSettings: next });
   };
 
-  const maxKeeperRound = getTeamRosterSize(leagueSettings);
+  const maxKeeperRound = getTeamRosterSize(activeLeague, leagueSettings);
 
   const getNextAvailableKeeperRound = (teamIndex: number) => {
     let round = 1;
@@ -273,6 +290,14 @@ export function DraftSection() {
     return `Pick ${context.overallPick}`;
   };
 
+  const footballConfig =
+    activeLeague?.sport === "football" ? normalizeFootballConfig(activeLeague.football) : null;
+
+  const getCandidatePoints = (player: KeeperPlayer) =>
+    player._type === "football"
+      ? calculateFootballPoints(player, (footballConfig ?? normalizeFootballConfig(undefined)).scoring)
+      : calculatePlayerPoints(player, activeLeague.scoringSettings);
+
   const getKeeperCandidatesForTeam = (teamIndex: number) => {
     const search = keeperSearchByTeam[teamIndex] ?? "";
     if (search.trim().length === 0) return [];
@@ -281,9 +306,7 @@ export function DraftSection() {
       .filter((player) => draftState.keeperByTeam[player._id] === undefined)
       .filter((player) => matchesPlayerSearch(player, search))
       .sort((left, right) => {
-        const pointDelta =
-          calculatePlayerPoints(right, activeLeague.scoringSettings) -
-          calculatePlayerPoints(left, activeLeague.scoringSettings);
+        const pointDelta = getCandidatePoints(right) - getCandidatePoints(left);
         if (pointDelta !== 0) return pointDelta;
         return left.Name.localeCompare(right.Name);
       })
