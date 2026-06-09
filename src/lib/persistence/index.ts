@@ -124,6 +124,7 @@ export function migrate(
   const league: League = {
     id: randomUUID(),
     name: "My League",
+    sport: "baseball",
     scoringSettings,
     leagueSettings,
     draftState,

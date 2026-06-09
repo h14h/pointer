@@ -167,6 +167,7 @@ export function createProjectionGroupFromPublicDataset(
 ): ProjectionGroup {
   return {
     ...payload.projectionGroup,
+    sport: "baseball",
     eligibilityImportSeason: payload.season,
     source: createPublicDatasetSource(payload, seededAt),
   };

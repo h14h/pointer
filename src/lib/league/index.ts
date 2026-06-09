@@ -5,7 +5,9 @@ import type {
   RosterSettings,
   RosterSlot,
   League,
+  Sport,
 } from "@/types";
+import { createDefaultFootballConfig, normalizeFootballConfig } from "@/lib/football/defaults";
 import { randomUUID } from "@/lib/uuid";
 
 // ---------------------------------------------------------------------------
@@ -104,15 +106,20 @@ export const createDefaultDraftState = (): DraftState => ({
 
 export const createDefaultLeague = (
   name = "My League",
-  options?: { deterministic?: boolean }
-): League => ({
-  id: options?.deterministic ? INITIAL_LEAGUE_ID : randomUUID(),
-  name,
-  scoringSettings: { ...defaultScoringSettings },
-  leagueSettings: { ...defaultLeagueSettings },
-  draftState: createDefaultDraftState(),
-  updatedAt: options?.deterministic ? 0 : Date.now(),
-});
+  options?: { deterministic?: boolean; sport?: Sport }
+): League => {
+  const sport = options?.sport ?? "baseball";
+  return {
+    id: options?.deterministic ? INITIAL_LEAGUE_ID : randomUUID(),
+    name,
+    sport,
+    scoringSettings: { ...defaultScoringSettings },
+    leagueSettings: { ...defaultLeagueSettings },
+    ...(sport === "football" ? { football: createDefaultFootballConfig() } : {}),
+    draftState: createDefaultDraftState(),
+    updatedAt: options?.deterministic ? 0 : Date.now(),
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Normalization
@@ -157,12 +164,17 @@ export const normalizeLeagueSettings = (settings: LeagueSettings): LeagueSetting
   };
 };
 
-export const normalizeLeague = (league: League): League => ({
-  ...league,
-  scoringSettings: normalizeScoringSettings(league.scoringSettings),
-  leagueSettings: normalizeLeagueSettings(league.leagueSettings),
-  updatedAt: league.updatedAt ?? Date.now(),
-});
+export const normalizeLeague = (league: League): League => {
+  const sport: Sport = league.sport === "football" ? "football" : "baseball";
+  return {
+    ...league,
+    sport,
+    scoringSettings: normalizeScoringSettings(league.scoringSettings ?? defaultScoringSettings),
+    leagueSettings: normalizeLeagueSettings(league.leagueSettings ?? defaultLeagueSettings),
+    ...(sport === "football" ? { football: normalizeFootballConfig(league.football) } : {}),
+    updatedAt: league.updatedAt ?? Date.now(),
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Draft structure change detection

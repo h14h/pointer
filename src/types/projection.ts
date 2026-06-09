@@ -1,5 +1,6 @@
 import type { Player, TwoWayPlayer } from "./player";
-import type { League } from "./league";
+import type { FootballPlayer } from "./football";
+import type { League, Sport } from "./league";
 
 export type IdSource = "MLBAMID" | "PlayerId" | "custom" | "generated";
 
@@ -18,10 +19,12 @@ export type ProjectionGroup = {
   id: string;
   name: string;
   createdAt: string;
+  sport: Sport;
   source: ProjectionGroupSource;
   batters: Player[];
   pitchers: Player[];
   twoWayPlayers: TwoWayPlayer[];
+  footballPlayers?: FootballPlayer[];
   batterIdSource: IdSource | null;
   pitcherIdSource: IdSource | null;
   eligibilityImportSeason?: number;

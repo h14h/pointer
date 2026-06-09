@@ -27,6 +27,7 @@ import type {
   League,
   Player,
   ProjectionGroup,
+  Sport,
 } from "@/types";
 import { randomUUID } from "@/lib/uuid";
 
@@ -66,7 +67,7 @@ interface Store {
   hasHydrated: boolean;
 
   // League actions
-  createLeague: (name?: string) => void;
+  createLeague: (name?: string, sport?: Sport) => void;
   deleteLeague: (id: string) => void;
   duplicateLeague: (id: string) => void;
   renameLeague: (id: string, name: string) => void;
@@ -140,9 +141,9 @@ export const useStore = create<Store>()(
       setHasHydrated: (value) => set({ hasHydrated: value }),
 
       // League CRUD
-      createLeague: (name) =>
+      createLeague: (name, sport) =>
         set((state) => {
-          const newLeague = createDefaultLeague(name);
+          const newLeague = createDefaultLeague(name, { sport });
           return { leagues: [...state.leagues, newLeague], activeLeagueId: newLeague.id };
         }),
 
@@ -387,7 +388,7 @@ export const useStore = create<Store>()(
     {
       name: "pointer-storage",
       storage: createJSONStorage(() => dexieStorage),
-      version: 8,
+      version: 9,
       skipHydration: true,
       partialize: (state): PersistedStoreState => ({
         leagues: state.leagues,
