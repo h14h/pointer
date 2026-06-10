@@ -27,6 +27,14 @@ RUN bun install
 # Copy application code
 COPY . .
 
+# Public client config, inlined into the bundle by `next build`. These are
+# public values (Clerk publishable key, Convex URL) — pass them via
+# [build.args] in fly.toml. Leave unset for a local-only/free deployment.
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_CONVEX_URL
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY \
+    NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL
+
 # Build application
 RUN bunx next build --experimental-build-mode compile
 

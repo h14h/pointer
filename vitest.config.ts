@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.test.tsx"],
+    include: ["src/**/*.test.tsx", "convex/**/*.test.ts"],
   },
   resolve: {
     alias: {
