@@ -58,6 +58,8 @@ type PersistedStoreState = {
   activeProjectionGroupId: string | null;
   isDraftMode: boolean;
   mergeTwoWayRankings: boolean;
+  deletedLeagueIds?: string[];
+  hasOnboarded?: boolean;
 };
 
 type V4State = {
@@ -88,6 +90,7 @@ export function migrate(
       projectionGroups,
       activeProjectionGroupId:
         state.activeProjectionGroupId ?? getProjectionGroupFallbackId(projectionGroups),
+      hasOnboarded: true,
     };
   }
 
@@ -100,6 +103,7 @@ export function migrate(
       projectionGroups,
       activeProjectionGroupId:
         state.activeProjectionGroupId ?? getProjectionGroupFallbackId(projectionGroups),
+      hasOnboarded: true,
     };
   }
 
@@ -109,6 +113,9 @@ export function migrate(
       ...state,
       leagues: (state.leagues ?? []).map(normalizeLeague),
       projectionGroups: normalizeProjectionGroups(state.projectionGroups ?? []),
+      deletedLeagueIds: state.deletedLeagueIds ?? [],
+      // Anything persisted before the welcome screen existed counts as onboarded
+      hasOnboarded: version >= 10 ? (state.hasOnboarded ?? true) : true,
     };
   }
 
@@ -124,6 +131,7 @@ export function migrate(
   const league: League = {
     id: randomUUID(),
     name: "My League",
+    sport: "baseball",
     scoringSettings,
     leagueSettings,
     draftState,
@@ -139,5 +147,6 @@ export function migrate(
       getProjectionGroupFallbackId(normalizeProjectionGroups(state.projectionGroups ?? [])),
     isDraftMode: state.isDraftMode ?? false,
     mergeTwoWayRankings: state.mergeTwoWayRankings ?? true,
+    hasOnboarded: true,
   };
 }

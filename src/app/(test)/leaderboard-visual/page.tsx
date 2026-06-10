@@ -95,6 +95,7 @@ function league(variant: string): League {
 	return {
 		id: "visual-test-league",
 		name: "Visual Test League",
+		sport: "baseball",
 		scoringSettings: scoringSettings(),
 		leagueSettings: leagueSettings(),
 		draftState: draftState(variant),
@@ -159,6 +160,7 @@ function projectionGroup(): ProjectionGroup {
 	return {
 		id: "visual-test-group",
 		name: "Visual Test Projections",
+		sport: "baseball",
 		createdAt: "2026-03-22T00:00:00.000Z",
 		source: { kind: "upload" },
 		batterIdSource: "MLBAMID",

@@ -8,7 +8,9 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 
 | Domain | Description | Source Files | Spec |
 |--------|-------------|-------------|------|
-| Types & Schemas | Core data structures used across the app | `src/types/` (`player.ts`, `league.ts`, `draft.ts`, `projection.ts`, `index.ts`) | [docs/types.md](docs/types.md) |
+| Types & Schemas | Core data structures used across the app | `src/types/` (`player.ts`, `league.ts`, `draft.ts`, `projection.ts`, `football.ts`, `index.ts`) | [docs/types.md](docs/types.md) |
+| Football | Fantasy football domain: scoring presets (Standard/Half PPR/PPR), projections CSV parsing, FLEX/Superflex-aware PAR, and the ranking pipeline | `src/lib/football/` | [docs/football.md](docs/football.md) |
+| Pro / Monetization | Clerk auth + billing and Convex cloud league sync for the Pro tier; app remains fully functional without configuration | `src/lib/pro/`, `src/components/pro/`, `src/components/providers/AppProviders.tsx`, `src/app/pricing/page.tsx`, `src/proxy.ts`, `convex/` | [docs/monetization.md](docs/monetization.md) |
 | Scoring | Point calculation, scoring presets, and league-specific weight application | `src/lib/scoring/` | [docs/scoring.md](docs/scoring.md) |
 | Draft | Snake draft math, keeper reservations, pick tracking, and pure state transformers | `src/lib/draft/` | [docs/state.md](docs/state.md) |
 | League | League creation, normalization, validation, defaults, and scoring presets | `src/lib/league/` | [docs/state.md](docs/state.md) |
@@ -21,10 +23,11 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 | MLB Stats API | Fetching real-time stats from MLB's public API for eligibility enrichment | `src/lib/eligibility/mlbStatsApi.ts` | [docs/mlb-stats-api.md](docs/mlb-stats-api.md) |
 | Public Datasets | Public catalog/bootstrap flow for the built-in Tigris-backed historical dataset | `src/lib/projections/publicDatasets.ts`, `src/server/publicDatasets/storage.ts`, `src/app/api/public-datasets/**`, `src/components/PublicDatasetBootstrap.tsx`, `scripts/publish-public-dataset.ts`, `data/public-datasets/**` | [docs/public-datasets.md](docs/public-datasets.md) |
 | State Management | Zustand store as thin coordination layer over domain modules | `src/store/index.ts` | [docs/state.md](docs/state.md) |
-| Leaderboard UI | Player ranking table with sorting, filtering, draft interactions | `src/components/Leaderboard.tsx`, `e2e/leaderboard.spec.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
-| CSV Upload Workflow | Upload modal, file handling, eligibility import, and optional pitching-outcome estimation | `src/components/CsvUpload.tsx` | [docs/csv-upload-workflow.md](docs/csv-upload-workflow.md) |
+| Leaderboard UI | Player ranking table with sorting, filtering, draft interactions | `src/components/Leaderboard.tsx`, `src/components/FootballLeaderboard.tsx`, `e2e/leaderboard.spec.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
+| CSV Upload Workflow | Upload modal, file handling, eligibility import, and optional pitching-outcome estimation | `src/components/CsvUpload.tsx`, `src/components/FootballCsvUpload.tsx` | [docs/csv-upload-workflow.md](docs/csv-upload-workflow.md) |
 | Settings Page | Dedicated settings route with sectioned Projections, Scoring, Roster, Draft, and League controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx` | [docs/settings-page.md](docs/settings-page.md) |
-| Header | Top navigation, projection/league selection, and global controls | `src/components/Header.tsx` | [docs/header.md](docs/header.md) |
+| Header | Top navigation, sport switching, projection/league selection, and global controls | `src/components/Header.tsx`, `src/components/SportSwitcher.tsx` | [docs/header.md](docs/header.md) |
+| Onboarding | First-run welcome screen with sport selection; view gating on `/`; ongoing sport switching | `src/components/Welcome.tsx`, `src/components/SportSwitcher.tsx`, `src/app/page.tsx` | [docs/onboarding.md](docs/onboarding.md) |
 | UI System | Shared visual tokens, shadcn/ui integration, and reusable UI primitives for consistent styling | `src/app/globals.css`, `src/components/ui/*.tsx`, `src/lib/utils.ts`, `components.json` | [docs/ui-system.md](docs/ui-system.md) |
 | Utilities | Debounce hook and other shared helpers | `src/lib/useDebounce.ts` | [docs/utilities.md](docs/utilities.md) |
 

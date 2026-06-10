@@ -1,4 +1,7 @@
 import type { DraftState } from "./draft";
+import type { FootballLeagueConfig } from "./football";
+
+export type Sport = "baseball" | "football";
 
 export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH";
 
@@ -73,8 +76,12 @@ export interface LeagueSettings {
 export interface League {
   id: string;
   name: string;
+  sport: Sport;
+  // Baseball scoring/roster live in scoringSettings/leagueSettings.roster;
+  // football leagues keep theirs in `football` and ignore the baseball fields.
   scoringSettings: ScoringSettings;
   leagueSettings: LeagueSettings;
+  football?: FootballLeagueConfig;
   draftState: DraftState;
   updatedAt: number;
 }

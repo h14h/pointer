@@ -122,6 +122,36 @@ describe("migrate", () => {
     expect(typeof result.projectionGroups[0].eligibilityImportSeason).toBe("number");
   });
 
+  test("pre-v10 data is treated as already onboarded", async () => {
+    const input = {
+      leagues: [makeLeague()],
+      activeLeagueId: "league-1",
+      projectionGroups: [makeProjectionGroup()],
+      activeProjectionGroupId: "pg-1",
+      isDraftMode: false,
+      mergeTwoWayRankings: true,
+    };
+
+    for (const version of [6, 7, 8, 9]) {
+      const result = migrate(input, version) as { hasOnboarded?: boolean };
+      expect(result.hasOnboarded).toBe(true);
+    }
+  });
+
+  test("pre-v10 leagues default to baseball sport", async () => {
+    const input = {
+      leagues: [makeLeague()],
+      activeLeagueId: "league-1",
+      projectionGroups: [],
+      activeProjectionGroupId: null,
+      isDraftMode: false,
+      mergeTwoWayRankings: true,
+    };
+
+    const result = migrate(input, 9) as { leagues: { sport?: string }[] };
+    expect(result.leagues[0].sport).toBe("baseball");
+  });
+
   test("pre-v6 (v4 shape with flat settings) produces leagues array", async () => {
     const v4State = {
       scoringSettings: { ...defaultScoringSettings },

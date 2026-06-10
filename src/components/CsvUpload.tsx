@@ -289,6 +289,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
       id: randomUUID(),
       name: trimmedName,
       createdAt: new Date().toISOString(),
+      sport: "baseball",
       source: { kind: "upload" },
       batters,
       pitchers,

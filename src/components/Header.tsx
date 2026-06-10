@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Toggle } from "@/components/ui/Toggle";
+import { AccountControls } from "@/components/pro/AccountControls";
+import { SportSwitcher } from "@/components/SportSwitcher";
 import { getProjectionGroupDisplayName, getProjectionGroupSourceLabel } from "@/lib/projections";
 import { useStore } from "@/store";
 
@@ -25,14 +27,20 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
     leagues,
     activeLeagueId,
     setActiveLeague,
+    createLeague,
     projectionGroups,
     activeProjectionGroupId,
     setActiveProjectionGroup,
   } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
+  const activeSport = activeLeague?.sport ?? "baseball";
+  const sportProjectionGroups = useMemo(
+    () => projectionGroups.filter((group) => (group.sport ?? "baseball") === activeSport),
+    [projectionGroups, activeSport]
+  );
   const activeProjectionGroup =
-    projectionGroups.find((group) => group.id === activeProjectionGroupId) ??
-    projectionGroups[0] ??
+    sportProjectionGroups.find((group) => group.id === activeProjectionGroupId) ??
+    sportProjectionGroups[0] ??
     null;
   const pathname = usePathname();
   const isSettingsPage = pathname === "/settings";
@@ -42,7 +50,8 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
 
   const settingsHref = isSettingsPage ? "/" : "/settings?section=scoring";
   const settingsTitle = isSettingsPage ? "Back to leaderboard" : "Settings";
-  const pageLabel = isSettingsPage ? "Settings" : "Leaderboard";
+  const sportLabel = activeSport === "football" ? "Football" : "Baseball";
+  const pageLabel = isSettingsPage ? `${sportLabel} · Settings` : `${sportLabel} · Leaderboard`;
 
   const closeAllMenus = () => {
     setIsLeagueOpen(false);
@@ -52,17 +61,22 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
 
   const projectionOptions = useMemo(
     () =>
-      projectionGroups.map((group) => ({
+      sportProjectionGroups.map((group) => ({
         value: group.id,
         label: getProjectionGroupDisplayName(group),
         description: getProjectionGroupSourceLabel(group),
       })),
-    [projectionGroups]
+    [sportProjectionGroups]
   );
 
+  // The sport switcher owns cross-sport navigation; the league dropdown only
+  // offers leagues within the active sport
   const leagueOptions = useMemo(
-    () => leagues.map((league) => ({ value: league.id, label: league.name })),
-    [leagues]
+    () =>
+      leagues
+        .filter((league) => (league.sport ?? "baseball") === activeSport)
+        .map((league) => ({ value: league.id, label: league.name })),
+    [leagues, activeSport]
   );
 
   const projectionFooter = (
@@ -75,14 +89,32 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
     </Link>
   );
 
+  const quickCreateLeague = () => {
+    createLeague(
+      activeSport === "football" ? "My Football League" : "My Baseball League",
+      activeSport
+    );
+    closeAllMenus();
+  };
+
   const leagueFooter = (
-    <Link
-      href="/settings?section=leagues"
-      onClick={closeAllMenus}
-      className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-[var(--color-fg-subtle)] hover:bg-[var(--color-surface-hover)]"
-    >
-      Manage leagues...
-    </Link>
+    <div className="divide-y divide-[var(--color-border-soft)]">
+      <button
+        type="button"
+        onClick={quickCreateLeague}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-[var(--color-fg-subtle)] hover:bg-[var(--color-surface-hover)]"
+      >
+        <span aria-hidden="true" className="text-[var(--color-accent)]">+</span>
+        New {activeSport} league
+      </button>
+      <Link
+        href="/settings?section=leagues"
+        onClick={closeAllMenus}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-[var(--color-fg-subtle)] hover:bg-[var(--color-surface-hover)]"
+      >
+        Manage leagues...
+      </Link>
+    </div>
   );
 
   return (
@@ -115,6 +147,7 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
             </div>
 
             <div className="flex items-center gap-2 lg:hidden">
+              <AccountControls />
               <label className="flex items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-3 py-1.5 font-sans text-sm font-medium text-[var(--color-fg-muted)]">
                 Draft
                 <Toggle
@@ -144,6 +177,8 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
             </div>
 
             <div className="hidden flex-wrap items-center gap-3 font-sans lg:flex">
+              <SportSwitcher />
+
               <Dropdown
                 options={projectionOptions}
                 value={activeProjectionGroup?.id ?? projectionOptions[0]?.value ?? ""}
@@ -176,6 +211,7 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
                   onClick={() => setDraftMode(!isDraftMode)}
                 />
               </label>
+              <AccountControls />
               <Link
                 href={settingsHref}
                 aria-label="Settings"
@@ -196,7 +232,9 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 font-sans lg:hidden">
+          <div className="mt-4 flex flex-wrap items-center gap-2 font-sans lg:hidden">
+            <SportSwitcher />
+
             <Dropdown
               options={projectionOptions}
               value={activeProjectionGroup?.id ?? projectionOptions[0]?.value ?? ""}

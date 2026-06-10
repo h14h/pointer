@@ -12,6 +12,7 @@ import {
 import {
   createDefaultDraftState,
   createDefaultLeague,
+  INITIAL_LEAGUE_ID,
   isStructureChangeSafe,
   normalizeLeague,
   normalizeLeagueSettings,
@@ -27,6 +28,7 @@ import type {
   League,
   Player,
   ProjectionGroup,
+  Sport,
 } from "@/types";
 import { randomUUID } from "@/lib/uuid";
 
@@ -64,14 +66,24 @@ interface Store {
   isDraftMode: boolean;
   mergeTwoWayRankings: boolean;
   hasHydrated: boolean;
+  // League ids deleted locally but possibly still in cloud storage (Pro sync
+  // tombstones — cleared once the cloud copy is removed)
+  deletedLeagueIds: string[];
+  // First-run flag: false until the user picks a sport on the welcome screen.
+  // Existing installs migrate to true so they never see onboarding.
+  hasOnboarded: boolean;
 
   // League actions
-  createLeague: (name?: string) => void;
+  createLeague: (name?: string, sport?: Sport) => void;
+  completeOnboarding: (sport: Sport) => void;
+  switchSport: (sport: Sport) => void;
   deleteLeague: (id: string) => void;
   duplicateLeague: (id: string) => void;
   renameLeague: (id: string, name: string) => void;
   setActiveLeague: (id: string) => void;
-  updateLeague: (partial: Partial<Pick<League, "scoringSettings" | "leagueSettings">>) => void;
+  updateLeague: (
+    partial: Partial<Pick<League, "scoringSettings" | "leagueSettings" | "football">>,
+  ) => void;
 
   // Projection actions
   addProjectionGroup: (group: ProjectionGroup) => void;
@@ -99,6 +111,10 @@ interface Store {
     season: number,
   ) => void;
 
+  // Cloud sync (Pro)
+  applyCloudLeagues: (incoming: League[]) => void;
+  clearDeletedLeagueIds: (ids: string[]) => void;
+
   // Selectors
   getActiveLeague: () => League | undefined;
   setHasHydrated: (value: boolean) => void;
@@ -112,6 +128,8 @@ type PersistedStoreState = Pick<
   | "activeProjectionGroupId"
   | "isDraftMode"
   | "mergeTwoWayRankings"
+  | "deletedLeagueIds"
+  | "hasOnboarded"
 >;
 
 // ---------------------------------------------------------------------------
@@ -129,6 +147,31 @@ export const useStore = create<Store>()(
       isDraftMode: false,
       mergeTwoWayRankings: true,
       hasHydrated: false,
+      deletedLeagueIds: [],
+      hasOnboarded: false,
+
+      // Cloud sync (Pro): merge remote leagues without bumping updatedAt so
+      // last-write-wins stays stable across devices
+      applyCloudLeagues: (incoming) =>
+        set((state) => {
+          if (incoming.length === 0) return state;
+          const incomingById = new Map(incoming.map((league) => [league.id, league]));
+          const merged = state.leagues.map((league) => {
+            const remote = incomingById.get(league.id);
+            if (!remote) return league;
+            incomingById.delete(league.id);
+            return remote.updatedAt > (league.updatedAt ?? 0) ? normalizeLeague(remote) : league;
+          });
+          const added = [...incomingById.values()]
+            .filter((league) => !state.deletedLeagueIds.includes(league.id))
+            .map(normalizeLeague);
+          return { leagues: [...merged, ...added] };
+        }),
+
+      clearDeletedLeagueIds: (ids) =>
+        set((state) => ({
+          deletedLeagueIds: state.deletedLeagueIds.filter((id) => !ids.includes(id)),
+        })),
 
       // Selectors / hydration
       getActiveLeague: () => {
@@ -140,10 +183,60 @@ export const useStore = create<Store>()(
       setHasHydrated: (value) => set({ hasHydrated: value }),
 
       // League CRUD
-      createLeague: (name) =>
+      // Activate the most recently used league of the target sport, creating
+      // one when the user has none — sport is a mode, leagues live within it
+      switchSport: (sport) =>
         set((state) => {
-          const newLeague = createDefaultLeague(name);
+          const active =
+            state.leagues.find((l) => l.id === state.activeLeagueId) ?? state.leagues[0];
+          if ((active?.sport ?? "baseball") === sport) return state;
+
+          const candidates = state.leagues.filter((l) => (l.sport ?? "baseball") === sport);
+          if (candidates.length > 0) {
+            const mostRecent = candidates.reduce((latest, league) =>
+              (league.updatedAt ?? 0) > (latest.updatedAt ?? 0) ? league : latest,
+            );
+            return { activeLeagueId: mostRecent.id };
+          }
+
+          const league = createDefaultLeague(
+            sport === "football" ? "My Football League" : "My Baseball League",
+            { sport },
+          );
+          return { leagues: [...state.leagues, league], activeLeagueId: league.id };
+        }),
+
+      createLeague: (name, sport) =>
+        set((state) => {
+          const newLeague = createDefaultLeague(name, { sport });
           return { leagues: [...state.leagues, newLeague], activeLeagueId: newLeague.id };
+        }),
+
+      completeOnboarding: (sport) =>
+        set((state) => {
+          const defaultName = sport === "football" ? "My Football League" : "My Baseball League";
+
+          // Fresh install: replace the untouched placeholder league outright
+          const onlyPristineDefault =
+            state.leagues.length === 1 &&
+            state.leagues[0].id === INITIAL_LEAGUE_ID &&
+            state.leagues[0].updatedAt === 0;
+          if (onlyPristineDefault) {
+            const league = createDefaultLeague(defaultName, { sport });
+            return { leagues: [league], activeLeagueId: league.id, hasOnboarded: true };
+          }
+
+          // Otherwise activate an existing league of that sport, or add one
+          const existing = state.leagues.find((l) => (l.sport ?? "baseball") === sport);
+          if (existing) {
+            return { activeLeagueId: existing.id, hasOnboarded: true };
+          }
+          const league = createDefaultLeague(defaultName, { sport });
+          return {
+            leagues: [...state.leagues, league],
+            activeLeagueId: league.id,
+            hasOnboarded: true,
+          };
         }),
 
       deleteLeague: (id) =>
@@ -152,7 +245,11 @@ export const useStore = create<Store>()(
           const leagues = state.leagues.filter((l) => l.id !== id);
           const activeLeagueId =
             state.activeLeagueId === id ? (leagues[0]?.id ?? null) : state.activeLeagueId;
-          return { leagues, activeLeagueId };
+          return {
+            leagues,
+            activeLeagueId,
+            deletedLeagueIds: [...new Set([...state.deletedLeagueIds, id])],
+          };
         }),
 
       duplicateLeague: (id) =>
@@ -190,6 +287,7 @@ export const useStore = create<Store>()(
                 ...partial,
                 scoringSettings: partial.scoringSettings ?? l.scoringSettings,
                 leagueSettings: partial.leagueSettings ?? l.leagueSettings,
+                football: partial.football ?? l.football,
                 updatedAt: Date.now(),
               };
               if (partial.leagueSettings && hasManualDraftActivity(l.draftState)) {
@@ -387,7 +485,7 @@ export const useStore = create<Store>()(
     {
       name: "pointer-storage",
       storage: createJSONStorage(() => dexieStorage),
-      version: 8,
+      version: 10,
       skipHydration: true,
       partialize: (state): PersistedStoreState => ({
         leagues: state.leagues,
@@ -396,6 +494,8 @@ export const useStore = create<Store>()(
         activeProjectionGroupId: state.activeProjectionGroupId,
         isDraftMode: state.isDraftMode,
         mergeTwoWayRankings: state.mergeTwoWayRankings,
+        deletedLeagueIds: state.deletedLeagueIds,
+        hasOnboarded: state.hasOnboarded,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (!error) {

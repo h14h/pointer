@@ -146,14 +146,23 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                       {getProjectionGroupDisplayName(group)}
                     </h3>
                     <Badge variant="neutral">{sourceLabel}</Badge>
+                    <Badge variant={group.sport === "football" ? "accent" : "neutral"}>
+                      {group.sport === "football" ? "Football" : "Baseball"}
+                    </Badge>
                     {isActive ? (
                       <Badge variant="accent">Active</Badge>
                     ) : null}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-4 text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
-                    <span>{counts.batters} batters</span>
-                    <span>{counts.pitchers} pitchers</span>
-                    <span>{counts.twoWayPlayers} two-way</span>
+                    {group.sport === "football" ? (
+                      <span>{counts.footballPlayers} players</span>
+                    ) : (
+                      <>
+                        <span>{counts.batters} batters</span>
+                        <span>{counts.pitchers} pitchers</span>
+                        <span>{counts.twoWayPlayers} two-way</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -169,7 +178,11 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+              <div
+                className={`mt-4 grid gap-4 ${
+                  group.sport === "football" ? "" : "lg:grid-cols-[minmax(0,1fr)_20rem]"
+                }`}
+              >
                 <div className="space-y-3">
                   {!isBuiltIn ? (
                     <>
@@ -234,6 +247,7 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                     </Panel>
                   )}
 
+                  {group.sport !== "football" && (
                   <Panel tone="muted" padding="sm" className="rounded-md">
                     <FieldLabel className="block">Eligibility Status</FieldLabel>
                     <div className="mt-2 space-y-1 text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
@@ -253,8 +267,10 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                       </p>
                     ) : null}
                   </Panel>
+                  )}
                 </div>
 
+                {group.sport !== "football" && (
                 <Panel tone="default" padding="md" className="rounded-md border">
                   <FieldLabel className="block">Eligibility Season</FieldLabel>
                   <Input
@@ -290,6 +306,7 @@ export function ProjectionsSection({ onOpenUpload }: ProjectionsSectionProps) {
                     </div>
                   ) : null}
                 </Panel>
+                )}
               </div>
             </Panel>
           );

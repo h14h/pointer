@@ -19,9 +19,17 @@ export function getProjectionGroupFallbackId(groups: ProjectionGroup[]): string 
 
 export function normalizeProjectionGroup(group: ProjectionGroup): ProjectionGroup {
   const source = group.source ?? UPLOAD_PROJECTION_SOURCE;
+  const sport =
+    group.sport === "football" || (group.footballPlayers?.length ?? 0) > 0
+      ? "football"
+      : "baseball";
   return {
     ...group,
     source,
+    sport,
+    batters: group.batters ?? [],
+    pitchers: group.pitchers ?? [],
+    twoWayPlayers: group.twoWayPlayers ?? [],
     eligibilityImportSeason:
       Number.isFinite(group.eligibilityImportSeason) && (group.eligibilityImportSeason ?? 0) > 0
         ? Math.round(group.eligibilityImportSeason as number)
@@ -50,5 +58,6 @@ export function getProjectionGroupPlayerCounts(group: ProjectionGroup) {
     batters: group.batters.length,
     pitchers: group.pitchers.length,
     twoWayPlayers: group.twoWayPlayers.length,
+    footballPlayers: group.footballPlayers?.length ?? 0,
   };
 }
