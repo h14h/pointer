@@ -26,11 +26,19 @@ dropping new visitors straight onto a leaderboard they never chose.
   can carry `hasOnboarded: false`.
 - The settings page and direct routes are not gated — only the `/` view.
 
-## Ongoing sport visibility
+## Ongoing sport switching
 
-After onboarding, the sport stays visible and switchable from the header:
+After onboarding, sport is a first-class mode in the header, separate from
+league selection:
 
+- `SportSwitcher` (`src/components/SportSwitcher.tsx`) is a segmented
+  Baseball/Football control rendered in the header on desktop and mobile.
+  Switching calls the store's `switchSport(sport)`, which activates the most
+  recently updated league of that sport — or creates one ("My Baseball
+  League" / "My Football League") when none exists.
+- The league dropdown is scoped to the active sport: it only lists leagues of
+  that sport, and its footer quick-create action makes a new league of the
+  current sport. Cross-sport navigation belongs to the switcher, not the
+  league list.
 - The page label under the masthead reads "Baseball · Leaderboard" /
-  "Football · Settings" etc.
-- The league dropdown footer has quick actions to create a new baseball or
-  football league without visiting Settings → Leagues.
+  "Football · Settings" etc., so the active mode is always visible.

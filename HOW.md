@@ -26,8 +26,8 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 | Leaderboard UI | Player ranking table with sorting, filtering, draft interactions | `src/components/Leaderboard.tsx`, `src/components/FootballLeaderboard.tsx`, `e2e/leaderboard.spec.ts` | [docs/leaderboard.md](docs/leaderboard.md) |
 | CSV Upload Workflow | Upload modal, file handling, eligibility import, and optional pitching-outcome estimation | `src/components/CsvUpload.tsx`, `src/components/FootballCsvUpload.tsx` | [docs/csv-upload-workflow.md](docs/csv-upload-workflow.md) |
 | Settings Page | Dedicated settings route with sectioned Projections, Scoring, Roster, Draft, and League controls | `src/app/settings/page.tsx`, `src/components/settings/*.tsx` | [docs/settings-page.md](docs/settings-page.md) |
-| Header | Top navigation, projection/league selection, and global controls | `src/components/Header.tsx` | [docs/header.md](docs/header.md) |
-| Onboarding | First-run welcome screen with sport selection; view gating on `/` | `src/components/Welcome.tsx`, `src/app/page.tsx` | [docs/onboarding.md](docs/onboarding.md) |
+| Header | Top navigation, sport switching, projection/league selection, and global controls | `src/components/Header.tsx`, `src/components/SportSwitcher.tsx` | [docs/header.md](docs/header.md) |
+| Onboarding | First-run welcome screen with sport selection; view gating on `/`; ongoing sport switching | `src/components/Welcome.tsx`, `src/components/SportSwitcher.tsx`, `src/app/page.tsx` | [docs/onboarding.md](docs/onboarding.md) |
 | UI System | Shared visual tokens, shadcn/ui integration, and reusable UI primitives for consistent styling | `src/app/globals.css`, `src/components/ui/*.tsx`, `src/lib/utils.ts`, `components.json` | [docs/ui-system.md](docs/ui-system.md) |
 | Utilities | Debounce hook and other shared helpers | `src/lib/useDebounce.ts` | [docs/utilities.md](docs/utilities.md) |
 

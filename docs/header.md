@@ -2,6 +2,7 @@
 
 ## Source Files
 - `src/components/Header.tsx`
+- `src/components/SportSwitcher.tsx` — segmented baseball/football mode control; see [onboarding.md](onboarding.md)
 
 ## Dependencies
 - [State](state.md) — draft state, league settings, draft mode toggle

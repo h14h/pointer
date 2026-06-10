@@ -76,6 +76,7 @@ interface Store {
   // League actions
   createLeague: (name?: string, sport?: Sport) => void;
   completeOnboarding: (sport: Sport) => void;
+  switchSport: (sport: Sport) => void;
   deleteLeague: (id: string) => void;
   duplicateLeague: (id: string) => void;
   renameLeague: (id: string, name: string) => void;
@@ -182,6 +183,29 @@ export const useStore = create<Store>()(
       setHasHydrated: (value) => set({ hasHydrated: value }),
 
       // League CRUD
+      // Activate the most recently used league of the target sport, creating
+      // one when the user has none — sport is a mode, leagues live within it
+      switchSport: (sport) =>
+        set((state) => {
+          const active =
+            state.leagues.find((l) => l.id === state.activeLeagueId) ?? state.leagues[0];
+          if ((active?.sport ?? "baseball") === sport) return state;
+
+          const candidates = state.leagues.filter((l) => (l.sport ?? "baseball") === sport);
+          if (candidates.length > 0) {
+            const mostRecent = candidates.reduce((latest, league) =>
+              (league.updatedAt ?? 0) > (latest.updatedAt ?? 0) ? league : latest,
+            );
+            return { activeLeagueId: mostRecent.id };
+          }
+
+          const league = createDefaultLeague(
+            sport === "football" ? "My Football League" : "My Baseball League",
+            { sport },
+          );
+          return { leagues: [...state.leagues, league], activeLeagueId: league.id };
+        }),
+
       createLeague: (name, sport) =>
         set((state) => {
           const newLeague = createDefaultLeague(name, { sport });

@@ -12,6 +12,7 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Toggle } from "@/components/ui/Toggle";
 import { AccountControls } from "@/components/pro/AccountControls";
+import { SportSwitcher } from "@/components/SportSwitcher";
 import { getProjectionGroupDisplayName, getProjectionGroupSourceLabel } from "@/lib/projections";
 import { useStore } from "@/store";
 
@@ -68,14 +69,14 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
     [sportProjectionGroups]
   );
 
+  // The sport switcher owns cross-sport navigation; the league dropdown only
+  // offers leagues within the active sport
   const leagueOptions = useMemo(
     () =>
-      leagues.map((league) => ({
-        value: league.id,
-        label: league.name,
-        description: league.sport === "football" ? "Football" : "Baseball",
-      })),
-    [leagues]
+      leagues
+        .filter((league) => (league.sport ?? "baseball") === activeSport)
+        .map((league) => ({ value: league.id, label: league.name })),
+    [leagues, activeSport]
   );
 
   const projectionFooter = (
@@ -88,8 +89,11 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
     </Link>
   );
 
-  const quickCreateLeague = (sport: "baseball" | "football") => {
-    createLeague(sport === "football" ? "My Football League" : "My Baseball League", sport);
+  const quickCreateLeague = () => {
+    createLeague(
+      activeSport === "football" ? "My Football League" : "My Baseball League",
+      activeSport
+    );
     closeAllMenus();
   };
 
@@ -97,19 +101,11 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
     <div className="divide-y divide-[var(--color-border-soft)]">
       <button
         type="button"
-        onClick={() => quickCreateLeague("baseball")}
+        onClick={quickCreateLeague}
         className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-[var(--color-fg-subtle)] hover:bg-[var(--color-surface-hover)]"
       >
         <span aria-hidden="true" className="text-[var(--color-accent)]">+</span>
-        New baseball league
-      </button>
-      <button
-        type="button"
-        onClick={() => quickCreateLeague("football")}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs text-[var(--color-fg-subtle)] hover:bg-[var(--color-surface-hover)]"
-      >
-        <span aria-hidden="true" className="text-[var(--color-accent)]">+</span>
-        New football league
+        New {activeSport} league
       </button>
       <Link
         href="/settings?section=leagues"
@@ -181,6 +177,8 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
             </div>
 
             <div className="hidden flex-wrap items-center gap-3 font-sans lg:flex">
+              <SportSwitcher />
+
               <Dropdown
                 options={projectionOptions}
                 value={activeProjectionGroup?.id ?? projectionOptions[0]?.value ?? ""}
@@ -234,7 +232,9 @@ export function Header({ activeSettingsSection = "scoring" }: HeaderProps) {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 font-sans lg:hidden">
+          <div className="mt-4 flex flex-wrap items-center gap-2 font-sans lg:hidden">
+            <SportSwitcher />
+
             <Dropdown
               options={projectionOptions}
               value={activeProjectionGroup?.id ?? projectionOptions[0]?.value ?? ""}
