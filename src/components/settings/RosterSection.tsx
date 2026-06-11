@@ -3,10 +3,8 @@
 import { NumericInput } from "@/components/NumericInput";
 import { useStore } from "@/store";
 import { NumericInputGroup, NumericInputRow } from "@/components/NumericInputGroup";
-import { Badge } from "@/components/ui/badge";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Panel } from "@/components/ui/Panel";
-import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Toggle } from "@/components/ui/Toggle";
 import {
   Tooltip,
@@ -76,16 +74,17 @@ export function RosterSection() {
     leagueSettings.roster.bench;
 
   return (
-    <div className="font-sans">
-      <SectionHeader
-        className="mb-8"
-        title="Roster"
-        description="Set per-team starting slots and reserve capacity."
-        meta={<Badge variant="neutral" size="md" className="tabular-nums">{totalSlots} slots per team</Badge>}
-      />
+    <Panel as="section" padding="none" className="font-sans">
+      {/* Header strip: description + slot tally */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-[var(--color-border-soft)] px-4 py-3 sm:px-5">
+        <p className="text-xs text-[var(--color-fg-muted)]">
+          Set per-team starting slots and reserve capacity.
+        </p>
+        <span className="stamp font-data">{totalSlots} slots per team</span>
+      </div>
 
       {/* Two-column layout: stacks on mobile, side-by-side from sm up */}
-      <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+      <div className="grid gap-x-8 gap-y-6 p-4 sm:grid-cols-2 sm:p-5">
         {/* Left column: position players */}
         <div className="grid content-start gap-6">
           <NumericInputGroup label="Outfield">
@@ -97,6 +96,7 @@ export function RosterSection() {
                 min={0}
                 value={leagueSettings.roster.positions[key] ?? 0}
                 onCommit={(v) => commitRosterSlot(key, v)}
+                inputClassName="font-data w-10 text-sm"
               />
             ))}
           </NumericInputGroup>
@@ -110,6 +110,7 @@ export function RosterSection() {
                 min={0}
                 value={leagueSettings.roster.positions[key] ?? 0}
                 onCommit={(v) => commitRosterSlot(key, v)}
+                inputClassName="font-data w-10 text-sm"
               />
             ))}
           </NumericInputGroup>
@@ -123,6 +124,7 @@ export function RosterSection() {
                 min={0}
                 value={leagueSettings.roster.positions[key] ?? 0}
                 onCommit={(v) => commitRosterSlot(key, v)}
+                inputClassName="font-data w-10 text-sm"
               />
             ))}
           </NumericInputGroup>
@@ -132,11 +134,7 @@ export function RosterSection() {
         <div className="grid content-start gap-6">
           <div>
             <FieldLabel className="mb-2 block">Pitcher Usage</FieldLabel>
-            <Panel
-              tone="accent"
-              padding="md"
-              className="shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
-            >
+            <Panel tone="accent" padding="md">
               <div className="flex items-start justify-between gap-4">
                 <div className="max-w-[22rem]">
                   <div className="flex items-center gap-2">
@@ -181,8 +179,9 @@ export function RosterSection() {
                   disabled={leagueSettings.weeklyStartLimit == null}
                   onCommit={commitWeeklyStartLimit}
                   units="starts"
+                  unitsClassName="stamp"
                   className="gap-3"
-                  inputClassName={`w-12 text-sm sm:w-14 ${
+                  inputClassName={`font-data w-12 text-sm sm:w-14 ${
                     leagueSettings.weeklyStartLimit == null
                       ? "text-[var(--color-fg-subtle)]"
                       : ""
@@ -201,6 +200,7 @@ export function RosterSection() {
                 min={0}
                 value={leagueSettings.roster.positions[key] ?? 0}
                 onCommit={(v) => commitRosterSlot(key, v)}
+                inputClassName="font-data w-10 text-sm"
               />
             ))}
           </NumericInputGroup>
@@ -214,6 +214,7 @@ export function RosterSection() {
                 min={0}
                 value={leagueSettings.roster.positions[key] ?? 0}
                 onCommit={(v) => commitRosterSlot(key, v)}
+                inputClassName="font-data w-10 text-sm"
               />
             ))}
           </NumericInputGroup>
@@ -225,6 +226,7 @@ export function RosterSection() {
               min={0}
               value={leagueSettings.roster.bench}
               onCommit={commitBench}
+              inputClassName="font-data w-10 text-sm"
             />
             {reserveSlots.map((key) => (
               <NumericInputRow
@@ -234,11 +236,12 @@ export function RosterSection() {
                 min={0}
                 value={leagueSettings.roster.positions[key] ?? 0}
                 onCommit={(v) => commitRosterSlot(key, v)}
+                inputClassName="font-data w-10 text-sm"
               />
             ))}
           </NumericInputGroup>
         </div>
       </div>
-    </div>
+    </Panel>
   );
 }

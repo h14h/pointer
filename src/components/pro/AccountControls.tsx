@@ -16,7 +16,7 @@ function SignedInControls({ isPro }: { isPro: boolean }) {
       ) : (
         <Link
           href="/pricing"
-          className="rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90"
+          className="rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--color-accent-fg)] transition-opacity hover:opacity-90"
         >
           Go Pro
         </Link>

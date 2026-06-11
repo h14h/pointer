@@ -4,10 +4,11 @@ import { AppDialog } from "@/components/ui/AppDialog";
 import { AppSheet } from "@/components/ui/AppSheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
-import { DialogShell } from "@/components/ui/DialogShell";
+import { Chip } from "@/components/ui/Chip";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Input } from "@/components/ui/input";
-import { SectionHeader } from "@/components/ui/SectionHeader";
+import { LedgerRow } from "@/components/ui/LedgerRow";
+import { PanelHeader } from "@/components/ui/Panel";
 
 describe("shared ui primitives", () => {
   it("renders button variants with accessible button semantics", () => {
@@ -44,24 +45,26 @@ describe("shared ui primitives", () => {
     expect(screen.getByText("Active").className).toContain("text-[var(--color-accent)]");
   });
 
-  it("closes dialog via the shared close button", () => {
-    const onClose = vi.fn();
-
+  it("renders the chip tones and ledger row idioms", () => {
     render(
-      <DialogShell
-        title="Delete all projections?"
-        description="This cannot be undone."
-        labelledBy="dialog-delete"
-        closeLabel="Close delete dialog"
-        onClose={onClose}
-        footer={<Button variant="destructive">Delete</Button>}
-      />
+      <>
+        <Chip>Baseball</Chip>
+        <Chip tone="warning">draft in progress</Chip>
+        <LedgerRow>
+          <span>R1</span>
+          <span>Bijan Robinson</span>
+        </LedgerRow>
+        <PanelHeader title="sync check" right={<span>r3.04</span>} />
+      </>
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Close delete dialog" }));
-
-    expect(screen.getByRole("dialog")).toHaveAttribute("aria-labelledby", "dialog-delete");
-    expect(onClose).toHaveBeenCalled();
+    expect(screen.getByText("Baseball").className).toContain("rounded-[var(--radius-sm)]");
+    expect(screen.getByText("draft in progress").className).toContain(
+      "text-[var(--color-warning)]"
+    );
+    expect(screen.getByText("Bijan Robinson").parentElement?.className).toContain("border-b");
+    expect(screen.getByText("sync check")).toBeInTheDocument();
+    expect(screen.getByText("r3.04")).toBeInTheDocument();
   });
 
   it("renders multi-select count badge with correct value", () => {
@@ -248,21 +251,6 @@ describe("shared ui primitives", () => {
 
     expect(screen.getByText("Dialog body")).toBeInTheDocument();
     expect(screen.getByText("Sheet body")).toBeInTheDocument();
-    expect(screen.getAllByText("Pointer").length).toBeGreaterThan(0);
-  });
-
-  it("supports section header eyebrow and meta content", () => {
-    render(
-      <SectionHeader
-        eyebrow="Settings"
-        title="Scoring"
-        description="Adjust weights."
-        meta={<span>12 slots</span>}
-      />
-    );
-
-    expect(screen.getByText("Settings")).toBeInTheDocument();
-    expect(screen.getByText("Scoring")).toBeInTheDocument();
-    expect(screen.getByText("12 slots")).toBeInTheDocument();
+    expect(screen.getAllByText("draftspa").length).toBeGreaterThan(0);
   });
 });

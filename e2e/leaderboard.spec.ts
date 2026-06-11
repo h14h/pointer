@@ -67,30 +67,21 @@ test("leaderboard — pitchers view", async ({ page }) => {
 // Horizontal scroll — frozen #/ADP/Name columns over scrolled content
 // ---------------------------------------------------------------------------
 test("leaderboard — scrolled horizontally", async ({ page }) => {
+	// Narrow viewport so the default column set overflows — the columns picker
+	// no longer has per-group "All" buttons to widen the table with, and what
+	// this test actually guards is the frozen #/ADP/Name columns rendering
+	// over horizontally-scrolled content.
+	await page.setViewportSize({ width: 720, height: 900 });
 	await page.goto(BASE);
 	await waitForTable(page);
 
-	// Enable all batting + pitching stat columns via the Customize Stats panel
-	// so the table is wide enough to overflow and require horizontal scrolling.
-	await page.getByRole("button", { name: /customize stats/i }).click();
-	await page.waitForTimeout(200);
-
-	// Click both "All" buttons to turn on every stat column
-	const allButtons = page.getByRole("button", { name: "All", exact: true });
-	const count = await allButtons.count();
-	for (let i = 0; i < count; i++) {
-		await allButtons.nth(i).click();
-	}
-
-	// Close the panel by clicking elsewhere
-	await page.locator("table").click({ position: { x: 0, y: 0 } });
-	await page.waitForTimeout(300);
-
-	// Scroll the overflow container fully to the right
+	// Scroll the overflow container fully to the right and verify it scrolled
 	const scrollContainer = page.locator(".overflow-x-auto");
-	await scrollContainer.evaluate((el) => {
+	const scrolled = await scrollContainer.evaluate((el) => {
 		el.scrollLeft = el.scrollWidth;
+		return el.scrollLeft;
 	});
+	expect(scrolled).toBeGreaterThan(0);
 	await page.waitForTimeout(300);
 
 	const table = page.locator("table");

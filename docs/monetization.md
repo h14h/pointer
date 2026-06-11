@@ -56,20 +56,30 @@ keeps local development, self-hosting, and the free product untouched.
    `CLERK_JWT_ISSUER_DOMAIN` to the Clerk issuer domain from step 1.4
    (consumed by `convex/auth.config.ts`).
 3. For production: `bunx convex deploy` and set `NEXT_PUBLIC_CONVEX_URL` to
-   the production deployment URL in your hosting env (Fly.io secrets).
+   the production deployment URL (see Deploy below — it's a build arg, not a
+   Fly secret).
 
-### 3. Deploy
+### 3. Deploy (Fly.io)
 
-Set all four env vars on the production host:
+The two `NEXT_PUBLIC_*` values are inlined into the client bundles at image
+build, so they go in `fly.toml` under `[build.args]` (they're publishable,
+safe to commit — placeholders are already there, commented):
+
+```toml
+[build.args]
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_live_..."
+  NEXT_PUBLIC_CONVEX_URL = "https://<deployment>.convex.cloud"
+```
+
+Server-side secrets go through the Fly CLI as usual:
 
 ```
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-CLERK_SECRET_KEY
-NEXT_PUBLIC_CONVEX_URL
-CONVEX_DEPLOY_KEY        # only needed in CI for `convex deploy`
+fly secrets set CLERK_SECRET_KEY=sk_...
+# CONVEX_DEPLOY_KEY is only needed in CI for `convex deploy`
 ```
 
-`NEXT_PUBLIC_*` vars are inlined at build time — rebuild after changing them.
+Then `fly deploy` — changing a `[build.args]` value requires a redeploy
+(rebuild), not just a secrets update.
 
 ## How sync works
 

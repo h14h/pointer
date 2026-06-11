@@ -25,11 +25,11 @@ const variantClassNames: Record<BadgeVariant, string> = {
     "border-[color:color-mix(in_srgb,var(--color-danger)_22%,transparent)] bg-[color:color-mix(in_srgb,var(--color-danger)_8%,transparent)] text-[var(--color-danger)]",
   muted:
     "border-transparent bg-[var(--color-surface-muted)] text-[var(--color-fg-subtle)]",
-  count: "border-transparent bg-[var(--color-accent)] text-white",
+  count: "border-transparent bg-[var(--color-accent)] text-[var(--color-accent-fg)]",
   ownershipDrafted:
     "border-[var(--color-border-default)] bg-[var(--color-surface-muted)] text-[var(--color-fg-muted)]",
   ownershipKeeper:
-    "border-[color:color-mix(in_srgb,var(--color-accent)_25%,transparent)] bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)] text-[color:color-mix(in_srgb,var(--color-accent)_85%,black_15%)] dark:text-[color:color-mix(in_srgb,var(--color-accent)_85%,white_10%)]",
+    "border-[color:color-mix(in_srgb,var(--color-accent)_25%,transparent)] bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)] text-[color:color-mix(in_srgb,var(--color-accent)_85%,black_15%)]",
 };
 
 const sizeClassNames: Record<BadgeSize, string> = {

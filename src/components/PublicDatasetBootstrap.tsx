@@ -12,8 +12,11 @@ import { Panel } from "@/components/ui/Panel";
 
 type BootstrapStatus = "idle" | "loading-dataset" | "loading-eligibility" | "error";
 
+// Datasets are plain static assets under /datasets (mirrored there by
+// scripts/generate-public-dataset.ts) — no server handler, normal HTTP
+// caching, zero backend compute for anonymous users.
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, { cache: "no-store" });
+  const response = await fetch(url);
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new Error(body?.error ?? `Request failed for ${url}`);
@@ -85,7 +88,7 @@ export function PublicDatasetBootstrap() {
     setErrorMessage(null);
 
     try {
-      const manifest = await fetchJson<PublicDatasetManifest>("/api/public-datasets");
+      const manifest = await fetchJson<PublicDatasetManifest>("/datasets/manifest.json");
       const defaultDataset = manifest.datasets.find((dataset) => dataset.default) ?? manifest.datasets[0];
 
       if (!defaultDataset) {
@@ -93,7 +96,7 @@ export function PublicDatasetBootstrap() {
       }
 
       const payload = await fetchJson<PublicDatasetPayload>(
-        `/api/public-datasets/${encodeURIComponent(defaultDataset.slug)}`
+        `/datasets/${encodeURIComponent(defaultDataset.slug)}.json`
       );
 
       const group = createProjectionGroupFromPublicDataset(payload);
@@ -148,7 +151,7 @@ export function PublicDatasetBootstrap() {
           <FieldLabel className="tracking-[0.18em]">
             {status === "loading-dataset" ? "Loading Built-In Dataset" : "Importing Eligibility"}
           </FieldLabel>
-          <p className="text-sm text-[#111111]/70 dark:text-[#e5e5e5]/65">
+          <p className="text-sm text-[var(--color-fg-muted)]">
             {status === "loading-dataset"
               ? "Fetching the built-in 2025 Leaders dataset from the public catalog."
               : "Applying 2025 position eligibility to the built-in leaders dataset."}
@@ -157,22 +160,22 @@ export function PublicDatasetBootstrap() {
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <FieldLabel className="tracking-[0.18em] text-[#b45309] dark:text-[#f59e0b]">
+            <FieldLabel className="tracking-[0.18em] text-[var(--color-warning)]">
               {protectedBaseline ? "Built-In Eligibility Unavailable" : "Built-In Dataset Unavailable"}
             </FieldLabel>
-            <p className="text-sm text-[#111111]/70 dark:text-[#e5e5e5]/65">
+            <p className="text-sm text-[var(--color-fg-muted)]">
               {errorMessage ??
                 (protectedBaseline
                   ? "Unable to import position eligibility for 2025 Leaders."
                   : "Unable to load the built-in 2025 Leaders dataset.")}
             </p>
             {!hasAnyProjectionGroup ? (
-              <p className="text-xs text-[#111111]/45 dark:text-[#e5e5e5]/40">
+              <p className="text-xs text-[var(--color-fg-subtle)]">
                 You can retry now or upload your own projections to continue.
               </p>
             ) : protectedBaseline ? (
-              <p className="text-xs text-[#111111]/45 dark:text-[#e5e5e5]/40">
-                The leaders dataset is available now. You can retry the automatic import or re-run it later in Settings &gt; Projections.
+              <p className="text-xs text-[var(--color-fg-subtle)]">
+                The leaders dataset is available now. You can retry the automatic import or re-run it later from your league&apos;s Intel tab.
               </p>
             ) : null}
           </div>

@@ -3,71 +3,97 @@
 @import "shadcn/tailwind.css";
 
 /* ---------------------------------------------------------------------------
-   Pointer design tokens
-   All Pointer components reference these directly via var(--color-*) etc.
-   shadcn variables (below) are mapped to these so both systems share one
-   source of truth.
+   DraftSpa design tokens — "Solstice"
+   Two themes, one semantic token set:
+
+   - DAY (default): prep surfaces. Bone paper, ink, racing green, clay.
+     Printed-document feel — users live here for hours while configuring
+     leagues and working out strategy.
+   - NIGHT ([data-mode="night"]): draft mode only. Deep night, phosphor mint,
+     amber. Applied to <html> while a draft room is open (see useNightMode).
+
+   All components reference the same var(--color-*) names; themes only swap
+   values. To add a theme, add another [data-mode="..."] block — components
+   never need to change.
    --------------------------------------------------------------------------- */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* Backgrounds */
-  --color-bg-app: hsl(210 20% 98%);
+  --color-bg-app: #f2efe8;
 
   /* Foreground */
-  --color-fg-default: hsl(222 47% 11%);
-  --color-fg-muted: hsl(222 16% 40%);
-  --color-fg-subtle: hsl(222 10% 53%);
+  --color-fg-default: #1c1e1d;
+  --color-fg-muted: #6c6a62;
+  --color-fg-subtle: #8b887d;
 
   /* Surfaces */
-  --color-surface-base: hsl(0 0% 100%);
-  --color-surface-raised: hsl(0 0% 96%);
-  --color-surface-overlay: hsl(0 0% 100%);
-  --color-surface-hover: hsl(0 0% 96%);
-  --color-surface-muted: hsla(222 47% 11% / 0.02);
-  --color-surface-tooltip: hsl(30 100% 98%);
+  --color-surface-base: #faf8f3;
+  --color-surface-raised: #efece3;
+  --color-surface-overlay: #faf8f3;
+  --color-surface-hover: #ece8dd;
+  --color-surface-muted: rgba(28, 30, 29, 0.03);
+  --color-surface-tooltip: #fffdf8;
 
-  /* Borders */
-  --color-border-soft: hsl(214 32% 91%);
-  --color-border-default: hsla(222 47% 11% / 0.2);
-  --color-border-strong: hsla(222 47% 11% / 0.3);
+  /* Borders — hairline ink rules */
+  --color-border-soft: rgba(28, 30, 29, 0.14);
+  --color-border-default: rgba(28, 30, 29, 0.25);
+  --color-border-strong: rgba(28, 30, 29, 0.4);
 
-  /* Accent & danger */
-  --color-accent: hsl(0 72% 50%);
-  --color-accent-hover: hsl(0 74% 42%);
-  --color-danger: hsl(0 72% 50%);
-  --color-danger-hover: hsl(0 74% 42%);
-  --color-danger-soft: hsl(0 100% 98%);
+  /* Accent & danger — *-fg are the text colors that sit ON those fills.
+     Never use raw white/black on accent surfaces: these flip per theme. */
+  --color-accent: #1e5c46;
+  --color-accent-hover: #174937;
+  --color-accent-fg: #faf8f3;
+  --color-danger: #a33d2a;
+  --color-danger-hover: #8c3323;
+  --color-danger-fg: #faf8f3;
+  --color-danger-soft: #f6e9e4;
 
-  /* Warning */
-  --color-warning: hsl(26 90% 37%);
-  --color-warning-soft: hsl(38 92% 50%);
+  /* Inverse — the "ink-filled" brand CTA (Begin draft night etc.) */
+  --color-inverse-bg: #1c1e1d;
+  --color-inverse-fg: #f2efe8;
+
+  /* Warning — clay by day, amber by night */
+  --color-warning: #b05c3c;
+  --color-warning-soft: #c46a4a;
 
   /* Feedback */
-  --color-focus-ring: hsla(0 72% 50% / 0.35);
-  --color-backdrop: hsla(222 47% 11% / 0.2);
-  --shadow-overlay: 0 18px 45px hsla(222 47% 11% / 0.14);
+  --color-focus-ring: rgba(30, 92, 70, 0.4);
+  --color-backdrop: rgba(28, 30, 29, 0.25);
+  --shadow-overlay: 0 18px 45px rgba(28, 30, 29, 0.16);
 
-  /* Geometry */
+  /* Geometry — Solstice is square-cornered and ruled */
   --radius-sm: 0.125rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.625rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
   --width-page: 80rem;
   --space-page-x: 0.75rem;
   --space-page-x-sm: 1.5rem;
-  --space-section-gap: 1.25rem;
-  --space-section-gap-sm: 1.5rem;
 
-  /* Typography */
-  --font-title: Georgia, "Times New Roman", serif;
-  --font-body: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
+  /* Layering — the only sanctioned z-indexes. sticky < popover < overlay < veil */
+  --z-sticky: 20;
+  --z-popover: 40;
+  --z-overlay: 50;
+  --z-veil: 9990;
+
+  /* Typography — IBM Plex everywhere; mono carries data and labels */
+  --font-title: var(--font-plex-sans), system-ui, sans-serif;
+  --font-body: var(--font-plex-sans), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
+  --font-data: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Texture — the day grid-paper pattern (referenced by body) */
+  --texture-grid-line: rgba(28, 30, 29, 0.04);
+
+  /* The dusk veil — matches the night sky regardless of current theme */
+  --color-dusk-veil: #0d1117;
 
   /* -------------------------------------------------------------------------
-     shadcn semantic variables — mapped to Pointer tokens
+     shadcn semantic variables — mapped to DraftSpa tokens
      shadcn components use Tailwind utilities like bg-background, text-primary,
-     etc. These variables ensure they render with Pointer's design language.
+     etc. These ensure they render with the Solstice design language.
      ------------------------------------------------------------------------- */
   --background: var(--color-bg-app);
   --foreground: var(--color-fg-default);
@@ -76,7 +102,7 @@
   --popover: var(--color-surface-overlay);
   --popover-foreground: var(--color-fg-default);
   --primary: var(--color-accent);
-  --primary-foreground: hsl(0 0% 100%);
+  --primary-foreground: var(--color-accent-fg);
   --secondary: var(--color-surface-raised);
   --secondary-foreground: var(--color-fg-default);
   --muted: var(--color-surface-raised);
@@ -87,7 +113,7 @@
   --border: var(--color-border-soft);
   --input: var(--color-border-soft);
   --ring: var(--color-focus-ring);
-  --radius: 0.625rem;
+  --radius: 0.375rem;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -96,7 +122,7 @@
   --sidebar: var(--color-surface-base);
   --sidebar-foreground: var(--color-fg-default);
   --sidebar-primary: var(--color-accent);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-primary-foreground: #faf8f3;
   --sidebar-accent: var(--color-surface-raised);
   --sidebar-accent-foreground: var(--color-fg-default);
   --sidebar-border: var(--color-border-soft);
@@ -104,19 +130,71 @@
 }
 
 /* ---------------------------------------------------------------------------
+   NIGHT — draft mode. Phosphor instruments after dusk.
+   Set <html data-mode="night"> (only the draft room does this).
+   --------------------------------------------------------------------------- */
+
+[data-mode="night"] {
+  color-scheme: dark;
+
+  --color-bg-app: #0d1117;
+
+  --color-fg-default: #c9d4dc;
+  --color-fg-muted: rgba(201, 212, 220, 0.62);
+  --color-fg-subtle: rgba(201, 212, 220, 0.45);
+
+  --color-surface-base: #131922;
+  --color-surface-raised: #1a2129;
+  --color-surface-overlay: #131922;
+  --color-surface-hover: #1a2129;
+  --color-surface-muted: rgba(201, 212, 220, 0.04);
+  --color-surface-tooltip: #1a2129;
+
+  --color-border-soft: rgba(148, 170, 190, 0.16);
+  --color-border-default: rgba(148, 170, 190, 0.28);
+  --color-border-strong: rgba(148, 170, 190, 0.4);
+
+  /* Phosphor mint. Never red after dark — amber carries warnings. */
+  --color-accent: #43d9a3;
+  --color-accent-hover: #36c390;
+  --color-accent-fg: #0d1117;
+  --color-danger: #e08d6d;
+  --color-danger-hover: #d97f5c;
+  --color-danger-fg: #0d1117;
+  --color-danger-soft: rgba(224, 141, 109, 0.12);
+
+  --color-inverse-bg: #c9d4dc;
+  --color-inverse-fg: #0d1117;
+
+  --color-warning: #f2b544;
+  --color-warning-soft: #f2b544;
+
+  --color-focus-ring: rgba(67, 217, 163, 0.4);
+  --color-backdrop: rgba(0, 0, 0, 0.6);
+  --shadow-overlay: 0 20px 55px rgba(0, 0, 0, 0.45);
+
+  --texture-grid-line: rgba(148, 170, 190, 0.035);
+
+  /* shadcn overrides that don't auto-derive */
+  --sidebar-primary-foreground: #0d1117;
+}
+
+/* ---------------------------------------------------------------------------
    Tailwind theme bridge
-   Exposes both Pointer and shadcn tokens to Tailwind utilities.
+   Exposes both DraftSpa and shadcn tokens to Tailwind utilities.
    --------------------------------------------------------------------------- */
 
 @theme inline {
-  /* Pointer */
+  /* DraftSpa */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  /* Legacy `font-serif` usages render as the title face — Solstice has no serif */
+  --font-serif: var(--font-plex-sans), system-ui, sans-serif;
 
   /* shadcn */
-  --font-heading: var(--font-geist-sans);
+  --font-heading: var(--font-plex-sans);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -147,10 +225,10 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Radius — preserve Pointer's values; extend with shadcn extras */
+  /* Radius — preserve DraftSpa's values; extend with shadcn extras */
   --radius-sm: 0.125rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.625rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
@@ -158,75 +236,91 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Dark mode — prefers-color-scheme
-   Pointer uses system preference, not a .dark class toggle.
-   Both Pointer tokens and shadcn variables update together here.
-   --------------------------------------------------------------------------- */
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Pointer tokens */
-    --color-bg-app: hsl(222 84% 5%);
-    --color-fg-default: hsl(210 40% 96%);
-    --color-fg-muted: hsla(210 40% 96% / 0.6);
-    --color-fg-subtle: hsla(210 40% 96% / 0.45);
-    --color-surface-base: hsl(0 0% 7%);
-    --color-surface-raised: hsl(0 0% 10%);
-    --color-surface-overlay: hsl(0 0% 7%);
-    --color-surface-hover: hsl(0 0% 10%);
-    --color-surface-muted: hsla(210 40% 96% / 0.03);
-    --color-surface-tooltip: hsl(0 0% 13%);
-    --color-border-soft: hsl(0 0% 20%);
-    --color-border-default: hsla(210 40% 96% / 0.2);
-    --color-border-strong: hsla(210 40% 96% / 0.3);
-    --color-accent: hsl(0 83% 60%);
-    --color-accent-hover: hsl(0 78% 54%);
-    --color-danger: hsl(0 83% 60%);
-    --color-danger-hover: hsl(0 78% 54%);
-    --color-danger-soft: hsla(0 83% 60% / 0.12);
-
-    /* Warning */
-    --color-warning: hsl(38 80% 55%);
-    --color-warning-soft: hsl(38 92% 50%);
-    --color-focus-ring: hsla(0 83% 60% / 0.35);
-    --color-backdrop: hsla(0 0% 0% / 0.6);
-    --shadow-overlay: 0 20px 55px hsla(0 0% 0% / 0.45);
-
-    /* shadcn overrides that don't auto-derive from Pointer tokens */
-    --primary-foreground: hsl(0 0% 7%);
-    --sidebar-primary-foreground: hsl(0 0% 100%);
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   Body
+   Body — paper by day, instruments by night.
+   The 8px engineering-grid texture is shared; only its ink changes.
    --------------------------------------------------------------------------- */
 
 body {
-  background:
-    radial-gradient(1200px 600px at 20% -20%, rgba(15, 23, 42, 0.08), transparent 60%),
-    radial-gradient(1000px 500px at 90% 0%, rgba(16, 185, 129, 0.06), transparent 55%),
-    var(--color-bg-app);
+  background-color: var(--color-bg-app);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      var(--texture-grid-line) 0,
+      var(--texture-grid-line) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--texture-grid-line) 0,
+      var(--texture-grid-line) 1px,
+      transparent 1px,
+      transparent 8px
+    );
   color: var(--color-fg-default);
   font-family: var(--font-body);
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background:
-      radial-gradient(1200px 600px at 15% -20%, rgba(56, 189, 248, 0.08), transparent 60%),
-      radial-gradient(1000px 500px at 85% 0%, rgba(16, 185, 129, 0.12), transparent 55%),
-      var(--color-bg-app);
+/* Dusk/dawn — the day↔night inversion is a designed moment, not a flash.
+   A single full-screen veil (see src/lib/nightTransition.tsx) falls over the
+   page, the theme swaps instantly underneath, and the veil lifts when the
+   destination mounts. One cheap opacity animation — never per-element
+   color transitions, which repaint the whole document and jank. */
+@keyframes dusk-veil-fall {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dusk-veil-lift {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 
 /* ---------------------------------------------------------------------------
-   Base resets
+   Base resets & utilities
    --------------------------------------------------------------------------- */
 
 :focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
+}
+
+/* Data tables and stat readouts: tabular numerals in the data face.
+   Defined as @utility (NOT plain unlayered CSS) so Tailwind utilities like
+   `text-[var(--color-warning)]` can still override individual properties —
+   unlayered rules would silently beat every utility class. */
+@utility font-data {
+  font-family: var(--font-data);
+  font-feature-settings: "tnum";
+}
+
+/* Stamped uppercase micro-label — the Solstice section-heading idiom */
+@utility stamp {
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+
+/* The emphatic stamp — table column headers, section h2s. Same idiom,
+   heavier ink. Use instead of re-deriving uppercase/tracking per table. */
+@utility stamp-strong {
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-fg-default);
 }
 
 .numeric-input-field::-webkit-outer-spin-button,

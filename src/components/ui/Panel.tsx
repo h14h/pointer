@@ -31,6 +31,33 @@ const paddingClassNames: Record<PanelPadding, string> = {
   md: "p-4 sm:p-5",
 };
 
+/**
+ * Canonical panel header: stamp title + optional right slot over a hairline
+ * rule. Use inside `<Panel padding="none">` so every paneled surface shares
+ * one header rhythm.
+ */
+export function PanelHeader({
+  title,
+  right,
+  className,
+}: {
+  title: ReactNode;
+  right?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-baseline justify-between gap-3 border-b border-[var(--color-border-soft)] px-4 py-2.5",
+        className
+      )}
+    >
+      <h2 className="stamp">{title}</h2>
+      {right ? <div className="flex items-baseline gap-2">{right}</div> : null}
+    </div>
+  );
+}
+
 export function Panel({
   as: Component = "div",
   tone = "default",

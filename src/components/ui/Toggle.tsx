@@ -11,7 +11,7 @@ export interface ToggleProps
 
 const trackClassNames: Record<ToggleSize, string> = {
   sm: "h-5 w-10 rounded-sm border",
-  md: "h-7 w-12 rounded-full border",
+  md: "h-7 w-12 rounded-sm border",
 };
 
 const trackCheckedClassNames: Record<ToggleSize, string> = {
@@ -26,17 +26,17 @@ const trackUncheckedClassNames: Record<ToggleSize, string> = {
 
 const thumbClassNames: Record<ToggleSize, string> = {
   sm: "h-3 w-3 rounded-sm",
-  md: "absolute top-0.5 h-[22px] w-[22px] rounded-full",
+  md: "absolute top-0.5 h-[22px] w-[22px] rounded-sm",
 };
 
 const thumbCheckedClassNames: Record<ToggleSize, string> = {
-  sm: "translate-x-6 bg-white",
-  md: "translate-x-[22px] bg-white",
+  sm: "translate-x-6 bg-[var(--color-accent-fg)]",
+  md: "translate-x-[22px] bg-[var(--color-accent-fg)]",
 };
 
 const thumbUncheckedClassNames: Record<ToggleSize, string> = {
   sm: "translate-x-1 bg-[var(--color-fg-default)]/40",
-  md: "translate-x-0.5 bg-white",
+  md: "translate-x-0.5 bg-[var(--color-surface-base)] shadow-[0_0_0_1px_var(--color-border-default)]",
 };
 
 export function Toggle({
@@ -64,7 +64,7 @@ export function Toggle({
     >
       <span
         className={cn(
-          "inline-block transform transition-transform shadow-sm",
+          "inline-block transform transition-transform",
           thumbClassNames[size],
           checked ? thumbCheckedClassNames[size] : thumbUncheckedClassNames[size]
         )}

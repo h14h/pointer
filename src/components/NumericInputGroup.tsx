@@ -1,5 +1,5 @@
 import { NumericInput, type NumericIncrement } from "@/components/NumericInput";
-import { cx } from "@/components/ui/cx";
+import { cn } from "@/lib/utils";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 
 /* ------------------------------------------------------------------ */
@@ -41,12 +41,12 @@ export function NumericInputRow({
 }: NumericInputRowProps) {
   return (
     <div
-      className={cx(
-        "flex items-center justify-between gap-3 border-b border-[#111111]/[0.10] py-2.5 last:border-0 dark:border-[#e5e5e5]/[0.08]",
+      className={cn(
+        "flex items-center justify-between gap-3 border-b border-[var(--color-border-soft)] py-2.5 last:border-0",
         className
       )}
     >
-      <span className="text-sm font-semibold text-[#111111]/65 dark:text-[#e5e5e5]/55">{label}</span>
+      <span className="text-sm font-semibold text-[var(--color-fg-muted)]">{label}</span>
       <NumericInput
         aria-label={ariaLabel}
         increment={increment}
@@ -77,7 +77,7 @@ export function NumericInputGroup({ label, children }: NumericInputGroupProps) {
   return (
     <div>
       <FieldLabel className="mb-2 block">{label}</FieldLabel>
-      <div className="rounded-lg bg-[#111111]/[0.02] px-3 dark:bg-[#e5e5e5]/[0.03]">
+      <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-muted)] px-3">
         {children}
       </div>
     </div>

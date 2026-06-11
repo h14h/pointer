@@ -2,6 +2,7 @@ import type {
   ScoringSettings,
   DraftState,
   LeagueSettings,
+  LeagueStrategy,
   RosterSettings,
   RosterSlot,
   League,
@@ -104,6 +105,11 @@ export const createDefaultDraftState = (): DraftState => ({
   history: [],
 });
 
+export const createDefaultStrategy = (): LeagueStrategy => ({
+  targetIds: [],
+  noteByRound: {},
+});
+
 export const createDefaultLeague = (
   name = "My League",
   options?: { deterministic?: boolean; sport?: Sport }
@@ -117,6 +123,9 @@ export const createDefaultLeague = (
     leagueSettings: { ...defaultLeagueSettings },
     ...(sport === "football" ? { football: createDefaultFootballConfig() } : {}),
     draftState: createDefaultDraftState(),
+    myTeamIndex: 0,
+    projectionGroupId: null,
+    strategy: createDefaultStrategy(),
     updatedAt: options?.deterministic ? 0 : Date.now(),
   };
 };
@@ -164,14 +173,31 @@ export const normalizeLeagueSettings = (settings: LeagueSettings): LeagueSetting
   };
 };
 
+export const normalizeStrategy = (strategy: LeagueStrategy | undefined): LeagueStrategy => ({
+  targetIds: [...new Set((strategy?.targetIds ?? []).filter((id) => typeof id === "string"))],
+  noteByRound: Object.fromEntries(
+    Object.entries(strategy?.noteByRound ?? {}).filter(
+      ([, note]) => typeof note === "string" && note.length > 0
+    )
+  ),
+});
+
 export const normalizeLeague = (league: League): League => {
   const sport: Sport = league.sport === "football" ? "football" : "baseball";
+  const leagueSettings = normalizeLeagueSettings(league.leagueSettings ?? defaultLeagueSettings);
+  const myTeamIndex = Math.min(
+    leagueSettings.leagueSize - 1,
+    Math.max(0, Math.round(league.myTeamIndex ?? 0))
+  );
   return {
     ...league,
     sport,
     scoringSettings: normalizeScoringSettings(league.scoringSettings ?? defaultScoringSettings),
-    leagueSettings: normalizeLeagueSettings(league.leagueSettings ?? defaultLeagueSettings),
+    leagueSettings,
     ...(sport === "football" ? { football: normalizeFootballConfig(league.football) } : {}),
+    myTeamIndex,
+    projectionGroupId: league.projectionGroupId ?? null,
+    strategy: normalizeStrategy(league.strategy),
     updatedAt: league.updatedAt ?? Date.now(),
   };
 };

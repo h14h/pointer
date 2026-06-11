@@ -143,14 +143,28 @@ export async function upsertManifestEntry(
   return nextManifest;
 }
 
+// The browser fetches datasets as plain static assets from /datasets/* —
+// mirror everything written to data/public-datasets into public/datasets so
+// anonymous traffic never needs a server handler (see PublicDatasetBootstrap).
+const PUBLIC_DATASET_DIR = path.join(process.cwd(), "public", "datasets");
+
+async function mirrorToPublic(fileName: string, content: string): Promise<string> {
+  await mkdir(PUBLIC_DATASET_DIR, { recursive: true });
+  const target = path.join(PUBLIC_DATASET_DIR, fileName);
+  await writeFile(target, content, "utf8");
+  return target;
+}
+
 async function main() {
   const options = parseGenerateOptions(process.argv.slice(2));
   const payload = await generatePublicDataset(options);
 
+  const payloadContent = `${JSON.stringify(payload, null, 2)}\n`;
   await mkdir(path.dirname(options.outputPath), { recursive: true });
-  await writeFile(options.outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  await writeFile(options.outputPath, payloadContent, "utf8");
+  await mirrorToPublic(`${payload.slug}.json`, payloadContent);
 
-  await upsertManifestEntry(
+  const nextManifest = await upsertManifestEntry(
     {
       slug: payload.slug,
       name: payload.name,
@@ -160,9 +174,11 @@ async function main() {
     },
     options.setDefault
   );
+  await mirrorToPublic("manifest.json", `${JSON.stringify(nextManifest, null, 2)}\n`);
 
   console.log(`Wrote ${options.outputPath}`);
   console.log(`Updated ${MANIFEST_PATH}`);
+  console.log(`Mirrored to ${PUBLIC_DATASET_DIR}`);
 }
 
 const isMainModule =

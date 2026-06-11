@@ -1,15 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { NumericInput } from "@/components/NumericInput";
 import { DraftTeamRow, type DraftKeeperEntry } from "@/components/settings/DraftTeamRow";
 import { normalizeLeagueSettingsDraft } from "@/components/settings/constants";
-import { Button } from "@/components/ui/Button";
-import { DialogShell } from "@/components/ui/DialogShell";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Panel } from "@/components/ui/Panel";
-import { SectionHeader } from "@/components/ui/SectionHeader";
 import { calculateFootballPoints, normalizeFootballConfig } from "@/lib/football";
 import { calculatePlayerPoints } from "@/lib/scoring";
 import {
@@ -19,23 +16,21 @@ import {
   getPickIndexForTeamRound,
 } from "@/lib/draft";
 import { matchesPlayerSearch } from "@/lib/leaderboard";
+import { resolveProjectionGroupForLeague } from "@/lib/projections";
 import { useStore } from "@/store";
 import type { League, LeagueSettings, ProjectionGroup, Sport } from "@/types";
 import type { KeeperPlayer } from "@/components/settings/DraftTeamRow";
 
 function getActiveGroup(
   projectionGroups: ProjectionGroup[],
-  activeProjectionGroupId: string | null,
+  league: League | undefined,
   sport: Sport
 ) {
+  if (league) return resolveProjectionGroupForLeague(league, projectionGroups);
   const sportGroups = projectionGroups.filter(
     (group) => (group.sport ?? "baseball") === sport
   );
-  return (
-    sportGroups.find((group) => group.id === activeProjectionGroupId) ??
-    sportGroups[0] ??
-    null
-  );
+  return sportGroups[0] ?? null;
 }
 
 function getAllPlayers(activeGroup: ProjectionGroup | null): KeeperPlayer[] {
@@ -80,20 +75,18 @@ export function DraftSection() {
     activeLeagueId,
     updateLeague,
     projectionGroups,
-    activeProjectionGroupId,
     setKeeper,
     removeKeeper,
-    resetDraft,
+    setMyTeamIndex,
   } = useStore();
   const activeLeague = leagues.find((l) => l.id === activeLeagueId) ?? leagues[0];
   const leagueSettings = activeLeague?.leagueSettings;
   const draftState = activeLeague?.draftState;
   const activeSport: Sport = activeLeague?.sport === "football" ? "football" : "baseball";
-  const allPlayers = useMemo(
-    () => getAllPlayers(getActiveGroup(projectionGroups, activeProjectionGroupId, activeSport)),
-    [projectionGroups, activeProjectionGroupId, activeSport]
-  );
-  const activeGroup = getActiveGroup(projectionGroups, activeProjectionGroupId, activeSport);
+  // No manual useMemo here — the React Compiler memoizes these derivations
+  // itself (and its lint rule rejects manual memoization it can't preserve).
+  const activeGroup = getActiveGroup(projectionGroups, activeLeague, activeSport);
+  const allPlayers = getAllPlayers(activeGroup);
   const keeperSlotByPlayer = draftState?.keeperSlotByPlayer ?? {};
   const hasInProgressDraft =
     Object.keys(draftState?.draftedByTeam ?? {}).filter(
@@ -108,7 +101,6 @@ export function DraftSection() {
     Record<number, string | null>
   >({});
   const [expandedTeamIndex, setExpandedTeamIndex] = useState<number | null>(null);
-  const [isResetOpen, setIsResetOpen] = useState(false);
 
   const keeperEntries = Object.entries(draftState.keeperByTeam)
     .map(([playerId, teamIndex]) => ({
@@ -331,11 +323,17 @@ export function DraftSection() {
     commitLeagueSettings(nextNames);
   };
 
+  // "Your team" (league.myTeamIndex) is a POSITION in the draft order — any
+  // structural change to teamNames must remap it or the Plan timeline and the
+  // draft room silently track whichever team landed in the old slot.
+  const myTeamIndex = activeLeague?.myTeamIndex ?? 0;
+
   const handleAddTeamBelow = (index: number) => {
     if (!setupUnlocked || leagueSettings.teamNames.length >= 20) return;
     const nextNames = [...leagueSettings.teamNames];
     nextNames.splice(index + 1, 0, `Team ${nextNames.length + 1}`);
     commitLeagueSettings(nextNames);
+    if (myTeamIndex >= index + 1) setMyTeamIndex(myTeamIndex + 1);
     setExpandedTeamIndex(index + 1);
   };
 
@@ -343,6 +341,8 @@ export function DraftSection() {
     if (!setupUnlocked || leagueSettings.teamNames.length <= 2) return;
     const nextNames = leagueSettings.teamNames.filter((_, teamIndex) => teamIndex !== index);
     commitLeagueSettings(nextNames);
+    if (myTeamIndex === index) setMyTeamIndex(Math.max(0, index - 1));
+    else if (myTeamIndex > index) setMyTeamIndex(myTeamIndex - 1);
     setExpandedTeamIndex((current) => {
       if (current === null) return null;
       if (current === index) return Math.max(0, index - 1);
@@ -357,6 +357,10 @@ export function DraftSection() {
     const [moved] = nextNames.splice(from, 1);
     nextNames.splice(to, 0, moved);
     commitLeagueSettings(nextNames);
+    const nextMyTeamIndex = getExpandedIndexAfterMove(myTeamIndex, from, to);
+    if (nextMyTeamIndex !== null && nextMyTeamIndex !== myTeamIndex) {
+      setMyTeamIndex(nextMyTeamIndex);
+    }
     setExpandedTeamIndex((current) => getExpandedIndexAfterMove(current, from, to));
   };
 
@@ -368,60 +372,58 @@ export function DraftSection() {
 
   return (
     <div className="font-sans">
-      <SectionHeader
-        className="mb-8"
-        title="Draft"
-        description="Manage draft order and keepers in one place, team by team."
-      />
-
       {!setupUnlocked ? (
-        <Panel tone="danger" padding="md" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg text-sm text-[#111111]/70 dark:text-[#e5e5e5]/65">
+        <Panel
+          tone="warning"
+          padding="md"
+          className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-fg-default)]"
+        >
           <p className="max-w-[64ch]">
             Team order, add/remove, and league size are locked because draft activity already exists.
             Reorder controls are disabled, but team names and keeper assignments can still be edited.
           </p>
           {hasInProgressDraft ? (
-            <Button variant="destructiveGhost" size="sm" onClick={() => setIsResetOpen(true)}>
-              Reset Draft
-            </Button>
+            <p className="stamp">to start over, reset the draft from the draft room</p>
           ) : null}
         </Panel>
       ) : null}
 
-      <Panel tone="muted" padding="md" className="mb-8 rounded-lg">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <Panel as="section" padding="none">
+        {/* League size row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-border-soft)] px-4 py-3 sm:px-5">
           <div>
             <FieldLabel className="block">League Size</FieldLabel>
-            <p className="mt-0.5 text-xs text-[#111111]/45 dark:text-[#e5e5e5]/38">
+            <p className="mt-1 text-xs text-[var(--color-fg-subtle)]">
               Structural team changes lock once draft activity begins.
             </p>
           </div>
           <NumericInput
             aria-label="League size"
             units="teams"
+            unitsClassName="stamp"
             increment={1}
             min={2}
             max={20}
             value={leagueSettings.leagueSize}
             onCommit={handleLeagueSizeCommit}
-            inputClassName="w-14"
+            inputClassName="font-data w-14"
             disabled={!setupUnlocked}
           />
         </div>
-      </Panel>
 
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/50 dark:text-[#e5e5e5]/42">
-          Draft Order ({leagueSettings.teamNames.length})
-        </span>
-        <span className="text-[10px] text-[#111111]/45 dark:text-[#e5e5e5]/38">
-          {setupUnlocked
-            ? "Use move-to-position controls for quick reordering"
-            : "Reorder controls locked, keeper edits still available"}
-        </span>
-      </div>
+        {/* Draft order header rule */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-[var(--color-border-soft)] px-4 py-2.5 sm:px-5">
+          <span className="stamp">
+            Draft Order ({leagueSettings.teamNames.length})
+          </span>
+          <span className="text-[11px] text-[var(--color-fg-subtle)]">
+            {setupUnlocked
+              ? "Use move-to-position controls for quick reordering"
+              : "Reorder controls locked, keeper edits still available"}
+          </span>
+        </div>
 
-      <div className="grid gap-3">
+        {/* Team ledger */}
         {leagueSettings.teamNames.map((name, index) => {
           const teamKeepers = getSortedTeamKeepers(index);
           const keeperCandidates = expandedTeamIndex === index ? getKeeperCandidatesForTeam(index) : [];
@@ -484,32 +486,8 @@ export function DraftSection() {
             />
           );
         })}
-      </div>
+      </Panel>
 
-      {isResetOpen ? (
-        <DialogShell
-          title="Reset all draft picks?"
-          description="This clears only the in-progress drafted picks for the current league. Keeper assignments stay in place, and projection data is unchanged."
-          labelledBy="settings-reset-draft-title"
-          onClose={() => setIsResetOpen(false)}
-          footer={
-            <>
-              <Button variant="ghost" onClick={() => setIsResetOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  resetDraft();
-                  setIsResetOpen(false);
-                }}
-              >
-                Reset Draft
-              </Button>
-            </>
-          }
-        />
-      ) : null}
     </div>
   );
 }

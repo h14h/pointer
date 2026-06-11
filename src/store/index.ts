@@ -85,6 +85,13 @@ interface Store {
     partial: Partial<Pick<League, "scoringSettings" | "leagueSettings" | "football">>,
   ) => void;
 
+  // Strategy & identity (operate on active league)
+  toggleTarget: (playerId: string) => void;
+  setRoundNote: (round: number, note: string) => void;
+  setMyTeamIndex: (index: number) => void;
+  // Per-league projection source (sport-scoped library)
+  setLeagueProjectionGroup: (leagueId: string, groupId: string | null) => void;
+
   // Projection actions
   addProjectionGroup: (group: ProjectionGroup) => void;
   seedProjectionGroup: (group: ProjectionGroup) => void;
@@ -101,7 +108,6 @@ interface Store {
   removeKeeper: (playerId: string) => void;
 
   // Mode & data
-  setDraftMode: (enabled: boolean) => void;
   setMergeTwoWayRankings: (enabled: boolean) => void;
   resetDraft: () => void;
   clearAllData: () => void;
@@ -300,12 +306,63 @@ export const useStore = create<Store>()(
           };
         }),
 
+      // Strategy & identity
+      toggleTarget: (playerId) =>
+        set((state) =>
+          updateActiveLeague(state, (league) => {
+            const strategy = league.strategy ?? { targetIds: [], noteByRound: {} };
+            const targetIds = strategy.targetIds.includes(playerId)
+              ? strategy.targetIds.filter((id) => id !== playerId)
+              : [...strategy.targetIds, playerId];
+            return { strategy: { ...strategy, targetIds } };
+          }),
+        ),
+
+      setRoundNote: (round, note) =>
+        set((state) =>
+          updateActiveLeague(state, (league) => {
+            const strategy = league.strategy ?? { targetIds: [], noteByRound: {} };
+            const noteByRound = { ...strategy.noteByRound };
+            if (note.trim().length === 0) {
+              delete noteByRound[String(round)];
+            } else {
+              noteByRound[String(round)] = note;
+            }
+            return { strategy: { ...strategy, noteByRound } };
+          }),
+        ),
+
+      setMyTeamIndex: (index) =>
+        set((state) =>
+          updateActiveLeague(state, () => ({ myTeamIndex: index })),
+        ),
+
+      setLeagueProjectionGroup: (leagueId, groupId) =>
+        set((state) => ({
+          leagues: state.leagues.map((l) =>
+            l.id === leagueId
+              ? normalizeLeague({ ...l, projectionGroupId: groupId, updatedAt: Date.now() })
+              : l,
+          ),
+        })),
+
       // Projection actions
       addProjectionGroup: (group) =>
-        set((state) => ({
-          projectionGroups: [...state.projectionGroups, normalizeProjectionGroup(group)],
-          activeProjectionGroupId: group.id,
-        })),
+        set((state) => {
+          const normalized = normalizeProjectionGroup(group);
+          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
+          return {
+            projectionGroups: [...state.projectionGroups, normalized],
+            activeProjectionGroupId: group.id,
+            // A fresh upload becomes the active league's source when sports
+            // match — uploading from a league's Intel tab adopts it in place.
+            leagues: state.leagues.map((l) =>
+              l.id === activeId && l.sport === normalized.sport
+                ? normalizeLeague({ ...l, projectionGroupId: normalized.id, updatedAt: Date.now() })
+                : l,
+            ),
+          };
+        }),
 
       seedProjectionGroup: (group) =>
         set((state) => {
@@ -417,20 +474,6 @@ export const useStore = create<Store>()(
         ),
 
       // Mode & data
-      setDraftMode: (enabled) =>
-        set((state) => {
-          if (!enabled) return { isDraftMode: false };
-          const activeId = state.activeLeagueId ?? state.leagues[0]?.id;
-          if (!activeId) return { isDraftMode: true };
-          // Normalize draft state on mode entry to migrate any legacy shape
-          return {
-            isDraftMode: true,
-            ...updateActiveLeague(state, (league) => ({
-              draftState: migrateDraftState(league.draftState),
-            })),
-          };
-        }),
-
       setMergeTwoWayRankings: (enabled) => set({ mergeTwoWayRankings: enabled }),
 
       resetDraft: () =>
@@ -485,7 +528,7 @@ export const useStore = create<Store>()(
     {
       name: "pointer-storage",
       storage: createJSONStorage(() => dexieStorage),
-      version: 10,
+      version: 11,
       skipHydration: true,
       partialize: (state): PersistedStoreState => ({
         leagues: state.leagues,

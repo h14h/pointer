@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { cx } from "@/components/ui/cx";
+import { cn } from "@/lib/utils";
 
 export type NumericIncrement = 0.01 | 0.5 | 1;
 
@@ -100,11 +100,11 @@ export function NumericInput({
   );
 
   return (
-    <div className={cx("inline-flex min-w-0 items-center gap-2", className)}>
+    <div className={cn("inline-flex min-w-0 items-center gap-2", className)}>
       {label ? (
         <span
-          className={cx(
-            "shrink-0 text-sm font-semibold tracking-wide text-[#111111]/70 dark:text-[#e5e5e5]/60",
+          className={cn(
+            "shrink-0 text-sm font-semibold tracking-wide text-[var(--color-fg-muted)]",
             labelClassName
           )}
         >
@@ -112,8 +112,8 @@ export function NumericInput({
         </span>
       ) : null}
 
-      <div className="inline-flex h-9 shrink-0 items-stretch overflow-hidden rounded-sm border border-[#111111]/20 bg-white dark:border-[#333333] dark:bg-[#1a1a1a]">
-        <div className="flex w-7 flex-col border-r border-[#111111]/20 dark:border-[#333333]">
+      <div className="inline-flex h-9 shrink-0 items-stretch overflow-hidden rounded-sm border border-[var(--color-border-default)] bg-[var(--color-surface-base)]">
+        <div className="flex w-7 flex-col border-r border-[var(--color-border-default)]">
           <button
             type="button"
             tabIndex={-1}
@@ -121,7 +121,7 @@ export function NumericInput({
             aria-label="Increase value"
             disabled={disabled}
             onClick={() => handleStep(1)}
-            className="inline-flex h-1/2 items-center justify-center text-[#111111]/60 transition-colors hover:bg-[#f5f5f5] hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-40 dark:text-[#e5e5e5]/50 dark:hover:bg-[#202020] dark:hover:text-[#e5e5e5]"
+            className="inline-flex h-1/2 items-center justify-center text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <svg viewBox="0 0 10 10" aria-hidden="true" className="h-2.5 w-2.5">
               <path d="M1 7L5 3L9 7" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -134,7 +134,7 @@ export function NumericInput({
             aria-label="Decrease value"
             disabled={disabled}
             onClick={() => handleStep(-1)}
-            className="inline-flex h-1/2 items-center justify-center border-t border-[#111111]/20 text-[#111111]/60 transition-colors hover:bg-[#f5f5f5] hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#333333] dark:text-[#e5e5e5]/50 dark:hover:bg-[#202020] dark:hover:text-[#e5e5e5]"
+            className="inline-flex h-1/2 items-center justify-center border-t border-[var(--color-border-default)] text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <svg viewBox="0 0 10 10" aria-hidden="true" className="h-2.5 w-2.5">
               <path d="M1 3L5 7L9 3" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -178,8 +178,8 @@ export function NumericInput({
               handleStep(-1);
             }
           }}
-          className={cx(
-            "numeric-input-field w-12 border-0 bg-transparent px-2 text-center text-base font-semibold tabular-nums text-[#111111] outline-none placeholder:text-[#111111]/30 dark:text-[#e5e5e5] dark:placeholder:text-[#e5e5e5]/25 sm:w-14 sm:text-lg",
+          className={cn(
+            "numeric-input-field w-12 border-0 bg-transparent px-2 text-center text-base font-semibold tabular-nums text-[var(--color-fg-default)] outline-none placeholder:text-[var(--color-fg-subtle)] sm:w-14 sm:text-lg",
             inputClassName
           )}
           style={{ fontVariantNumeric: "tabular-nums", MozAppearance: "textfield" }}
@@ -188,8 +188,8 @@ export function NumericInput({
 
       {units ? (
         <span
-          className={cx(
-            "shrink-0 text-sm font-semibold tracking-wide text-[#111111]/55 dark:text-[#e5e5e5]/45",
+          className={cn(
+            "shrink-0 text-sm font-semibold tracking-wide text-[var(--color-fg-muted)]",
             unitsClassName
           )}
         >

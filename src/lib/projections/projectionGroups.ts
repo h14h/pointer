@@ -1,4 +1,4 @@
-import type { ProjectionGroup, ProjectionGroupSource } from "@/types";
+import type { ProjectionGroup, ProjectionGroupSource, Sport } from "@/types";
 
 export const UPLOAD_PROJECTION_SOURCE: ProjectionGroupSource = { kind: "upload" };
 
@@ -15,6 +15,42 @@ export function isProtectedProjectionGroup(group: ProjectionGroup): boolean {
 
 export function getProjectionGroupFallbackId(groups: ProjectionGroup[]): string | null {
   return groups.find(isProtectedProjectionGroup)?.id ?? groups[0]?.id ?? null;
+}
+
+/**
+ * Projection sources are scoped to a SPORT and shared by every league of that
+ * sport; a league merely selects which source it uses (league.projectionGroupId).
+ *
+ * Resolution order:
+ *   1. the league's own selection, when it exists and matches the league's sport
+ *   2. the sport-scoped fallback (protected public dataset first, then any
+ *      source of that sport)
+ */
+export function resolveProjectionGroupForLeague(
+  league: { sport: Sport; projectionGroupId?: string | null },
+  groups: ProjectionGroup[],
+): ProjectionGroup | null {
+  // Tolerate unnormalized leagues (legacy persisted data defaults to baseball)
+  const sport: Sport = league.sport === "football" ? "football" : "baseball";
+  const sportGroups = groups.filter((group) => (group.sport ?? "baseball") === sport);
+  const selected = sportGroups.find((group) => group.id === league.projectionGroupId);
+  if (selected) return selected;
+  const fallbackId = getProjectionGroupFallbackId(sportGroups);
+  return sportGroups.find((group) => group.id === fallbackId) ?? null;
+}
+
+/**
+ * Leagues using a given source — the Intel library's "used by" readout.
+ * Counts FALLBACK users too (league.projectionGroupId null/dangling but the
+ * source is what resolution lands on), so deleting a source every league
+ * leans on doesn't read as "used by nobody".
+ */
+export function leaguesUsingProjectionGroup<
+  L extends { sport: Sport; projectionGroupId?: string | null },
+>(group: ProjectionGroup, leagues: L[], allGroups: ProjectionGroup[]): L[] {
+  return leagues.filter(
+    (league) => resolveProjectionGroupForLeague(league, allGroups)?.id === group.id,
+  );
 }
 
 export function normalizeProjectionGroup(group: ProjectionGroup): ProjectionGroup {

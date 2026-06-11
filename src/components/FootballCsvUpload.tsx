@@ -208,13 +208,18 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
         if (!open) handleCancel();
       }}
       title="Upload Football Projections"
+      description={
+        <span className="stamp">
+          source intake — football library, shared by every football league
+        </span>
+      }
       contentClassName="font-sans"
     >
       {error && (
         <Panel
           tone="danger"
           padding="sm"
-          className="mb-4 rounded-none text-sm text-[#dc2626] dark:text-[#ef4444]"
+          className="mb-4 rounded-none text-sm text-[var(--color-danger)]"
         >
           {error}
         </Panel>
@@ -222,7 +227,7 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
 
       {files.length === 0 ? (
         <>
-          <p className="mb-4 text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
+          <p className="mb-4 text-sm text-[var(--color-fg-muted)]">
             Upload one combined CSV with a position column, or several per-position files
             (QB, RB, WR, TE, K, D/ST) — they merge into a single projection group.
           </p>
@@ -234,17 +239,14 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
             }}
             onDragLeave={() => setDragActive(false)}
             onDrop={handleDrop}
-            className={`mb-5 flex h-40 flex-col items-center justify-center border-2 border-dashed rounded-sm transition-colors ${
+            className={`mb-5 flex h-40 flex-col items-center justify-center gap-4 rounded-[var(--radius-sm)] border-2 border-dashed transition-colors ${
               dragActive
-                ? "border-[#dc2626] dark:border-[#ef4444] bg-[#dc2626]/5 dark:bg-[#ef4444]/5"
-                : "border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#111111]"
+                ? "border-[var(--color-accent)] bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)]"
+                : "border-[var(--color-border-default)] bg-[var(--color-surface-base)]"
             }`}
           >
-            <p className="mb-2 text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
-              Drag and drop CSV/TSV files here
-            </p>
-            <p className="mb-3 text-xs text-[#111111]/30 dark:text-[#e5e5e5]/20">or</p>
-            <label className="cursor-pointer rounded-sm bg-[#dc2626] dark:bg-[#ef4444] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#b91c1c] dark:hover:bg-[#dc2626]">
+            <p className="stamp">drop a csv or tsv here — or browse</p>
+            <label className="cursor-pointer rounded-sm border border-[var(--color-border-default)] bg-[var(--color-surface-base)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)]">
               Browse Files
               <input
                 type="file"
@@ -265,7 +267,7 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
       ) : (
         <>
           <div className="mb-5">
-            <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
+            <FieldLabel className="mb-2 block">
               Group Name
             </FieldLabel>
             <Input
@@ -287,21 +289,25 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
             return (
               <div
                 key={`${fileState.file.name}-${index}`}
-                className="mb-5 border-t border-[#111111]/10 dark:border-[#333333] pt-4"
+                className="mb-5 border-t border-[var(--color-border-soft)] pt-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+                    <p className="font-data truncate text-sm font-semibold text-[var(--color-fg-default)]">
                       {fileState.file.name}
                     </p>
-                    <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
-                      {needsPosition
-                        ? "Position required"
-                        : `${parseResult.players.length} players` +
+                    {needsPosition ? (
+                      <p className="font-data mt-1 text-sm text-[var(--color-warning)]">
+                        Position required
+                      </p>
+                    ) : (
+                      <p className="font-data mt-1 text-sm text-[var(--color-fg-muted)]">
+                        {`${parseResult.players.length} players` +
                           (parseResult.detectedPosition
                             ? ` (detected: ${parseResult.detectedPosition})`
                             : "")}
-                    </p>
+                      </p>
+                    )}
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => removeFile(index)}>
                     Remove
@@ -310,7 +316,7 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
 
                 {(needsPosition || !parseResult.availableColumns.some((c) => /^pos/i.test(c.trim()))) && (
                   <div className="mt-3">
-                    <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
+                    <FieldLabel className="mb-2 block">
                       Position in this file
                     </FieldLabel>
                     <Dropdown
@@ -338,7 +344,7 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
                 )}
 
                 {parseResult.warnings.length > 0 && (
-                  <ul className="mt-2 text-xs text-[#111111]/60 dark:text-[#e5e5e5]/50">
+                  <ul className="font-data mt-2 text-xs text-[var(--color-warning)]">
                     {parseResult.warnings.slice(0, 3).map((warning, i) => (
                       <li key={i}>{warning}</li>
                     ))}
@@ -347,22 +353,22 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
 
                 {parseResult.players.length > 0 && (
                   <div className="mt-3 max-h-40 overflow-y-auto">
-                    <table className="w-full text-xs text-[#111111] dark:text-[#e5e5e5]">
+                    <table className="font-data w-full text-xs text-[var(--color-fg-default)]">
                       <thead>
-                        <tr className="border-b-2 border-[#111111] dark:border-[#e5e5e5]">
-                          <th className="px-2 py-1 text-left text-[10px] font-bold uppercase tracking-widest">
+                        <tr className="border-b border-[var(--color-border-strong)]">
+                          <th className="stamp px-2 py-1 text-left">
                             Name
                           </th>
-                          <th className="px-2 py-1 text-left text-[10px] font-bold uppercase tracking-widest">
+                          <th className="stamp px-2 py-1 text-left">
                             Team
                           </th>
-                          <th className="px-2 py-1 text-left text-[10px] font-bold uppercase tracking-widest">
+                          <th className="stamp px-2 py-1 text-left">
                             Pos
                           </th>
-                          <th className="px-2 py-1 text-right text-[10px] font-bold uppercase tracking-widest">
+                          <th className="stamp px-2 py-1 text-right">
                             Yds
                           </th>
-                          <th className="px-2 py-1 text-right text-[10px] font-bold uppercase tracking-widest">
+                          <th className="stamp px-2 py-1 text-right">
                             TD
                           </th>
                         </tr>
@@ -371,7 +377,7 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
                         {parseResult.players.slice(0, 5).map((p) => (
                           <tr
                             key={p._id}
-                            className="border-b border-[#111111]/10 dark:border-[#333333]/60"
+                            className="border-b border-[var(--color-border-soft)]"
                           >
                             <td className="px-2 py-1.5">{p.Name}</td>
                             <td className="px-2 py-1.5">{p.Team}</td>
@@ -392,9 +398,9 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
             );
           })}
 
-          <div className="mb-5 border-t border-[#111111]/10 dark:border-[#333333] pt-4">
-            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
-              <span className="rounded-sm border border-[#111111]/20 px-3 py-1.5 text-xs font-bold uppercase tracking-widest hover:bg-[#111111]/5 dark:border-[#333333] dark:hover:bg-[#e5e5e5]/5">
+          <div className="mb-5 border-t border-[var(--color-border-soft)] pt-4">
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <span className="rounded-sm border border-[var(--color-border-default)] bg-[var(--color-surface-base)] px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)]">
                 Add Another File
               </span>
               <input
@@ -407,8 +413,8 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
             </label>
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-[#111111]/10 dark:border-[#333333] pt-4">
-            <span className="text-xs text-[#111111]/50 dark:text-[#e5e5e5]/40">
+          <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border-soft)] pt-4">
+            <span className="font-data text-xs text-[var(--color-fg-muted)]">
               {totalPlayers} players total
             </span>
             <div className="flex gap-3">

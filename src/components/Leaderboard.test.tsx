@@ -723,7 +723,7 @@ describe("Leaderboard", () => {
 
 		const nameCell = screen.getByText("M. Trout");
 		expect(nameCell.className).not.toContain("line-through");
-		expect(nameCell.className).not.toContain("text-[#111111]/40");
+		expect(nameCell.className).not.toContain("text-[var(--color-fg-subtle)]");
 
 		const draftedBadge = screen.getByText("D");
 		expect(draftedBadge).toHaveTextContent("D");

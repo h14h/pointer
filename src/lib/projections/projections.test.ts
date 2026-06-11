@@ -5,6 +5,8 @@ import {
   parsePlayerCSV,
   normalizeProjectionGroup,
   isProtectedProjectionGroup,
+  resolveProjectionGroupForLeague,
+  leaguesUsingProjectionGroup,
 } from "@/lib/projections";
 import type { ProjectionGroup } from "@/types";
 
@@ -143,5 +145,79 @@ describe("isProtectedProjectionGroup", () => {
     };
 
     expect(isProtectedProjectionGroup(group)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sport-scoped source resolution (Solstice)
+// ---------------------------------------------------------------------------
+
+describe("resolveProjectionGroupForLeague", () => {
+  const makeGroup = (id: string, sport: "baseball" | "football"): ProjectionGroup => ({
+    id,
+    name: id,
+    createdAt: new Date().toISOString(),
+    sport,
+    source: { kind: "upload" },
+    batters: [],
+    pitchers: [],
+    twoWayPlayers: [],
+    batterIdSource: null,
+    pitcherIdSource: null,
+  });
+
+  test("returns the league's own selection when it matches the sport", () => {
+    const groups = [makeGroup("bb-1", "baseball"), makeGroup("bb-2", "baseball")];
+    const league = { sport: "baseball" as const, projectionGroupId: "bb-2" };
+    expect(resolveProjectionGroupForLeague(league, groups)?.id).toBe("bb-2");
+  });
+
+  test("ignores a selection from the wrong sport and falls back within-sport", () => {
+    const groups = [makeGroup("bb-1", "baseball"), makeGroup("fb-1", "football")];
+    const league = { sport: "football" as const, projectionGroupId: "bb-1" };
+    expect(resolveProjectionGroupForLeague(league, groups)?.id).toBe("fb-1");
+  });
+
+  test("falls back to the sport's best source when nothing selected", () => {
+    const groups = [makeGroup("fb-1", "football"), makeGroup("bb-1", "baseball")];
+    expect(
+      resolveProjectionGroupForLeague({ sport: "baseball", projectionGroupId: null }, groups)?.id,
+    ).toBe("bb-1");
+  });
+
+  test("returns null when the sport has no sources", () => {
+    const groups = [makeGroup("bb-1", "baseball")];
+    expect(
+      resolveProjectionGroupForLeague({ sport: "football", projectionGroupId: null }, groups),
+    ).toBeNull();
+  });
+});
+
+describe("leaguesUsingProjectionGroup", () => {
+  test("lists only same-sport leagues pointing at the group", () => {
+    const group: ProjectionGroup = {
+      id: "fb-1",
+      name: "fb-1",
+      createdAt: new Date().toISOString(),
+      sport: "football",
+      source: { kind: "upload" },
+      batters: [],
+      pitchers: [],
+      twoWayPlayers: [],
+      batterIdSource: null,
+      pitcherIdSource: null,
+    };
+    const leagues = [
+      { id: "a", sport: "football" as const, projectionGroupId: "fb-1" },
+      { id: "b", sport: "football" as const, projectionGroupId: null },
+      { id: "c", sport: "baseball" as const, projectionGroupId: "fb-1" },
+    ];
+    // "a" selected it explicitly; "b" resolves to it via the sport fallback
+    // (it's the only football source); "c" is the wrong sport even though it
+    // points at the id.
+    expect(leaguesUsingProjectionGroup(group, leagues, [group]).map((l) => l.id)).toEqual([
+      "a",
+      "b",
+    ]);
   });
 });

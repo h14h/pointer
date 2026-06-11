@@ -348,17 +348,17 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
     const { parseResult } = fileState;
 
     return (
-      <div className="mb-5 border-t border-[#111111]/10 dark:border-[#333333] pt-4">
-        <p className="text-sm text-[#111111] dark:text-[#e5e5e5]">
-          Detected: <span className="font-bold">{parseResult.rowCount} {parseResult.type}s</span>
+      <div className="mb-5 border-t border-[var(--color-border-soft)] pt-4">
+        <p className="font-data text-sm text-[var(--color-fg-default)]">
+          Detected: <span className="font-semibold">{parseResult.rowCount} {parseResult.type}s</span>
         </p>
 
         {parseResult.errors.length > 0 && (
           <div className="mt-2">
-            <p className="text-sm font-bold text-[#111111]/70 dark:text-[#e5e5e5]/60">
+            <p className="text-sm font-bold text-[var(--color-warning)]">
               {parseResult.errors.length} warning(s):
             </p>
-            <ul className="mt-1 max-h-20 overflow-y-auto text-xs text-[#111111]/60 dark:text-[#e5e5e5]/50">
+            <ul className="font-data mt-1 max-h-20 overflow-y-auto text-xs text-[var(--color-warning)]">
               {parseResult.errors.slice(0, 5).map((err, i) => (
                 <li key={i}>{err}</li>
               ))}
@@ -370,26 +370,26 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         )}
 
         <div className="mt-3">
-          <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
+          <FieldLabel className="mb-2 block">
             Preview (first 5)
           </FieldLabel>
           <div className="max-h-40 overflow-y-auto">
-            <table className="w-full text-xs text-[#111111] dark:text-[#e5e5e5]">
+            <table className="font-data w-full text-xs text-[var(--color-fg-default)]">
               <thead>
-                <tr className="border-b-2 border-[#111111] dark:border-[#e5e5e5]">
-                  <th className="px-2 py-1 text-left text-[10px] font-bold uppercase tracking-widest">Name</th>
-                  <th className="px-2 py-1 text-left text-[10px] font-bold uppercase tracking-widest">Team</th>
+                <tr className="border-b border-[var(--color-border-strong)]">
+                  <th className="stamp px-2 py-1 text-left">Name</th>
+                  <th className="stamp px-2 py-1 text-left">Team</th>
                   {parseResult.type === "batter" ? (
                     <>
-                      <th className="px-2 py-1 text-right text-[10px] font-bold uppercase tracking-widest">HR</th>
-                      <th className="px-2 py-1 text-right text-[10px] font-bold uppercase tracking-widest">R</th>
-                      <th className="px-2 py-1 text-right text-[10px] font-bold uppercase tracking-widest">RBI</th>
+                      <th className="stamp px-2 py-1 text-right">HR</th>
+                      <th className="stamp px-2 py-1 text-right">R</th>
+                      <th className="stamp px-2 py-1 text-right">RBI</th>
                     </>
                   ) : (
                     <>
-                      <th className="px-2 py-1 text-right text-[10px] font-bold uppercase tracking-widest">W</th>
-                      <th className="px-2 py-1 text-right text-[10px] font-bold uppercase tracking-widest">SO</th>
-                      <th className="px-2 py-1 text-right text-[10px] font-bold uppercase tracking-widest">ERA</th>
+                      <th className="stamp px-2 py-1 text-right">W</th>
+                      <th className="stamp px-2 py-1 text-right">SO</th>
+                      <th className="stamp px-2 py-1 text-right">ERA</th>
                     </>
                   )}
                 </tr>
@@ -398,7 +398,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                 {parseResult.players.slice(0, 5).map((p) => (
                   <tr
                     key={p._id}
-                    className="border-b border-[#111111]/10 dark:border-[#333333]/60"
+                    className="border-b border-[var(--color-border-soft)]"
                   >
                     <td className="px-2 py-1.5">{p.Name}</td>
                     <td className="px-2 py-1.5">{p.Team}</td>
@@ -444,10 +444,15 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         if (!open) handleCancel();
       }}
       title="Upload Player Projections"
+      description={
+        <span className="stamp">
+          source intake — baseball library, shared by every baseball league
+        </span>
+      }
       contentClassName="font-sans"
     >
         {error && (
-          <Panel tone="danger" padding="sm" className="mb-4 rounded-none text-sm text-[#dc2626] dark:text-[#ef4444]">
+          <Panel tone="danger" padding="sm" className="mb-4 rounded-none text-sm text-[var(--color-danger)]">
             {error}
           </Panel>
         )}
@@ -455,7 +460,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         {!batterFile && !pitcherFile ? (
           <>
             <div className="mb-5">
-              <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
+              <FieldLabel className="mb-2 block">
                 Player Type
               </FieldLabel>
               <Dropdown
@@ -479,17 +484,14 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               }}
               onDragLeave={() => setDragActive(false)}
               onDrop={handleDrop}
-              className={`mb-5 flex h-40 flex-col items-center justify-center border-2 border-dashed rounded-sm transition-colors ${
+              className={`mb-5 flex h-40 flex-col items-center justify-center gap-4 rounded-[var(--radius-sm)] border-2 border-dashed transition-colors ${
                 dragActive
-                  ? "border-[#dc2626] dark:border-[#ef4444] bg-[#dc2626]/5 dark:bg-[#ef4444]/5"
-                  : "border-[#111111]/20 dark:border-[#333333] bg-white dark:bg-[#111111]"
+                  ? "border-[var(--color-accent)] bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)]"
+                  : "border-[var(--color-border-default)] bg-[var(--color-surface-base)]"
               }`}
             >
-              <p className="mb-2 text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
-                Drag and drop CSV/TSV files here
-              </p>
-              <p className="mb-3 text-xs text-[#111111]/30 dark:text-[#e5e5e5]/20">or</p>
-              <label className="cursor-pointer rounded-sm bg-[#dc2626] dark:bg-[#ef4444] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#b91c1c] dark:hover:bg-[#dc2626]">
+              <p className="stamp">drop a csv or tsv here — or browse</p>
+              <label className="cursor-pointer rounded-sm border border-[var(--color-border-default)] bg-[var(--color-surface-base)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)]">
                 Browse Files
                 <input
                   type="file"
@@ -511,20 +513,20 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         ) : needsIdSelection ? (
           <>
             <Panel tone="muted" padding="md" className="mb-5 rounded-none border-l-4 border-l-[var(--color-border-strong)]">
-              <p className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+              <p className="text-sm font-bold text-[var(--color-fg-default)]">
                 No MLBAMID or PlayerId column found
               </p>
-              <p className="mt-1 text-sm text-[#111111]/60 dark:text-[#e5e5e5]/50">
+              <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
                 Select a column to use as the unique player identifier, or generate IDs automatically.
               </p>
             </Panel>
 
             {batterFile?.parseResult.needsIdSelection && (
               <div className="mb-5">
-                <p className="mb-2 text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+                <p className="font-data mb-2 truncate text-sm font-semibold text-[var(--color-fg-default)]">
                   Batter file: {batterFile.file.name}
                 </p>
-                <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
+                <FieldLabel className="mb-2 block">
                   ID Source
                 </FieldLabel>
                 <Dropdown
@@ -546,7 +548,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
                 {batterFile.selectedIdSource === "custom" && (
                   <div className="mt-3">
-                    <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
+                    <FieldLabel className="mb-2 block">
                       Select Column
                     </FieldLabel>
                     <Dropdown
@@ -569,10 +571,10 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
             {pitcherFile?.parseResult.needsIdSelection && (
               <div className="mb-5">
-                <p className="mb-2 text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+                <p className="font-data mb-2 truncate text-sm font-semibold text-[var(--color-fg-default)]">
                   Pitcher file: {pitcherFile.file.name}
                 </p>
-                <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
+                <FieldLabel className="mb-2 block">
                   ID Source
                 </FieldLabel>
                 <Dropdown
@@ -594,7 +596,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
 
                 {pitcherFile.selectedIdSource === "custom" && (
                   <div className="mt-3">
-                    <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
+                    <FieldLabel className="mb-2 block">
                       Select Column
                     </FieldLabel>
                     <Dropdown
@@ -627,7 +629,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
         ) : (
           <>
             <div className="mb-5">
-              <FieldLabel className="mb-2 block" style={{ fontVariant: "small-caps" }}>
+              <FieldLabel className="mb-2 block">
                 Group Name
               </FieldLabel>
               <Input
@@ -642,13 +644,13 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               />
             </div>
 
-            <div className="mb-5 border-t border-[#111111]/10 dark:border-[#333333] pt-4">
+            <div className="mb-5 border-t border-[var(--color-border-soft)] pt-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+                  <p className="text-sm font-bold text-[var(--color-fg-default)]">
                     Import Position Eligibility
                   </p>
-                  <p className="mt-1 text-xs text-[#111111]/50 dark:text-[#e5e5e5]/40">
+                  <p className="mt-1 text-xs text-[var(--color-fg-muted)]">
                     Uses MLB games to assign positions after upload. Requires MLBAMID.
                   </p>
                 </div>
@@ -664,19 +666,19 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                   className="shrink-0"
                 />
               </div>
-              <p className="mt-2 text-xs text-[#111111]/30 dark:text-[#e5e5e5]/20">
+              <p className="mt-2 text-xs text-[var(--color-fg-subtle)]">
                 May take a minute for larger files.
               </p>
             </div>
 
             {missingPitchingOutcomeStats.length > 0 && (
-              <div className="mb-5 border-t border-[#111111]/10 dark:border-[#333333] pt-4">
+              <div className="mb-5 border-t border-[var(--color-border-soft)] pt-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+                    <p className="text-sm font-bold text-[var(--color-fg-default)]">
                       Estimate Missing Pitching Outcomes
                     </p>
-                    <p className="mt-1 text-xs text-[#111111]/50 dark:text-[#e5e5e5]/40">
+                    <p className="mt-1 text-xs text-[var(--color-fg-muted)]">
                       Missing values stay at zero unless selected below.
                     </p>
                   </div>
@@ -690,8 +692,8 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                         key={stat}
                         className={`flex items-center justify-between gap-3 rounded-sm border p-3 transition-colors ${
                           pitchingOutcomeSelection[stat]
-                            ? "border-[#dc2626]/40 bg-[#dc2626]/5 dark:border-[#ef4444]/40 dark:bg-[#ef4444]/10"
-                            : "border-[#111111]/15 bg-[#f8f8f8] dark:border-[#333333] dark:bg-[#1a1a1a]"
+                            ? "border-[color:color-mix(in_srgb,var(--color-accent)_35%,transparent)] bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)]"
+                            : "border-[var(--color-border-soft)] bg-[var(--color-surface-muted)]"
                         } ${isImportingEligibility ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                       >
                         <div className="flex items-start gap-3">
@@ -707,15 +709,21 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                             className="mt-0.5"
                           />
                           <div>
-                            <p className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+                            <p className="text-sm font-bold text-[var(--color-fg-default)]">
                               {PITCHING_OUTCOME_LABELS[stat]}
                             </p>
-                            <p className="mt-1 text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+                            <p className="font-data mt-1 text-xs text-[var(--color-warning)]">
                               Missing for {missingCount} of {totalPlayers} pitchers
                             </p>
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/45 dark:text-[#e5e5e5]/35">
+                        <span
+                          className={`font-data text-[10px] font-medium uppercase tracking-[0.12em] ${
+                            pitchingOutcomeSelection[stat]
+                              ? "text-[var(--color-accent)]"
+                              : "text-[var(--color-fg-subtle)]"
+                          }`}
+                        >
                           {pitchingOutcomeSelection[stat] ? "Estimate" : "Keep 0"}
                         </span>
                       </label>
@@ -726,7 +734,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
             )}
 
             {missingTypeWarning && (
-              <Panel tone="muted" padding="sm" className="mb-4 rounded-none border-l-4 border-l-[var(--color-border-strong)] text-sm text-[#111111]/70 dark:text-[#e5e5e5]/60">
+              <Panel tone="warning" padding="sm" className="mb-4 rounded-none text-sm text-[var(--color-warning)]">
                 {missingTypeWarning}
               </Panel>
             )}
@@ -735,7 +743,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
             {pitcherFile && renderPreview(pitcherFile)}
 
             {(isImportingEligibility || importError) && (
-              <div className="mb-4 border-t border-[#111111]/10 dark:border-[#333333] pt-4 text-sm">
+              <div className="mb-4 border-t border-[var(--color-border-soft)] pt-4 text-sm">
                 {isImportingEligibility && (
                   <>
                     {(() => {
@@ -746,18 +754,18 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                       return (
                         <>
                           <div className="mb-2 flex items-center justify-between">
-                            <span className="font-bold text-[#111111] dark:text-[#e5e5e5]">
+                            <span className="font-data font-semibold text-[var(--color-fg-default)]">
                               Importing eligibility: {Math.round(progressWidth)}%
                             </span>
-                            <span className="text-xs text-[#111111]/50 dark:text-[#e5e5e5]/40">
+                            <span className="font-data text-xs text-[var(--color-fg-muted)]">
                               {importPlayer}
                             </span>
                           </div>
                           <div
-                            className="h-1 w-full overflow-hidden bg-[#111111]/10 dark:bg-[#333333]"
+                            className="h-1 w-full overflow-hidden bg-[var(--color-border-soft)]"
                             style={{
                               backgroundImage:
-                                "linear-gradient(to right, #dc2626, #dc2626)",
+                                "linear-gradient(to right, var(--color-accent), var(--color-accent))",
                               backgroundSize: `${progressWidth}% 100%`,
                               backgroundRepeat: "no-repeat",
                             }}
@@ -770,7 +778,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                       );
                     })()}
                     {retryStatus && (
-                      <p className="mt-2 text-xs text-[#111111]/60 dark:text-[#e5e5e5]/50">
+                      <p className="mt-2 text-xs text-[var(--color-fg-muted)]">
                         {retryStatus}
                       </p>
                     )}
@@ -778,7 +786,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
                 )}
                 {importError && !isImportingEligibility && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#dc2626] dark:text-[#ef4444]">
+                    <span className="text-sm text-[var(--color-danger)]">
                       {importError}
                     </span>
                     <Button
@@ -794,7 +802,7 @@ export function CsvUpload({ isOpen, onClose }: CsvUploadProps) {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 border-t border-[#111111]/10 dark:border-[#333333] pt-4">
+            <div className="flex justify-end gap-3 border-t border-[var(--color-border-soft)] pt-4">
               <Button
                 variant="ghost"
                 size="sm"

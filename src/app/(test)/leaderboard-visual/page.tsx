@@ -239,10 +239,13 @@ function LeaderboardVisualTestPageInner() {
 	const [ready, setReady] = useState(false);
 
 	return (
-		<div className="min-h-screen bg-[var(--color-surface-base)] font-serif">
+		<div className="min-h-screen">
 			<StoreSeeder variant={variant} onReady={() => setReady(true)} />
 			{ready && (
-				<main className="py-6 sm:py-8" data-testid="leaderboard-visual">
+				<main
+					className="mx-auto max-w-[var(--width-page)] px-[var(--space-page-x)] py-6 sm:px-[var(--space-page-x-sm)] sm:py-8"
+					data-testid="leaderboard-visual"
+				>
 					<Leaderboard />
 				</main>
 			)}

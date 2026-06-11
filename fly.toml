@@ -7,6 +7,14 @@ app = 'pointer'
 primary_region = 'ord'
 
 [build]
+  # When enabling Pro (Clerk + Convex), uncomment with your values. These are
+  # PUBLIC publishable values (safe to commit), and they must be build args —
+  # Next.js inlines NEXT_PUBLIC_* into client bundles at image build, so
+  # `fly secrets` (runtime-only) can't supply them. Server-side secrets
+  # (CLERK_SECRET_KEY, etc.) DO go through `fly secrets set`.
+  # [build.args]
+  #   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_live_..."
+  #   NEXT_PUBLIC_CONVEX_URL = "https://<deployment>.convex.cloud"
 
 [env]
   HOSTNAME = "0.0.0.0"

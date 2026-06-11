@@ -88,7 +88,7 @@ describe("PublicDatasetBootstrap", () => {
       "fetch",
       vi.fn(async (input: string) => ({
         ok: true,
-        json: async () => (input.endsWith("/api/public-datasets") ? manifestResponse : payloadResponse),
+        json: async () => (input.endsWith("/datasets/manifest.json") ? manifestResponse : payloadResponse),
       }))
     );
 
@@ -198,7 +198,7 @@ describe("PublicDatasetBootstrap", () => {
 
         return {
           ok: true,
-          json: async () => (input.endsWith("/api/public-datasets") ? manifestResponse : payloadResponse),
+          json: async () => (input.endsWith("/datasets/manifest.json") ? manifestResponse : payloadResponse),
         };
       })
     );

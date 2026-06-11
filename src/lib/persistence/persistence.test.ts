@@ -122,6 +122,49 @@ describe("migrate", () => {
     expect(typeof result.projectionGroups[0].eligibilityImportSeason).toBe("number");
   });
 
+  test("v11: leagues inherit the old global projection selection, sport-matched", async () => {
+    const baseballGroup = makeProjectionGroup({ id: "pg-baseball", sport: "baseball" });
+    const footballGroup = makeProjectionGroup({
+      id: "pg-football",
+      sport: "football",
+      footballPlayers: [],
+    });
+    const input = {
+      leagues: [
+        makeLeague({ id: "league-bb", sport: "baseball" }),
+        makeLeague({ id: "league-fb", sport: "football" }),
+      ],
+      activeLeagueId: "league-bb",
+      projectionGroups: [baseballGroup, footballGroup],
+      activeProjectionGroupId: "pg-baseball",
+      isDraftMode: false,
+      mergeTwoWayRankings: true,
+    };
+
+    const result = migrate(input, 10) as { leagues: League[] };
+
+    // Baseball league inherits the globally-active baseball group
+    expect(result.leagues[0].projectionGroupId).toBe("pg-baseball");
+    // Football league falls back to the best source of ITS sport
+    expect(result.leagues[1].projectionGroupId).toBe("pg-football");
+  });
+
+  test("v11: data already at version 11 keeps explicit per-league selections", async () => {
+    const input = {
+      leagues: [
+        makeLeague({ id: "league-1", sport: "baseball", projectionGroupId: "pg-mine" }),
+      ],
+      activeLeagueId: "league-1",
+      projectionGroups: [makeProjectionGroup({ id: "pg-other" })],
+      activeProjectionGroupId: "pg-other",
+      isDraftMode: false,
+      mergeTwoWayRankings: true,
+    };
+
+    const result = migrate(input, 11) as { leagues: League[] };
+    expect(result.leagues[0].projectionGroupId).toBe("pg-mine");
+  });
+
   test("pre-v10 data is treated as already onboarded", async () => {
     const input = {
       leagues: [makeLeague()],

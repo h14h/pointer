@@ -26,7 +26,7 @@ export function Toaster() {
           title: "font-sans text-sm font-semibold",
           description: "font-sans text-xs text-[var(--color-fg-muted)]",
           actionButton:
-            "rounded-sm bg-[var(--color-accent)] px-3 py-1.5 font-sans text-[10px] font-bold uppercase tracking-widest text-white",
+            "rounded-sm bg-[var(--color-accent)] px-3 py-1.5 font-sans text-[10px] font-bold uppercase tracking-widest text-[var(--color-accent-fg)]",
           cancelButton:
             "rounded-sm border border-[var(--color-border-default)] bg-transparent px-3 py-1.5 font-sans text-[10px] font-bold uppercase tracking-widest text-[var(--color-fg-muted)]",
         },

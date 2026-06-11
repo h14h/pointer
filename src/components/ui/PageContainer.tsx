@@ -1,5 +1,5 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
-import { cx } from "@/components/ui/cx";
+import { cn } from "@/lib/utils";
 
 export interface PageContainerProps extends HTMLAttributes<HTMLElement> {
   as?: ElementType;
@@ -14,7 +14,7 @@ export function PageContainer({
 }: PageContainerProps) {
   return (
     <Component
-      className={cx(
+      className={cn(
         "mx-auto w-full max-w-[var(--width-page)] px-[var(--space-page-x)] sm:px-[var(--space-page-x-sm)]",
         className
       )}

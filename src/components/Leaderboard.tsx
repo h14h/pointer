@@ -18,7 +18,7 @@ import {
 	type ColumnDef,
 } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import { getDraftPickContext, getNextOpenPickIndex } from "@/lib/draft";
+import { resolveProjectionGroupForLeague } from "@/lib/projections";
 import { useStore } from "@/store";
 import { POSITION_ORDER } from "@/lib/eligibility";
 import { useDebouncedCallback } from "@/lib/useDebounce";
@@ -109,8 +110,16 @@ const formatCountingStat = (value: number | null) =>
 	value === null || Number.isNaN(value) ? (
 		"-"
 	) : (
-		<span className="font-mono">{Math.round(value)}</span>
+		<span className="font-data">{Math.round(value)}</span>
 	);
+
+/* Text columns stay left-aligned; everything else is numeric and right-aligned */
+const TEXT_COLUMN_IDS = new Set([
+	"player.Name",
+	"player.Team",
+	"player._type",
+	"eligibility",
+]);
 
 export function formatParForDisplay(par: number): string {
 	const roundedPar = Math.round(par);
@@ -260,8 +269,8 @@ function ColumnsPicker({
 									onClick={() => toggleStat("batting", stat.id, !active)}
 									className={
 										active
-											? "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-accent)] text-white"
-											: "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-surface-raised)] text-[var(--color-fg-subtle)]"
+											? "font-data rounded-sm px-1.5 py-1 text-center text-[11px] bg-[var(--color-accent)] text-[var(--color-accent-fg)]"
+											: "font-data rounded-sm px-1.5 py-1 text-center text-[11px] bg-[var(--color-surface-raised)] text-[var(--color-fg-subtle)] hover:text-[var(--color-fg-default)]"
 									}
 								>
 									{stat.label}
@@ -284,8 +293,8 @@ function ColumnsPicker({
 									onClick={() => toggleStat("pitching", stat.id, !active)}
 									className={
 										active
-											? "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-accent)] text-white"
-											: "rounded-sm px-1.5 py-1 text-center text-xs font-bold tabular-nums bg-[var(--color-surface-raised)] text-[var(--color-fg-subtle)]"
+											? "font-data rounded-sm px-1.5 py-1 text-center text-[11px] bg-[var(--color-accent)] text-[var(--color-accent-fg)]"
+											: "font-data rounded-sm px-1.5 py-1 text-center text-[11px] bg-[var(--color-surface-raised)] text-[var(--color-fg-subtle)] hover:text-[var(--color-fg-default)]"
 									}
 								>
 									{stat.label}
@@ -345,7 +354,6 @@ function PositionFilter({
 export function Leaderboard() {
 	const {
 		projectionGroups,
-		activeProjectionGroupId,
 		isDraftMode,
 		draftPlayer,
 		undoLastPick,
@@ -355,7 +363,6 @@ export function Leaderboard() {
 	} = useStore(
 		useShallow((state) => ({
 			projectionGroups: state.projectionGroups,
-			activeProjectionGroupId: state.activeProjectionGroupId,
 			isDraftMode: state.isDraftMode,
 			draftPlayer: state.draftPlayer,
 			undoLastPick: state.undoLastPick,
@@ -390,12 +397,11 @@ export function Leaderboard() {
 		? leagueSettings.teamNames[currentPickContext.teamIndex] ??
 			`Team ${currentPickContext.teamIndex + 1}`
 		: null;
-	const currentGroupId =
-		activeProjectionGroupId ?? projectionGroups[0]?.id ?? null;
-	const activeGroup =
-		projectionGroups.find((group) => group.id === currentGroupId) ??
-		projectionGroups[0] ??
-		null;
+	// Sport-scoped source resolution: the league's own selection with
+	// library fallbacks (projections are shared across same-sport leagues)
+	const activeGroup = activeLeague
+		? resolveProjectionGroupForLeague(activeLeague, projectionGroups)
+		: (projectionGroups[0] ?? null);
 	const allPlayersById = useMemo(
 		() =>
 			new Map(
@@ -407,8 +413,9 @@ export function Leaderboard() {
 			),
 		[activeGroup],
 	);
-	const deferredGroupId = useDeferredValue(currentGroupId);
-	const isSwitchingGroups = deferredGroupId !== currentGroupId;
+	const activeGroupId = activeGroup?.id ?? null;
+	const deferredGroupId = useDeferredValue(activeGroupId);
+	const isSwitchingGroups = deferredGroupId !== activeGroupId;
 	const previousOpenPickIndexRef = useRef<number | null>(null);
 	const autoActionToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const undoToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -519,15 +526,6 @@ export function Leaderboard() {
 		[],
 	);
 
-	const applyAllStats = useCallback((group: "batting" | "pitching") => {
-		if (group === "batting") {
-			setSelectedBattingStats(BATTING_STAT_OPTIONS.map((stat) => stat.id));
-			return;
-		}
-
-		setSelectedPitchingStats(PITCHING_STAT_OPTIONS.map((stat) => stat.id));
-	}, []);
-
 	const clearAllStats = useCallback((group: "batting" | "pitching") => {
 		if (group === "batting") {
 			setSelectedBattingStats([]);
@@ -632,9 +630,9 @@ export function Leaderboard() {
 						skippedKeeperEntries.length === 1 ? (
 							<div className="flex items-center gap-2">
 								<span>{skippedPlayerName}</span>
-								<Badge variant="ownershipKeeper" className="rounded-sm px-1.5">
+								<Chip tone="accent">
 									K
-								</Badge>
+								</Chip>
 							</div>
 						) : (
 							"Auto-advanced"
@@ -725,7 +723,7 @@ export function Leaderboard() {
 	const tableNode = (
 		<div className="relative">
 			{(isSwitchingGroups || isApplyingFilters) && (
-				<div className="pointer-events-none absolute inset-0 z-[2] bg-white/50 dark:bg-[#111111]/50" />
+				<div className="pointer-events-none absolute inset-0 z-[2] bg-[color:color-mix(in_srgb,var(--color-bg-app)_60%,transparent)]" />
 			)}
 			<LeaderboardTable
 				projectionGroups={projectionGroups}
@@ -751,25 +749,23 @@ export function Leaderboard() {
 	return (
 		<div className="flex flex-col font-sans">
 			{/* Filters */}
-			<div className="mx-auto w-full max-w-5xl px-[var(--space-page-x)] sm:px-[var(--space-page-x-sm)]">
+			<div className="w-full">
 				{isDraftMode && currentPickContext ? (
-					<div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#111111]/[0.03] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 dark:bg-[#e5e5e5]/[0.04]">
+					<div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
 						<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 							<div>
-								<div className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/45 dark:text-[#e5e5e5]/35">
-									On The Clock
-								</div>
-								<div className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+								<div className="stamp">On The Clock</div>
+								<div className="text-sm font-semibold text-[var(--color-fg-default)]">
 									{currentTeamName}
 								</div>
 							</div>
-							<div className="text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+							<div className="font-data text-xs text-[var(--color-fg-muted)]">
 								Pick {currentPickContext.overallPick}
 							</div>
-							<div className="text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+							<div className="font-data text-xs text-[var(--color-fg-muted)]">
 								Round {currentPickContext.round}, Pick {currentPickContext.pickInRound}
 							</div>
-							<div className="text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+							<div className="font-data text-xs text-[var(--color-fg-muted)]">
 								{draftHistory.length} drafted, {Object.keys(keeperByTeam).length} keepers
 							</div>
 						</div>
@@ -839,7 +835,7 @@ export function Leaderboard() {
 					/>
 
 					{isDraftMode && (
-						<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30">
+						<span className="stamp">
 							Tap an available player to make the current pick
 						</span>
 					)}
@@ -985,7 +981,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				cell: ({ getValue }) => {
 					const val = getValue() as number | null;
 					return (
-						<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
+						<span className="font-data text-xs text-[var(--color-fg-muted)]">
 							{val != null ? val.toFixed(1) : "-"}
 						</span>
 					);
@@ -1001,10 +997,10 @@ const LeaderboardTable = memo(function LeaderboardTable({
 						<span
 							className={
 								isDraftMode && row.original.isDrafted
-									? "text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30 line-through truncate"
+									? "text-[13px] font-semibold text-[var(--color-fg-subtle)] line-through truncate"
 									: row.original.isKeeper
-										? "text-[10px] font-bold uppercase tracking-widest text-[#111111] dark:text-[#e5e5e5] truncate"
-										: "text-[10px] font-bold uppercase tracking-widest truncate"
+										? "text-[13px] font-semibold text-[var(--color-fg-default)] truncate"
+										: "text-[13px] font-semibold truncate"
 							}
 							title={row.original.player.Name}
 						>
@@ -1015,9 +1011,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								<TooltipProvider delayDuration={140}>
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<Badge variant="ownershipDrafted" className="rounded-sm px-1.5" tabIndex={0}>
+											<Chip tone="neutral" tabIndex={0}>
 												D
-											</Badge>
+											</Chip>
 										</TooltipTrigger>
 										<TooltipContent side="top" align="end">
 											{resolveTeamLabel(row.original.draftedTeamIndex)}
@@ -1029,9 +1025,9 @@ const LeaderboardTable = memo(function LeaderboardTable({
 								<TooltipProvider delayDuration={140}>
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<Badge variant="ownershipKeeper" className="rounded-sm px-1.5" tabIndex={0}>
+											<Chip tone="accent" tabIndex={0}>
 												K
-											</Badge>
+											</Chip>
 										</TooltipTrigger>
 										<TooltipContent side="top" align="end">
 											{resolveTeamLabel(row.original.keeperTeamIndex)}
@@ -1048,7 +1044,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				header: "Team",
 				size: 70,
 				cell: ({ getValue }) => (
-					<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
+					<span className="font-data text-[10px] uppercase tracking-[0.08em] text-[var(--color-fg-muted)]">
 						{getValue() as string}
 					</span>
 				),
@@ -1058,15 +1054,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				header: "Type",
 				size: 70,
 				cell: ({ row }) => (
-					<span
-						className={`text-[10px] font-bold uppercase tracking-widest ${
-							row.original.player._type === "batter"
-								? "text-[#111111]/60 dark:text-[#e5e5e5]/50"
-								: row.original.player._type === "pitcher"
-									? "text-[#111111]/60 dark:text-[#e5e5e5]/50"
-									: "text-[#dc2626] dark:text-[#ef4444]"
-						}`}
-					>
+					<span className="font-data text-[10px] uppercase tracking-[0.08em] text-[var(--color-fg-muted)]">
 						{row.original.player._type === "batter"
 							? "BAT"
 							: row.original.player._type === "pitcher"
@@ -1082,7 +1070,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				accessorFn: (row) => formatEligibilityForLeaderboard(row.player),
 				cell: ({ getValue }) => (
 					<span
-						className="whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50"
+						className="whitespace-nowrap font-data text-[10px] uppercase tracking-[0.08em] text-[var(--color-fg-muted)]"
 						title={getValue() as string}
 					>
 						{getValue() as string}
@@ -1094,7 +1082,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 				header: "Points",
 				size: 95,
 				cell: ({ row }) => (
-					<span className="font-bold font-mono text-[#dc2626] dark:text-[#ef4444]">
+					<span className="font-data font-semibold">
 						{Math.round(row.original.projectedPoints)}
 					</span>
 				),
@@ -1108,12 +1096,12 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					const formatted = formatParForDisplay(row.original.par);
 					return (
 						<span
-							className={`font-mono text-xs ${
+							className={`font-data text-xs ${
 								val > 0
-									? "text-green-600 dark:text-green-400"
+									? "text-[var(--color-accent)]"
 									: val < 0
-										? "text-red-600 dark:text-red-400"
-										: "text-[#111111]/40 dark:text-[#e5e5e5]/40"
+										? "text-[var(--color-warning)]"
+										: "text-[var(--color-fg-subtle)]"
 							}`}
 						>
 							{formatted}
@@ -1136,7 +1124,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			const [first, ...rest] = columnDefs;
 			const existingClass =
 				(first.meta as { className?: string } | undefined)?.className ?? "";
-			const mergedClass = [existingClass, "border-l border-[#111111]/10 dark:border-[#333333]"]
+			const mergedClass = [existingClass, "border-l border-l-[var(--color-border-soft)]"]
 				.filter(Boolean)
 				.join(" ");
 			const firstWithBorder: ColumnDef<LeaderboardRow> = {
@@ -1379,7 +1367,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					cell: ({ getValue }) => {
 						const val = getValue() as number | null;
 						return val ? (
-							<span className="font-mono">{val.toFixed(3).replace(/^0/, "")}</span>
+							<span className="font-data">{val.toFixed(3).replace(/^0/, "")}</span>
 						) : (
 							"-"
 						);
@@ -1407,7 +1395,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					cell: ({ getValue }) => {
 						const val = getValue() as number | null;
 						return val != null ? (
-							<span className="font-mono">{val.toFixed(1)}</span>
+							<span className="font-data">{val.toFixed(1)}</span>
 						) : (
 							"-"
 						);
@@ -1608,7 +1596,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					cell: ({ getValue }) => {
 						const val = getValue() as number | null;
 						return val ? (
-							<span className="font-mono">{val.toFixed(2)}</span>
+							<span className="font-data">{val.toFixed(2)}</span>
 						) : (
 							"-"
 						);
@@ -1627,7 +1615,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					cell: ({ getValue }) => {
 						const val = getValue() as number | null;
 						return val ? (
-							<span className="font-mono">{val.toFixed(2)}</span>
+							<span className="font-data">{val.toFixed(2)}</span>
 						) : (
 							"-"
 						);
@@ -1680,25 +1668,26 @@ const LeaderboardTable = memo(function LeaderboardTable({
 			twoWayPlayers.length === 0)
 	) {
 		return (
-			<div className="flex h-96 flex-col items-center justify-center">
-				<p className="mb-3 text-xl text-[#111111]/40 dark:text-[#e5e5e5]/30" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>No players loaded</p>
-				<p className="text-sm text-[#111111]/30 dark:text-[#e5e5e5]/20">Upload a CSV file to get started</p>
+			<div className="flex h-96 flex-col items-center justify-center text-center">
+				<p className="stamp mb-2">No players loaded</p>
+				<p className="text-sm text-[var(--color-fg-muted)]">Upload a CSV file to get started</p>
 			</div>
 		);
 	}
 
 	return (
 		<div className="space-y-4">
-			<div className="overflow-x-auto overflow-y-clip pb-[1em] mb-[0.25em] border-b border-[#111111]/10 dark:border-[#333333]">
-				<table className="mt-8 w-full border-separate border-spacing-0 border-t border-[#111111]/40 text-sm text-[#111111] dark:border-[#e5e5e5]/25 dark:text-[#e5e5e5]">
+			<div className="mt-4 overflow-x-auto overflow-y-clip rounded-[var(--radius-md)] border border-[var(--color-border-soft)] bg-[var(--color-surface-base)]">
+				<table className="w-full border-separate border-spacing-0 text-sm text-[var(--color-fg-default)]">
 					<thead>
 						<tr>
-							<th style={{ width: FROZEN_RANK_W, minWidth: FROZEN_RANK_W, maxWidth: FROZEN_RANK_W }} className="sticky left-0 top-0 z-20 border-b border-b-[#111111]/40 bg-white px-2 py-1.5 text-right text-[10px] sm:py-2 font-bold uppercase tracking-widest text-[#111111]/35 dark:border-b-[#e5e5e5]/25 dark:bg-[#111111] dark:text-[#e5e5e5]/30">
+							<th style={{ width: FROZEN_RANK_W, minWidth: FROZEN_RANK_W, maxWidth: FROZEN_RANK_W }} className="stamp sticky left-0 top-0 z-20 border-b border-b-[var(--color-border-default)] bg-[var(--color-surface-base)] px-2 py-1.5 text-right sm:py-2 text-[var(--color-fg-subtle)]">
 								#
 							</th>
 							{columns.map((column, columnIndex) => {
 								const columnId = getColumnId(column, columnIndex);
 								const isSorted = currentSort?.id === columnId;
+								const isNumericColumn = !TEXT_COLUMN_IDS.has(columnId);
 								const meta =
 									(column.meta as { className?: string } | undefined) ?? undefined;
 
@@ -1714,16 +1703,20 @@ const LeaderboardTable = memo(function LeaderboardTable({
 												columnId === "player.Name" ? { left: FROZEN_NAME_LEFT } :
 												{}),
 										}}
-										className={`sticky top-0 z-10 border-b border-b-[#111111]/40 dark:border-b-[#e5e5e5]/25 bg-white dark:bg-[#111111] px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-widest sm:px-3 sm:py-2 text-[#111111]/60 dark:text-[#e5e5e5]/50 whitespace-nowrap relative cursor-pointer select-none hover:text-[#111111] dark:hover:text-[#e5e5e5] ${
+										className={`stamp sticky top-0 z-10 border-b border-b-[var(--color-border-default)] bg-[var(--color-surface-base)] px-2 py-1.5 sm:px-3 sm:py-2 whitespace-nowrap relative cursor-pointer select-none ${
+											isSorted
+												? "text-[var(--color-accent)]"
+												: "hover:text-[var(--color-fg-default)]"
+										} ${isNumericColumn ? "text-right" : "text-left"} ${
 											columnId === "ADP"
 												? "z-20"
 												: columnId === "player.Name"
-													? "z-20 border-r border-[#111111]/10 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-[#333333] dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]"
+													? "z-20 border-r border-r-[var(--color-border-soft)]"
 													: ""
 										} ${meta?.className ?? ""}`}
 										onClick={() => setSorting((current) => getNextSorting(columnId, current))}
 									>
-										<div className="flex items-center gap-1 whitespace-nowrap">
+										<div className={`flex items-center gap-1 whitespace-nowrap ${isNumericColumn ? "justify-end" : ""}`}>
 											{renderColumnHeader(column)}
 											{isSorted ? (currentSort?.desc ? " \u2193" : " \u2191") : null}
 										</div>
@@ -1737,17 +1730,17 @@ const LeaderboardTable = memo(function LeaderboardTable({
 							<tr
 								key={row.player._id}
 								onClick={() => handleRowClick(row)}
-								className={`${
+								className={`group ${
 									isDraftMode && !row.isDrafted && !row.isKeeper ? "cursor-pointer" : ""
 								} ${
 									isDraftMode && row.isDrafted
-										? "bg-[#111111]/[0.03] text-[#111111]/30 dark:bg-[#e5e5e5]/[0.03] dark:text-[#e5e5e5]/20"
+										? "bg-[var(--color-surface-muted)] text-[var(--color-fg-subtle)]"
 										: row.isKeeper
-											? "bg-[#dc2626]/[0.04] dark:bg-[#ef4444]/[0.04]"
-										: "hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
+											? "bg-[color:color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
+										: "hover:bg-[var(--color-surface-hover)]"
 								}`}
 							>
-								<td style={{ width: FROZEN_RANK_W, minWidth: FROZEN_RANK_W, maxWidth: FROZEN_RANK_W }} className={`sticky left-0 z-[1] border-b border-[#111111]/10 px-2 py-2 text-right font-mono sm:py-2.5 text-[11px] text-[#111111]/38 dark:border-[#333333]/60 dark:text-[#e5e5e5]/30 ${isDraftMode && row.isDrafted ? "bg-[#f7f7f7] dark:bg-[#141414]" : row.isKeeper ? "bg-[#fef7f7] dark:bg-[#160e0e]" : "bg-white dark:bg-[#111111]"}`}>
+								<td style={{ width: FROZEN_RANK_W, minWidth: FROZEN_RANK_W, maxWidth: FROZEN_RANK_W }} className={`font-data sticky left-0 z-[1] border-b border-b-[var(--color-border-soft)] px-2 py-2 text-right sm:py-2.5 text-[11px] text-[var(--color-fg-subtle)] ${isDraftMode && row.isDrafted ? "bg-[color:color-mix(in_srgb,var(--color-fg-default)_4%,var(--color-surface-base))]" : row.isKeeper ? "bg-[color:color-mix(in_srgb,var(--color-accent)_5%,var(--color-surface-base))]" : "bg-[var(--color-surface-base)] group-hover:bg-[var(--color-surface-hover)]"}`}>
 									{rankByPlayerId.get(row.player._id) ??
 										effectivePageIndex * pagination.pageSize + rowIndex + 1}
 								</td>
@@ -1758,13 +1751,14 @@ const LeaderboardTable = memo(function LeaderboardTable({
 									const isAdpColumn = columnId === "ADP";
 									const isNameColumn = columnId === "player.Name";
 									const isStickyColumn = isAdpColumn || isNameColumn;
-									const stickyBg = isDraftMode && row.isDrafted ? "bg-[#f7f7f7] dark:bg-[#141414]" : row.isKeeper ? "bg-[#fef7f7] dark:bg-[#160e0e]" : "bg-white dark:bg-[#111111]";
+									const isNumericColumn = !TEXT_COLUMN_IDS.has(columnId);
+									const stickyBg = isDraftMode && row.isDrafted ? "bg-[color:color-mix(in_srgb,var(--color-fg-default)_4%,var(--color-surface-base))]" : row.isKeeper ? "bg-[color:color-mix(in_srgb,var(--color-accent)_5%,var(--color-surface-base))]" : "bg-[var(--color-surface-base)] group-hover:bg-[var(--color-surface-hover)]";
 
 									return (
 									<td
 										key={`${row.player._id}-${columnId}`}
 										style={isAdpColumn ? { left: FROZEN_ADP_LEFT, minWidth: FROZEN_ADP_W, maxWidth: FROZEN_ADP_W } : isNameColumn ? { left: FROZEN_NAME_LEFT } : undefined}
-										className={`border-b border-[#111111]/10 px-2 py-2 dark:border-[#333333]/60 sm:px-3 sm:py-2.5${isStickyColumn ? ` sticky z-[1] ${stickyBg}${isNameColumn ? " border-r shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]" : ""}` : ""} ${meta?.className ?? ""}`}
+										className={`border-b border-b-[var(--color-border-soft)] px-2 py-2 sm:px-3 sm:py-2.5${isStickyColumn ? ` sticky z-[1] ${stickyBg}${isNameColumn ? " border-r border-r-[var(--color-border-soft)]" : ""}` : ""}${isNumericColumn ? " text-right" : ""} ${meta?.className ?? ""}`}
 									>
 										{renderColumnCell(column, row)}
 									</td>
@@ -1775,7 +1769,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 					</tbody>
 				</table>
 			</div>
-			<div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-2 px-[var(--space-page-x)] pt-4 text-xs text-[#111111]/60 sm:gap-3 sm:px-[var(--space-page-x-sm)] dark:text-[#e5e5e5]/50">
+			<div className="flex w-full flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border-soft)] pt-3 font-data text-xs text-[var(--color-fg-muted)] sm:gap-3">
 				<div className="flex items-center gap-2 sm:gap-3">
 					<button
 						onClick={() =>
@@ -1785,7 +1779,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 							}))
 						}
 						disabled={effectivePageIndex === 0}
-						className="text-xs font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 hover:text-[#111111] dark:hover:text-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-30"
+						className="font-data text-xs uppercase tracking-[0.08em] text-[var(--color-fg-muted)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
 					>
 						Prev
 					</button>
@@ -1797,7 +1791,7 @@ const LeaderboardTable = memo(function LeaderboardTable({
 							}))
 						}
 						disabled={effectivePageIndex >= pageCount - 1}
-						className="text-xs font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50 hover:text-[#111111] dark:hover:text-[#e5e5e5] disabled:cursor-not-allowed disabled:opacity-30"
+						className="font-data text-xs uppercase tracking-[0.08em] text-[var(--color-fg-muted)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
 					>
 						Next
 					</button>

@@ -9,10 +9,11 @@ import {
 import { Button } from "@/components/ui/Button";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Dropdown } from "@/components/ui/Dropdown";
-import { SectionHeader } from "@/components/ui/SectionHeader";
+import { Panel } from "@/components/ui/Panel";
 import { Toggle } from "@/components/ui/Toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/Tooltip";
 import { scoringPresets, presetNames } from "@/lib/league";
+import { resolveProjectionGroupForLeague } from "@/lib/projections";
 import { useDebouncedCallback } from "@/lib/useDebounce";
 import { useStore } from "@/store";
 import type { ScoringSettings } from "@/types";
@@ -23,7 +24,6 @@ export function ScoringSection() {
     activeLeagueId,
     updateLeague,
     projectionGroups,
-    activeProjectionGroupId,
     mergeTwoWayRankings,
     setMergeTwoWayRankings,
   } = useStore();
@@ -66,10 +66,9 @@ export function ScoringSection() {
     150
   );
 
-  const activeGroup =
-    projectionGroups.find((group) => group.id === activeProjectionGroupId) ??
-    projectionGroups[0] ??
-    null;
+  const activeGroup = activeLeague
+    ? resolveProjectionGroupForLeague(activeLeague, projectionGroups)
+    : (projectionGroups[0] ?? null);
   const canMergeTwoWay =
     !!activeGroup &&
     activeGroup.batterIdSource !== null &&
@@ -78,15 +77,9 @@ export function ScoringSection() {
     activeGroup.pitcherIdSource !== "generated";
 
   return (
-    <div className="font-sans">
-      <SectionHeader
-        className="mb-8"
-        title="Scoring"
-        description="Adjust point weights and control two-way player merge behavior."
-      />
-
+    <Panel as="section" padding="none" className="font-sans">
       {/* Preset controls + merge toggle */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-[var(--color-border-soft)] px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="grid flex-1 gap-1.5 sm:max-w-[220px]">
             <FieldLabel>Preset</FieldLabel>
@@ -94,7 +87,7 @@ export function ScoringSection() {
               value={selectedPresetKey}
               onChange={setSelectedPresetKey}
               ariaLabel="Scoring preset"
-              triggerClassName="h-9"
+              triggerClassName="h-9 rounded-sm"
               menuClassName="min-w-[220px]"
               options={presetNames.map((key) => ({
                 value: key,
@@ -116,8 +109,8 @@ export function ScoringSection() {
         <div
           className={`flex items-center gap-2.5 ${
             canMergeTwoWay
-              ? "text-[#111111]/65 dark:text-[#e5e5e5]/55"
-              : "text-[#111111]/45 dark:text-[#e5e5e5]/38"
+              ? "text-[var(--color-fg-muted)]"
+              : "text-[var(--color-fg-subtle)]"
           }`}
         >
           <span className="text-xs font-medium">Merge two-way</span>
@@ -148,21 +141,15 @@ export function ScoringSection() {
                 setMergeTwoWayRankings(!mergeTwoWayRankings);
               }
             }}
-            className={!canMergeTwoWay ? "bg-[#111111]/15 dark:bg-[#e5e5e5]/15 border-transparent" : ""}
           />
         </div>
       </div>
 
       {/* Two-column layout: batting left, pitching right */}
-      <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+      <div className="grid gap-x-8 gap-y-6 p-4 sm:grid-cols-2 sm:p-5">
         {/* Batting column */}
         <div className="grid content-start gap-6">
-          <h3
-            className="text-xs font-bold uppercase tracking-widest text-[#111111]/70 dark:text-[#e5e5e5]/60"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Batting
-          </h3>
+          <h3 className="stamp">Batting</h3>
           {battingGroups.map((group) => (
             <NumericInputGroup key={group.label} label={group.label}>
               {group.categories.map(({ key, label }) => (
@@ -174,8 +161,8 @@ export function ScoringSection() {
                   value={scoringSettings.batting[key]}
                   onCommit={(v) => debouncedUpdateBatting(key, v)}
                   units="pts"
-                  unitsClassName="text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]/45 dark:text-[#e5e5e5]/38"
-                  inputClassName="w-14 text-sm sm:w-16 sm:text-base"
+                  unitsClassName="stamp"
+                  inputClassName="font-data w-14 text-sm sm:w-16 sm:text-base"
                   numericClassName="gap-1.5"
                 />
               ))}
@@ -185,12 +172,7 @@ export function ScoringSection() {
 
         {/* Pitching column */}
         <div className="grid content-start gap-6">
-          <h3
-            className="text-xs font-bold uppercase tracking-widest text-[#111111]/70 dark:text-[#e5e5e5]/60"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Pitching
-          </h3>
+          <h3 className="stamp">Pitching</h3>
           {pitchingGroups.map((group) => (
             <NumericInputGroup key={group.label} label={group.label}>
               {group.categories.map(({ key, label }) => (
@@ -202,8 +184,8 @@ export function ScoringSection() {
                   value={scoringSettings.pitching[key]}
                   onCommit={(v) => debouncedUpdatePitching(key, v)}
                   units="pts"
-                  unitsClassName="text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]/45 dark:text-[#e5e5e5]/38"
-                  inputClassName="w-14 text-sm sm:w-16 sm:text-base"
+                  unitsClassName="stamp"
+                  inputClassName="font-data w-14 text-sm sm:w-16 sm:text-base"
                   numericClassName="gap-1.5"
                 />
               ))}
@@ -211,6 +193,6 @@ export function ScoringSection() {
           ))}
         </div>
       </div>
-    </div>
+    </Panel>
   );
 }

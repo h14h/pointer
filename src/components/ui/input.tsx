@@ -2,7 +2,7 @@ import * as React from "react";
 import { Input as InputPrimitive } from "@base-ui/react/input";
 import { cn } from "@/lib/utils";
 
-type InputTone = "default" | "subtle" | "danger";
+type InputTone = "default" | "subtle" | "danger" | "underline";
 type InputSize = "sm" | "md";
 
 export interface InputProps extends React.ComponentProps<"input"> {
@@ -17,6 +17,9 @@ const toneClassNames: Record<InputTone, string> = {
     "border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] text-[var(--color-fg-default)] placeholder:text-[var(--color-fg-subtle)] focus-visible:border-[var(--color-accent)] focus-visible:ring-[var(--color-focus-ring)]",
   danger:
     "border-[color:color-mix(in_srgb,var(--color-danger)_24%,transparent)] bg-[color:color-mix(in_srgb,var(--color-danger)_5%,var(--color-surface-base))] text-[var(--color-fg-default)] placeholder:text-[var(--color-fg-subtle)] focus-visible:border-[var(--color-danger)] focus-visible:ring-[color:color-mix(in_srgb,var(--color-danger)_28%,transparent)]",
+  // The pencil-line worksheet input (plan notes, inline searches)
+  underline:
+    "rounded-none border-0 border-b border-[var(--color-border-default)] bg-transparent px-0 text-[var(--color-fg-default)] placeholder:text-[var(--color-fg-subtle)] focus-visible:border-[var(--color-accent)] focus-visible:ring-0",
 };
 
 const sizeClassNames: Record<InputSize, string> = {
@@ -35,7 +38,7 @@ export function Input({
     <InputPrimitive
       type={type}
       className={cn(
-        "w-full min-w-0 rounded-sm border font-sans shadow-none outline-none ring-0 focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[var(--color-surface-base)]",
+        "w-full min-w-0 rounded-sm border font-sans shadow-none outline-none ring-0 focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50",
         sizeClassNames[inputSize],
         toneClassNames[tone],
         className

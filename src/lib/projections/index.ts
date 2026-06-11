@@ -50,6 +50,8 @@ export {
   getDefaultEligibilityImportSeason,
   isProtectedProjectionGroup,
   getProjectionGroupFallbackId,
+  resolveProjectionGroupForLeague,
+  leaguesUsingProjectionGroup,
   normalizeProjectionGroup,
   normalizeProjectionGroups,
   getProjectionGroupDisplayName,

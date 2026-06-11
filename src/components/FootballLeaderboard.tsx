@@ -8,7 +8,7 @@ import {
 	type ReactNode,
 } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Dropdown } from "@/components/ui/Dropdown";
@@ -32,6 +32,7 @@ import {
 	type FootballRankedPlayer,
 	type FootballSortKey,
 } from "@/lib/football";
+import { resolveProjectionGroupForLeague } from "@/lib/projections";
 import type { FootballStats } from "@/types";
 import { useShallow } from "zustand/react/shallow";
 
@@ -151,8 +152,11 @@ const formatCountingStat = (value: number | null) =>
 	value === null || Number.isNaN(value) ? (
 		"-"
 	) : (
-		<span className="font-mono">{Math.round(value)}</span>
+		<span className="font-data">{Math.round(value)}</span>
 	);
+
+/* Text columns stay left-aligned; everything else is numeric and right-aligned */
+const TEXT_COLUMN_IDS = new Set(["name", "position"]);
 
 function formatParForDisplay(par: number): string {
 	const roundedPar = Math.round(par);
@@ -190,7 +194,6 @@ type ColumnDef = {
 export function FootballLeaderboard() {
 	const {
 		projectionGroups,
-		activeProjectionGroupId,
 		isDraftMode,
 		draftPlayer,
 		undoLastPick,
@@ -199,7 +202,6 @@ export function FootballLeaderboard() {
 	} = useStore(
 		useShallow((state) => ({
 			projectionGroups: state.projectionGroups,
-			activeProjectionGroupId: state.activeProjectionGroupId,
 			isDraftMode: state.isDraftMode,
 			draftPlayer: state.draftPlayer,
 			undoLastPick: state.undoLastPick,
@@ -242,15 +244,11 @@ export function FootballLeaderboard() {
 			`Team ${currentPickContext.teamIndex + 1}`
 		: null;
 
-	// Football-sport-aware projection group selection
-	const sportGroups = useMemo(
-		() => projectionGroups.filter((g) => g.sport === "football"),
-		[projectionGroups],
-	);
-	const activeGroup =
-		sportGroups.find((g) => g.id === activeProjectionGroupId) ??
-		sportGroups[0] ??
-		null;
+	// Sport-scoped source resolution: the league's own selection with
+	// library fallbacks (projections are shared across same-sport leagues)
+	const activeGroup = activeLeague
+		? resolveProjectionGroupForLeague(activeLeague, projectionGroups)
+		: null;
 
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [appliedGlobalFilter, setAppliedGlobalFilter] = useState("");
@@ -367,14 +365,14 @@ export function FootballLeaderboard() {
 						<span
 							className={
 								isDraftMode && row.isDrafted
-									? "truncate text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 line-through dark:text-[#e5e5e5]/30"
-									: "truncate text-[10px] font-bold uppercase tracking-widest"
+									? "truncate text-[13px] font-semibold text-[var(--color-fg-subtle)] line-through"
+									: "truncate text-[13px] font-semibold"
 							}
 							title={row.player.Name}
 						>
 							{abbreviateName(row.player.Name)}
 						</span>
-						<span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30">
+						<span className="font-data shrink-0 text-[10px] uppercase tracking-[0.08em] text-[var(--color-fg-muted)]">
 							{row.player.Team}
 						</span>
 						<div className="ml-auto flex shrink-0 items-center gap-1">
@@ -382,9 +380,9 @@ export function FootballLeaderboard() {
 								<TooltipProvider delayDuration={140}>
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<Badge variant="ownershipDrafted" className="rounded-sm px-1.5" tabIndex={0}>
+											<Chip tone="neutral" tabIndex={0}>
 												D
-											</Badge>
+											</Chip>
 										</TooltipTrigger>
 										<TooltipContent side="top" align="end">
 											{resolveTeamLabel(row.draftedTeamIndex)}
@@ -396,9 +394,9 @@ export function FootballLeaderboard() {
 								<TooltipProvider delayDuration={140}>
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<Badge variant="ownershipKeeper" className="rounded-sm px-1.5" tabIndex={0}>
+											<Chip tone="accent" tabIndex={0}>
 												K
-											</Badge>
+											</Chip>
 										</TooltipTrigger>
 										<TooltipContent side="top" align="end">
 											{resolveTeamLabel(row.keeperTeamIndex)}
@@ -415,7 +413,7 @@ export function FootballLeaderboard() {
 				header: "Pos",
 				size: 60,
 				cell: (row) => (
-					<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
+					<span className="font-data text-[10px] uppercase tracking-[0.08em] text-[var(--color-fg-muted)]">
 						{row.player.Position}
 					</span>
 				),
@@ -426,7 +424,7 @@ export function FootballLeaderboard() {
 				size: 55,
 				cell: (row) =>
 					row.player.BYE != null ? (
-						<span className="font-mono text-xs text-[#111111]/60 dark:text-[#e5e5e5]/50">
+						<span className="font-data text-xs text-[var(--color-fg-muted)]">
 							{row.player.BYE}
 						</span>
 					) : (
@@ -439,7 +437,7 @@ export function FootballLeaderboard() {
 				size: 80,
 				sortKey: "points",
 				cell: (row) => (
-					<span className="font-mono font-bold text-[#dc2626] dark:text-[#ef4444]">
+					<span className="font-data font-semibold">
 						{Math.round(row.projectedPoints)}
 					</span>
 				),
@@ -453,12 +451,12 @@ export function FootballLeaderboard() {
 					const val = Math.round(row.par);
 					return (
 						<span
-							className={`font-mono text-xs ${
+							className={`font-data text-xs ${
 								val > 0
-									? "text-green-600 dark:text-green-400"
+									? "text-[var(--color-accent)]"
 									: val < 0
-										? "text-red-600 dark:text-red-400"
-										: "text-[#111111]/40 dark:text-[#e5e5e5]/40"
+										? "text-[var(--color-warning)]"
+										: "text-[var(--color-fg-subtle)]"
 							}`}
 						>
 							{formatParForDisplay(row.par)}
@@ -472,7 +470,7 @@ export function FootballLeaderboard() {
 				size: 60,
 				sortKey: "adp",
 				cell: (row) => (
-					<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 dark:text-[#e5e5e5]/50">
+					<span className="font-data text-xs text-[var(--color-fg-muted)]">
 						{row.player.ADP != null ? row.player.ADP.toFixed(1) : "-"}
 					</span>
 				),
@@ -509,46 +507,37 @@ export function FootballLeaderboard() {
 	const footballPlayers = activeGroup?.footballPlayers ?? [];
 	if (!activeGroup || footballPlayers.length === 0) {
 		return (
-			<div className="mx-auto w-full max-w-5xl px-[var(--space-page-x)] sm:px-[var(--space-page-x-sm)]">
-				<Panel className="flex h-96 flex-col items-center justify-center text-center">
-					<p
-						className="mb-3 text-xl text-[#111111]/40 dark:text-[#e5e5e5]/30"
-						style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-					>
-						No football players loaded
-					</p>
-					<p className="text-sm text-[#111111]/30 dark:text-[#e5e5e5]/20">
-						Upload a football projections CSV in Settings → Projections to get
-						started
-					</p>
-				</Panel>
-			</div>
+			<Panel className="flex h-96 flex-col items-center justify-center text-center">
+				<p className="stamp mb-2">No football players loaded</p>
+				<p className="text-sm text-[var(--color-fg-muted)]">
+					Upload a football projections CSV in Settings → Projections to get
+					started
+				</p>
+			</Panel>
 		);
 	}
 
 	return (
 		<div className="flex flex-col font-sans">
 			{/* Filters */}
-			<div className="mx-auto w-full max-w-5xl px-[var(--space-page-x)] sm:px-[var(--space-page-x-sm)]">
+			<div className="w-full">
 				{isDraftMode && currentPickContext ? (
-					<div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#111111]/[0.03] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 dark:bg-[#e5e5e5]/[0.04]">
+					<div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
 						<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 							<div>
-								<div className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/45 dark:text-[#e5e5e5]/35">
-									On The Clock
-								</div>
-								<div className="text-sm font-bold text-[#111111] dark:text-[#e5e5e5]">
+								<div className="stamp">On The Clock</div>
+								<div className="text-sm font-semibold text-[var(--color-fg-default)]">
 									{currentTeamName}
 								</div>
 							</div>
-							<div className="text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+							<div className="font-data text-xs text-[var(--color-fg-muted)]">
 								Pick {currentPickContext.overallPick}
 							</div>
-							<div className="text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+							<div className="font-data text-xs text-[var(--color-fg-muted)]">
 								Round {currentPickContext.round}, Pick{" "}
 								{currentPickContext.pickInRound}
 							</div>
-							<div className="text-xs text-[#111111]/55 dark:text-[#e5e5e5]/45">
+							<div className="font-data text-xs text-[var(--color-fg-muted)]">
 								{draftHistory.length} drafted, {Object.keys(keeperByTeam).length}{" "}
 								keepers
 							</div>
@@ -609,7 +598,7 @@ export function FootballLeaderboard() {
 					)}
 
 					{isDraftMode && (
-						<span className="text-[10px] font-bold uppercase tracking-widest text-[#111111]/40 dark:text-[#e5e5e5]/30">
+						<span className="stamp">
 							Tap an available player to make the current pick
 						</span>
 					)}
@@ -618,13 +607,13 @@ export function FootballLeaderboard() {
 
 			{/* Table */}
 			<div className="space-y-4">
-				<div className="mb-[0.25em] overflow-x-auto overflow-y-clip border-b border-[#111111]/10 pb-[1em] dark:border-[#333333]">
-					<table className="mt-8 w-full border-separate border-spacing-0 border-t border-[#111111]/40 text-sm text-[#111111] dark:border-[#e5e5e5]/25 dark:text-[#e5e5e5]">
+				<div className="mt-4 overflow-x-auto overflow-y-clip rounded-[var(--radius-md)] border border-[var(--color-border-soft)] bg-[var(--color-surface-base)]">
+					<table className="w-full border-separate border-spacing-0 text-sm text-[var(--color-fg-default)]">
 						<thead>
 							<tr>
 								<th
 									style={{ width: FROZEN_RANK_W, minWidth: FROZEN_RANK_W, maxWidth: FROZEN_RANK_W }}
-									className="sticky left-0 top-0 z-20 border-b border-b-[#111111]/40 bg-white px-2 py-1.5 text-right text-[10px] font-bold uppercase tracking-widest text-[#111111]/35 sm:py-2 dark:border-b-[#e5e5e5]/25 dark:bg-[#111111] dark:text-[#e5e5e5]/30"
+									className="stamp sticky left-0 top-0 z-20 border-b border-b-[var(--color-border-default)] bg-[var(--color-surface-base)] px-2 py-1.5 text-right text-[var(--color-fg-subtle)] sm:py-2"
 								>
 									#
 								</th>
@@ -632,6 +621,7 @@ export function FootballLeaderboard() {
 									const isSorted =
 										column.sortKey !== undefined && sort.key === column.sortKey;
 									const isNameColumn = column.id === "name";
+									const isNumericColumn = !TEXT_COLUMN_IDS.has(column.id);
 									return (
 										<th
 											key={column.id}
@@ -639,13 +629,15 @@ export function FootballLeaderboard() {
 												width: column.size,
 												...(isNameColumn ? { left: FROZEN_NAME_LEFT } : {}),
 											}}
-											className={`sticky top-0 z-10 whitespace-nowrap border-b border-b-[#111111]/40 bg-white px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-widest text-[#111111]/60 select-none sm:px-3 sm:py-2 dark:border-b-[#e5e5e5]/25 dark:bg-[#111111] dark:text-[#e5e5e5]/50 ${
+											className={`stamp sticky top-0 z-10 whitespace-nowrap border-b border-b-[var(--color-border-default)] bg-[var(--color-surface-base)] px-2 py-1.5 select-none sm:px-3 sm:py-2 ${
+												isSorted ? "text-[var(--color-accent)]" : ""
+											} ${isNumericColumn ? "text-right" : "text-left"} ${
 												isNameColumn
-													? "z-20 border-r border-[#111111]/10 shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:border-[#333333] dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]"
+													? "z-20 border-r border-r-[var(--color-border-soft)]"
 													: ""
 											} ${
 												column.sortKey !== undefined
-													? "cursor-pointer hover:text-[#111111] dark:hover:text-[#e5e5e5]"
+													? "cursor-pointer hover:text-[var(--color-fg-default)]"
 													: ""
 											}`}
 											onClick={
@@ -657,7 +649,7 @@ export function FootballLeaderboard() {
 													: undefined
 											}
 										>
-											<div className="flex items-center gap-1 whitespace-nowrap">
+											<div className={`flex items-center gap-1 whitespace-nowrap ${isNumericColumn ? "justify-end" : ""}`}>
 												{column.header}
 												{isSorted ? (sort.desc ? " ↓" : " ↑") : null}
 											</div>
@@ -670,44 +662,45 @@ export function FootballLeaderboard() {
 							{currentPageRows.map((row, rowIndex) => {
 								const stickyBg =
 									isDraftMode && row.isDrafted
-										? "bg-[#f7f7f7] dark:bg-[#141414]"
+										? "bg-[color:color-mix(in_srgb,var(--color-fg-default)_4%,var(--color-surface-base))]"
 										: row.isKeeper
-											? "bg-[#fef7f7] dark:bg-[#160e0e]"
-											: "bg-white dark:bg-[#111111]";
+											? "bg-[color:color-mix(in_srgb,var(--color-accent)_5%,var(--color-surface-base))]"
+											: "bg-[var(--color-surface-base)] group-hover:bg-[var(--color-surface-hover)]";
 								return (
 									<tr
 										key={row.player._id}
 										onClick={() => handleDraftPlayer(row)}
-										className={`${
+										className={`group ${
 											isDraftMode && !row.isDrafted && !row.isKeeper
 												? "cursor-pointer"
 												: ""
 										} ${
 											isDraftMode && row.isDrafted
-												? "bg-[#111111]/[0.03] text-[#111111]/30 dark:bg-[#e5e5e5]/[0.03] dark:text-[#e5e5e5]/20"
+												? "bg-[var(--color-surface-muted)] text-[var(--color-fg-subtle)]"
 												: row.isKeeper
-													? "bg-[#dc2626]/[0.04] dark:bg-[#ef4444]/[0.04]"
-													: "hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a]"
+													? "bg-[color:color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
+													: "hover:bg-[var(--color-surface-hover)]"
 										}`}
 									>
 										<td
 											style={{ width: FROZEN_RANK_W, minWidth: FROZEN_RANK_W, maxWidth: FROZEN_RANK_W }}
-											className={`sticky left-0 z-[1] border-b border-[#111111]/10 px-2 py-2 text-right font-mono text-[11px] text-[#111111]/38 sm:py-2.5 dark:border-[#333333]/60 dark:text-[#e5e5e5]/30 ${stickyBg}`}
+											className={`font-data sticky left-0 z-[1] border-b border-b-[var(--color-border-soft)] px-2 py-2 text-right text-[11px] text-[var(--color-fg-subtle)] sm:py-2.5 ${stickyBg}`}
 										>
 											{rankByPlayerId.get(row.player._id) ??
 												effectivePageIndex * pagination.pageSize + rowIndex + 1}
 										</td>
 										{columns.map((column) => {
 											const isNameColumn = column.id === "name";
+											const isNumericColumn = !TEXT_COLUMN_IDS.has(column.id);
 											return (
 												<td
 													key={`${row.player._id}-${column.id}`}
 													style={isNameColumn ? { left: FROZEN_NAME_LEFT } : undefined}
-													className={`border-b border-[#111111]/10 px-2 py-2 sm:px-3 sm:py-2.5 dark:border-[#333333]/60${
+													className={`border-b border-b-[var(--color-border-soft)] px-2 py-2 sm:px-3 sm:py-2.5${
 														isNameColumn
-															? ` sticky z-[1] max-w-[170px] ${stickyBg} border-r shadow-[1px_0_0_rgba(17,17,17,0.06)] dark:shadow-[1px_0_0_rgba(229,229,229,0.04)]`
+															? ` sticky z-[1] max-w-[170px] ${stickyBg} border-r border-r-[var(--color-border-soft)]`
 															: ""
-													}`}
+													}${isNumericColumn ? " text-right" : ""}`}
 												>
 													{column.cell(row)}
 												</td>
@@ -719,7 +712,7 @@ export function FootballLeaderboard() {
 						</tbody>
 					</table>
 				</div>
-				<div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-2 px-[var(--space-page-x)] pt-4 text-xs text-[#111111]/60 sm:gap-3 sm:px-[var(--space-page-x-sm)] dark:text-[#e5e5e5]/50">
+				<div className="flex w-full flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border-soft)] pt-3 font-data text-xs text-[var(--color-fg-muted)] sm:gap-3">
 					<div className="flex items-center gap-2 sm:gap-3">
 						<button
 							onClick={() =>
@@ -729,7 +722,7 @@ export function FootballLeaderboard() {
 								}))
 							}
 							disabled={effectivePageIndex === 0}
-							className="text-xs font-bold uppercase tracking-widest text-[#111111]/60 hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-30 dark:text-[#e5e5e5]/50 dark:hover:text-[#e5e5e5]"
+							className="font-data text-xs uppercase tracking-[0.08em] text-[var(--color-fg-muted)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
 						>
 							Prev
 						</button>
@@ -741,7 +734,7 @@ export function FootballLeaderboard() {
 								}))
 							}
 							disabled={effectivePageIndex >= pageCount - 1}
-							className="text-xs font-bold uppercase tracking-widest text-[#111111]/60 hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-30 dark:text-[#e5e5e5]/50 dark:hover:text-[#e5e5e5]"
+							className="font-data text-xs uppercase tracking-[0.08em] text-[var(--color-fg-muted)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
 						>
 							Next
 						</button>

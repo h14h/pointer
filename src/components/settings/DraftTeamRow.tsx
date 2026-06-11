@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Input } from "@/components/ui/input";
+import { LedgerRow } from "@/components/ui/LedgerRow";
 import { Dropdown } from "@/components/ui/Dropdown";
 import type { FootballPlayer, Player } from "@/types";
 
@@ -129,10 +130,10 @@ export function DraftTeamRow({
   }, [recentlyEditedKeeperId, teamKeepers]);
 
   return (
-    <div className="rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-surface-base)]/90 px-4 py-3">
+    <LedgerRow className="block py-3 sm:px-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-muted)] text-sm font-bold tabular-nums text-[var(--color-fg-muted)]">
+          <div className="font-data flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border-soft)] text-sm text-[var(--color-fg-muted)]">
             {index + 1}
           </div>
 
@@ -162,7 +163,12 @@ export function DraftTeamRow({
             ) : (
               <div className="mt-2 flex flex-wrap gap-2">
                 {collapsedKeeperBadges.map((badge) => (
-                  <Badge key={badge.playerId} variant="ownershipKeeper" size="md" className="whitespace-nowrap font-medium normal-case tracking-normal">
+                  <Badge
+                    key={badge.playerId}
+                    variant="ownershipKeeper"
+                    size="md"
+                    className="whitespace-nowrap rounded-sm font-medium normal-case tracking-normal"
+                  >
                     {badge.label}
                   </Badge>
                 ))}
@@ -172,14 +178,14 @@ export function DraftTeamRow({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-          <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-fg-subtle)]">
-            <span>Move to</span>
+          <label className="flex items-center gap-2">
+            <span className="stamp">Move to</span>
             <Dropdown
               value={index + 1}
               onChange={(nextPosition) => onReorder(nextPosition - 1)}
               ariaLabel={`Draft position for ${name}`}
               disabled={!setupUnlocked}
-              triggerClassName="h-8 px-2 text-xs text-[var(--color-fg-default)]"
+              triggerClassName="h-8 rounded-sm px-2 text-xs text-[var(--color-fg-default)]"
               options={Array.from({ length: leagueSize }, (_, position) => ({
                 value: position + 1,
                 label: String(position + 1),
@@ -204,7 +210,7 @@ export function DraftTeamRow({
             aria-label={`Add team below ${name}`}
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-md"
+            className="h-8 w-8 rounded-sm"
           >
             <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
               <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z" />
@@ -217,7 +223,7 @@ export function DraftTeamRow({
             aria-label={`Remove ${name}`}
             variant="toolbarDanger"
             size="icon"
-            className="h-8 w-8 rounded-md"
+            className="h-8 w-8 rounded-sm"
           >
             <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
               <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
@@ -229,7 +235,7 @@ export function DraftTeamRow({
       {isExpanded ? (
         <div
           id={`team-keepers-panel-${index}`}
-          className="mt-4 rounded-lg bg-[var(--color-surface-muted)] p-3"
+          className="mt-4 border-t border-[var(--color-border-soft)] pt-3"
         >
           <div className="mb-3">
             <FieldLabel className="block">Keepers</FieldLabel>
@@ -244,7 +250,7 @@ export function DraftTeamRow({
                 <div
                   key={entry.playerId}
                   data-keeper-row={entry.playerId}
-                  className={`flex min-w-0 w-full items-center gap-3 rounded-xl border border-[color:color-mix(in_srgb,var(--color-accent)_20%,transparent)] bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)] px-3 py-2 text-xs text-[var(--color-fg-muted)] ${
+                  className={`flex min-w-0 w-full items-center gap-3 rounded-[var(--radius-sm)] border border-[color:color-mix(in_srgb,var(--color-accent)_20%,transparent)] bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)] px-3 py-2 text-xs text-[var(--color-fg-muted)] ${
                     fadingKeeperIds.includes(entry.playerId)
                       ? "keeper-row-fade-in"
                       : ""
@@ -257,10 +263,8 @@ export function DraftTeamRow({
                     </div>
                   </div>
                   <div className="ml-auto flex shrink-0 items-center gap-2">
-                    <div className="flex items-center gap-1 rounded-lg border border-[var(--color-border-soft)] bg-[var(--color-surface-base)]/70 px-2 py-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-fg-subtle)]">
-                        Rd
-                      </span>
+                    <div className="flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border-soft)] bg-[var(--color-surface-base)] px-2 py-1">
+                      <span className="stamp">Rd</span>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -293,14 +297,14 @@ export function DraftTeamRow({
                             event.currentTarget.blur();
                           }
                         }}
-                        className="w-9 bg-transparent text-center text-sm font-semibold tabular-nums text-[var(--color-fg-default)] outline-none"
+                        className="font-data w-9 bg-transparent text-center text-sm text-[var(--color-fg-default)] outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => onMoveKeeperRound(entry.teamIndex, entry.playerId, "earlier")}
                         disabled={getMoveTargetRound(entry.teamIndex, entry.playerId, "earlier") === null}
                         aria-label={`Move keeper ${entry.player?.Name ?? entry.playerId} earlier`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--color-border-soft)] text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-base)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border-soft)] text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
                           <path d="M8 4.22a.75.75 0 0 1 .53.22l4 4a.75.75 0 0 1-1.06 1.06L8 6.06 4.53 9.5a.75.75 0 1 1-1.06-1.06l4-4A.75.75 0 0 1 8 4.22Z" />
@@ -311,14 +315,14 @@ export function DraftTeamRow({
                         onClick={() => onMoveKeeperRound(entry.teamIndex, entry.playerId, "later")}
                         disabled={getMoveTargetRound(entry.teamIndex, entry.playerId, "later") === null}
                         aria-label={`Move keeper ${entry.player?.Name ?? entry.playerId} later`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--color-border-soft)] text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-base)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border-soft)] text-[var(--color-fg-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)] disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
                           <path d="M8 11.78a.75.75 0 0 1-.53-.22l-4-4A.75.75 0 0 1 4.53 6.5L8 9.94l3.47-3.44a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-.53.22Z" />
                         </svg>
                       </button>
                     </div>
-                    <span className="min-w-[4.75rem] text-right text-[10px] font-bold uppercase tracking-widest text-[var(--color-accent)]/80">
+                    <span className="font-data min-w-[4.75rem] text-right text-[10px] uppercase tracking-[0.12em] text-[var(--color-accent)]">
                       {getKeeperCostLabel(entry.teamIndex, getKeeperRoundValue(entry))}
                     </span>
                   </div>
@@ -362,7 +366,7 @@ export function DraftTeamRow({
                       key={player._id}
                       type="button"
                       onClick={() => onAssignKeeper(player._id)}
-                      className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-soft)] bg-[var(--color-surface-base)] px-3 py-2 text-left text-xs text-[var(--color-fg-muted)] transition-colors hover:border-[color:color-mix(in_srgb,var(--color-accent)_30%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
+                      className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--color-border-soft)] bg-[var(--color-surface-base)] px-3 py-2 text-left text-xs text-[var(--color-fg-muted)] transition-colors hover:border-[color:color-mix(in_srgb,var(--color-accent)_30%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
                     >
                       <span className="font-semibold text-[var(--color-fg-default)]">
                         {player.Name}
@@ -387,6 +391,6 @@ export function DraftTeamRow({
           </div>
         </div>
       ) : null}
-    </div>
+    </LedgerRow>
   );
 }

@@ -27,8 +27,19 @@ RUN bun install
 # Copy application code
 COPY . .
 
-# Build application
-RUN bunx next build --experimental-build-mode compile
+# Pro-tier client config (PUBLIC, publishable values — not secrets). Next.js
+# inlines NEXT_PUBLIC_* into the client bundles at build time, so these must
+# be supplied here (via fly.toml [build.args]) rather than `fly secrets`.
+# Left unset, the build produces the fully-featured free tier with Pro off.
+# Server-side secrets (e.g. CLERK_SECRET_KEY) stay runtime `fly secrets`.
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_CONVEX_URL
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL
+
+# Full build (compile + prerender) at image build — containers boot straight
+# into `next start` with no cold-start build work.
+RUN bunx next build
 
 # Remove development dependencies
 RUN rm -rf node_modules && \
@@ -40,9 +51,6 @@ FROM base
 
 # Copy built application
 COPY --from=build /app /app
-
-# Entrypoint sets up the container.
-ENTRYPOINT [ "/app/docker-entrypoint.js" ]
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000

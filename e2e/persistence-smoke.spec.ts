@@ -2,97 +2,78 @@ import { test, expect, type Page } from "@playwright/test";
 
 const BASE = "http://localhost:3000";
 
-async function waitForSettingsSection(page: Page, sectionName: string) {
-  await page.waitForSelector(`h2:has-text("${sectionName}")`, { timeout: 10_000 });
-  await page.waitForTimeout(300);
-}
-
-function countLeagues(page: Page) {
-  return page.locator('button[title="Delete league"]').count();
+function countLeagueCards(page: Page) {
+  // One "Open workspace" link per league card on the fleet
+  return page.getByRole("link", { name: /open workspace/i }).count();
 }
 
 // ---------------------------------------------------------------------------
-// BDD-style persistence smoke test: mutate state via UI, refresh, verify
+// BDD-style persistence smoke test: mutate state via UI, refresh, verify.
+// Exercises the Solstice IA: fleet → add league → workspace config → reload.
 // ---------------------------------------------------------------------------
 test("persistence smoke — leagues and scoring survive refresh", async ({ page }) => {
-  // --- Step 1: Open Leagues settings ---
-  await page.goto(`${BASE}/settings?section=leagues`);
-  await waitForSettingsSection(page, "Leagues");
+  // --- Step 0: First run — onboard into baseball ---
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /baseball/i }).first().click();
+  await expect(page.getByRole("link", { name: /open workspace/i }).first()).toBeVisible({
+    timeout: 10_000,
+  });
 
-  const initialLeagueCount = await countLeagues(page);
+  const initialLeagueCount = await countLeagueCards(page);
 
-  // --- Step 2: Create a new league ---
-  await page.getByRole("button", { name: "Create New League" }).click();
-  await page.waitForTimeout(300);
+  // --- Step 1: Create a new baseball league from the fleet ---
+  await page.getByRole("button", { name: /add a league/i }).click();
+  await page.getByLabel(/league name/i).fill("Smoke Test League");
+  await page.getByRole("button", { name: /^baseball$/i }).last().click();
+  await page.getByRole("button", { name: /create/i }).click();
+  await expect(page.getByText("Smoke Test League")).toBeVisible({ timeout: 5_000 });
 
-  const afterCreateCount = await countLeagues(page);
+  const afterCreateCount = await countLeagueCards(page);
   expect(afterCreateCount).toBe(initialLeagueCount + 1);
 
-  // --- Step 3: Rename the new (last) league ---
-  // The last league name is the last text button in the list
-  const nameButtons = page.locator(
-    'button.text-left.text-sm.font-medium'
-  );
-  const lastNameButton = nameButtons.last();
-  await lastNameButton.click();
-  await page.waitForTimeout(100);
-
-  const nameInput = page.locator('input[aria-label="League name"]').last();
-  await nameInput.fill("Smoke Test League");
-  await nameInput.press("Enter");
-  await page.waitForTimeout(300);
-
-  // Verify rename stuck
-  await expect(page.locator('body')).toContainText("Smoke Test League");
-
-  // --- Step 4: Go to Scoring, change HR weight ---
-  await page.goto(`${BASE}/settings?section=scoring`);
-  await waitForSettingsSection(page, "Scoring");
+  // --- Step 2: Open its workspace → Config, change HR scoring weight ---
+  const smokeCard = page
+    .locator("div")
+    .filter({ hasText: "Smoke Test League" })
+    .getByRole("link", { name: /open workspace/i })
+    .last();
+  await smokeCard.click();
+  await page.getByRole("link", { name: "Config", exact: true }).click();
 
   const hrInput = page.locator('input[aria-label="Home Runs (HR) points"]').first();
-  await expect(hrInput).toBeVisible({ timeout: 5_000 });
+  await expect(hrInput).toBeVisible({ timeout: 10_000 });
   await hrInput.fill("6");
   await hrInput.press("Enter");
-  await page.waitForTimeout(500); // debounced update + persist
+  await page.waitForTimeout(600); // debounced update + persist
 
-  // --- Step 5: Hard refresh ---
+  // --- Step 3: Hard refresh — config state must survive ---
   await page.reload({ waitUntil: "networkidle" });
-  await page.waitForTimeout(500);
-
-  // --- Step 6: Verify Leagues persisted ---
-  await page.goto(`${BASE}/settings?section=leagues`);
-  await waitForSettingsSection(page, "Leagues");
-
-  const afterRefreshCount = await countLeagues(page);
-  expect(afterRefreshCount).toBe(afterCreateCount);
-  await expect(page.locator('body')).toContainText("Smoke Test League");
-
-  // --- Step 7: Verify Scoring persisted ---
-  await page.goto(`${BASE}/settings?section=scoring`);
-  await waitForSettingsSection(page, "Scoring");
-
   const hrAfter = page.locator('input[aria-label="Home Runs (HR) points"]').first();
+  await expect(hrAfter).toBeVisible({ timeout: 10_000 });
   await expect(hrAfter).toHaveValue("6");
+  await expect(page.locator("body")).toContainText("Smoke Test League");
 
-  // --- Step 8: Clean up — delete the smoke-test league ---
-  await page.goto(`${BASE}/settings?section=leagues`);
-  await waitForSettingsSection(page, "Leagues");
+  // --- Step 4: Back to the fleet — league count survived too ---
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await expect(page.getByText("Smoke Test League")).toBeVisible({ timeout: 10_000 });
+  const afterRefreshCount = await countLeagueCards(page);
+  expect(afterRefreshCount).toBe(afterCreateCount);
 
-  // Find the smoke league row and click its Delete button
-  const smokeRow = page.locator('button.text-left.text-sm.font-medium').filter({
-    hasText: "Smoke Test League",
-  }).locator('xpath=../../..'); // go up to the league row div
+  // --- Step 5: Clean up — delete the smoke league from its danger zone ---
+  await page
+    .locator("div")
+    .filter({ hasText: "Smoke Test League" })
+    .getByRole("link", { name: /open workspace/i })
+    .last()
+    .click();
+  await page.getByRole("link", { name: "Config", exact: true }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: /delete league/i }).click();
 
-  if (await smokeRow.isVisible().catch(() => false)) {
-    const deleteBtn = smokeRow.locator('button[title="Delete league"]').first();
-    if (await deleteBtn.isVisible().catch(() => false)) {
-      await deleteBtn.click();
-      await page.waitForTimeout(200);
-      const confirmBtn = smokeRow.locator('button').filter({ hasText: "Delete" }).first();
-      if (await confirmBtn.isVisible().catch(() => false)) {
-        await confirmBtn.click();
-        await page.waitForTimeout(300);
-      }
-    }
-  }
+  // Deleting bounces back to the fleet with the original count
+  await expect(page.getByRole("link", { name: /open workspace/i }).first()).toBeVisible({
+    timeout: 10_000,
+  });
+  const finalCount = await countLeagueCards(page);
+  expect(finalCount).toBe(initialLeagueCount);
 });

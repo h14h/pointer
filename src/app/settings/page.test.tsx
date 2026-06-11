@@ -1,89 +1,65 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import SettingsPage from "@/app/settings/page";
 
+const replaceMock = vi.fn();
 const getSearchParamMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: replaceMock }),
   useSearchParams: () => ({
     get: getSearchParamMock,
   }),
 }));
 
-vi.mock("@/components/Header", () => ({
-  Header: () => <div data-testid="header" />,
+vi.mock("@/store", () => ({
+  useStore: () => ({
+    hasHydrated: true,
+    activeLeagueId: "league-1",
+    leagues: [{ id: "league-1", name: "Test League", sport: "baseball" }],
+  }),
 }));
 
-vi.mock("@/components/CsvUpload", () => ({
-  CsvUpload: () => <div data-testid="upload" />,
-}));
-
-vi.mock("@/components/settings/ScoringSection", () => ({
-  ScoringSection: () => <div>Scoring section</div>,
-}));
-
-vi.mock("@/components/settings/ProjectionsSection", () => ({
-  ProjectionsSection: () => <div>Projections section</div>,
-}));
-
-vi.mock("@/components/settings/RosterSection", () => ({
-  RosterSection: () => <div>Roster section</div>,
-}));
-
-vi.mock("@/components/settings/DraftSection", () => ({
-  DraftSection: () => <div>Draft section</div>,
-}));
-
-vi.mock("@/components/settings/SettingsLayout", () => ({
-  SettingsLayout: ({
-    activeSection,
-    children,
-  }: {
-    activeSection: string;
-    children: ReactNode;
-  }) => (
-    <div>
-      <span data-testid="active-section">{activeSection}</span>
-      {children}
-    </div>
-  ),
-}));
-
-describe("settings route section query", () => {
+// /settings is a legacy URL: it now redirects section queries onto the
+// active league's workspace tabs (config/intel) or the fleet.
+describe("settings route legacy redirects", () => {
   afterEach(() => {
     cleanup();
+    replaceMock.mockReset();
+    getSearchParamMock.mockReset();
   });
 
-  it("defaults to scoring when section is missing", () => {
+  it("defaults to the active league's config tab", async () => {
     getSearchParamMock.mockReturnValue(null);
     render(<SettingsPage />);
 
-    expect(screen.getByTestId("active-section")).toHaveTextContent("scoring");
-    expect(screen.getByText("Scoring section")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith("/league/league-1/config"),
+    );
   });
 
-  it("renders roster when section=roster", () => {
+  it("sends scoring/roster/draft sections to config", async () => {
     getSearchParamMock.mockReturnValue("roster");
     render(<SettingsPage />);
 
-    expect(screen.getByTestId("active-section")).toHaveTextContent("roster");
-    expect(screen.getByText("Roster section")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith("/league/league-1/config"),
+    );
   });
 
-  it("falls back to scoring for invalid section", () => {
-    getSearchParamMock.mockReturnValue("invalid");
-    render(<SettingsPage />);
-
-    expect(screen.getByTestId("active-section")).toHaveTextContent("scoring");
-    expect(screen.getByText("Scoring section")).toBeInTheDocument();
-  });
-
-  it("renders projections when section=projections", () => {
+  it("sends projections to the intel tab", async () => {
     getSearchParamMock.mockReturnValue("projections");
     render(<SettingsPage />);
 
-    expect(screen.getByTestId("active-section")).toHaveTextContent("projections");
-    expect(screen.getByText("Projections section")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith("/league/league-1/intel"),
+    );
+  });
+
+  it("sends the leagues section to the fleet", async () => {
+    getSearchParamMock.mockReturnValue("leagues");
+    render(<SettingsPage />);
+
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/"));
   });
 });

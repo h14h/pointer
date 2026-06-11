@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import { cx } from "@/components/ui/cx";
+import { cn } from "@/lib/utils";
 
 export interface FieldLabelProps extends HTMLAttributes<HTMLSpanElement> {
   children: ReactNode;
@@ -7,13 +7,7 @@ export interface FieldLabelProps extends HTMLAttributes<HTMLSpanElement> {
 
 export function FieldLabel({ className, children, ...props }: FieldLabelProps) {
   return (
-    <span
-      className={cx(
-        "text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-fg-subtle)]",
-        className
-      )}
-      {...props}
-    >
+    <span className={cn("stamp", className)} {...props}>
       {children}
     </span>
   );

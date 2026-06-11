@@ -138,6 +138,7 @@ describe("settings sections", () => {
   const setKeeperSpy = vi.fn();
   const removeKeeperSpy = vi.fn();
   const resetDraftSpy = vi.fn();
+  const setMyTeamIndexSpy = vi.fn();
   type TestLeague = {
     id: string;
     name: string;
@@ -200,6 +201,7 @@ describe("settings sections", () => {
     setKeeper: setKeeperSpy,
     removeKeeper: removeKeeperSpy,
     resetDraft: resetDraftSpy,
+    setMyTeamIndex: setMyTeamIndexSpy,
     mergeTwoWayRankings: true,
     setMergeTwoWayRankings: setMergeTwoWayRankingsSpy,
   });
@@ -1139,8 +1141,7 @@ describe("settings sections", () => {
     expect(resultButtons[1]).toHaveTextContent("Aaron Contact");
   });
 
-  it("resets the draft from the draft settings view", async () => {
-    const user = userEvent.setup();
+  it("points at the draft room for resets once manual picks exist", () => {
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       leagues: [
@@ -1170,14 +1171,14 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
-    await user.click(screen.getByRole("button", { name: "Reset Draft" }));
-    expect(screen.getByRole("dialog")).toBeVisible();
-
-    await user.click(screen.getAllByRole("button", { name: "Reset Draft" })[1]);
-    expect(resetDraftSpy).toHaveBeenCalled();
+    // Reset moved to the draft room — the locked-setup notice points there
+    expect(
+      screen.getByText(/reset the draft from the draft room/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset Draft" })).toBeNull();
   });
 
-  it("hides reset draft when draft activity exists but no manual picks exist", () => {
+  it("hides the draft-room reset pointer when no manual picks exist", () => {
     useStoreMock.mockReturnValue({
       ...createStoreState(),
       leagues: [
@@ -1197,12 +1198,17 @@ describe("settings sections", () => {
 
     render(<DraftSection />);
 
-    expect(screen.queryByRole("button", { name: "Reset Draft" })).toBeNull();
+    expect(
+      screen.queryByText(/reset the draft from the draft room/i),
+    ).toBeNull();
   });
 
-  it("hides reset draft when no draft activity exists", () => {
+  it("offers no reset affordance when no draft activity exists", () => {
     render(<DraftSection />);
 
     expect(screen.queryByRole("button", { name: "Reset Draft" })).toBeNull();
+    expect(
+      screen.queryByText(/reset the draft from the draft room/i),
+    ).toBeNull();
   });
 });

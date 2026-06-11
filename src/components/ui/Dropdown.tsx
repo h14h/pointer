@@ -177,7 +177,7 @@ const triggerBase = cn(
 );
 
 const menuBase = cn(
-  "absolute z-50 min-w-[180px] max-w-xs overflow-hidden rounded-xl border py-1 shadow-lg",
+  "absolute z-50 min-w-[180px] max-w-xs overflow-hidden rounded-[var(--radius-lg)] border py-1 shadow-[var(--shadow-overlay)]",
   "border-[var(--color-border-soft)] bg-[var(--color-surface-overlay)]"
 );
 
@@ -285,7 +285,7 @@ export function Dropdown<T extends string | number>(
         <span>{multiProps.triggerLabel}</span>
         {selectedValues.length > 0 ? (
           <span
-            className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-accent)] text-[10px] font-bold leading-none text-white"
+            className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-accent)] text-[10px] font-bold leading-none text-[var(--color-accent-fg)]"
             aria-hidden="true"
           >
             {selectedValues.length}

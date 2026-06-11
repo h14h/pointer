@@ -73,6 +73,14 @@ export interface LeagueSettings {
   weeklyStartLimit?: number | null;
 }
 
+// Draft-day strategy worked out on the Plan tab; carried into the draft room.
+export interface LeagueStrategy {
+  /** Player ids the user has flagged as targets */
+  targetIds: string[];
+  /** Free-form note per round, keyed by round number as a string */
+  noteByRound: Record<string, string>;
+}
+
 export interface League {
   id: string;
   name: string;
@@ -83,5 +91,12 @@ export interface League {
   leagueSettings: LeagueSettings;
   football?: FootballLeagueConfig;
   draftState: DraftState;
+  // Optional for backward compatibility with persisted/cloud league JSON;
+  // normalizeLeague fills defaults so app code can rely on them.
+  /** Index into leagueSettings.teamNames identifying the user's own team */
+  myTeamIndex?: number;
+  /** Projection source for this league — an id into the sport-scoped library */
+  projectionGroupId?: string | null;
+  strategy?: LeagueStrategy;
   updatedAt: number;
 }
