@@ -17,7 +17,7 @@ const ALL_ROSTER_SLOTS: RosterSlot[] = [
 function createLeagueSettings(
   positions: Partial<Record<RosterSlot, number>>,
   leagueSize = 12,
-  options?: { weeklyStartLimit?: number | null }
+  options?: { weeklyStartLimit?: number | null; bench?: number }
 ): LeagueSettings {
   return {
     leagueSize,
@@ -27,7 +27,7 @@ function createLeagueSettings(
       positions: Object.fromEntries(
         ALL_ROSTER_SLOTS.map(slot => [slot, positions[slot] ?? 0])
       ) as Record<RosterSlot, number>,
-      bench: 0,
+      bench: options?.bench ?? 0,
     },
   };
 }
@@ -290,7 +290,7 @@ describe("calculatePAR", () => {
       expectReplacementBoundary(result, 97);
     });
 
-    it("reduces SP PAR in P-only leagues when a weekly start limit caps usable starter volume", () => {
+    it("penalizes start-consuming pitchers in P-only leagues when a weekly start limit exists", () => {
       const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
       const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) => ({
         ...player,
@@ -310,59 +310,11 @@ describe("calculatePAR", () => {
       const uncappedStarter = uncapped.find(player => player.player.Name === "Player90");
       const cappedStarter = capped.find(player => player.player.Name === "Player90");
 
-      expect(cappedStarter?.par ?? 0).toBeLessThan(uncappedStarter?.par ?? 0);
-    });
-
-    it("increases RP PAR in P-only leagues when a weekly start limit shifts flexible slots toward relievers", () => {
-      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
-      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) => ({
-        ...player,
-        player: {
-          ...player.player,
-          _id: `rp-${index + 1}`,
-          Name: `RP${index + 1}`,
-          PlayerId: `rp-${index + 1}`,
-          MLBAMID: `rp-${index + 1}`,
-        },
-      }));
-      const players = [...starters, ...relievers];
-
-      const uncapped = calculatePAR(players, createLeagueSettings({ P: 9 }));
-      const capped = calculatePAR(players, createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 }));
-
       const uncappedReliever = uncapped.find(player => player.player.Name === "RP20");
       const cappedReliever = capped.find(player => player.player.Name === "RP20");
 
-      expect(cappedReliever?.par ?? 0).toBeGreaterThan(uncappedReliever?.par ?? 0);
-    });
-
-    it("treats RP-eligible projected starters as start-consuming in capped leagues", () => {
-      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
-      const projectedStarters = createPitcherPool(40, { isSP: false, isRP: true, G: 30, GS: 24 }, 420).map(
-        (player, index) => withPitcherIdentity(player, "rs", index)
-      );
-      const projectedRelievers = createPitcherPool(40, { isSP: false, isRP: true, G: 30, GS: 0 }, 420).map(
-        (player, index) => withPitcherIdentity(player, "rr", index)
-      );
-      const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) =>
-        withPitcherIdentity(player, "rp", index)
-      );
-      const starterHeavyPlayers = [...starters, ...projectedStarters, ...relievers];
-      const relieverHeavyPlayers = [...starters, ...projectedRelievers, ...relievers];
-
-      const starterHeavy = calculatePAR(
-        starterHeavyPlayers,
-        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
-      );
-      const relieverHeavy = calculatePAR(
-        relieverHeavyPlayers,
-        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
-      );
-
-      const starterHeavyReliever = starterHeavy.find(player => player.player.Name === "RP20");
-      const relieverHeavyReliever = relieverHeavy.find(player => player.player.Name === "RP20");
-
-      expect(starterHeavyReliever?.par ?? 0).toBeGreaterThan(relieverHeavyReliever?.par ?? 0);
+      expect(cappedStarter?.par ?? 0).toBeLessThan(uncappedStarter?.par ?? 0);
+      expect(cappedReliever?.par ?? 0).toBeGreaterThanOrEqual(uncappedReliever?.par ?? 0);
     });
 
     it("discounts PAR for RP-only pitchers who project entirely as starters", () => {
@@ -403,29 +355,22 @@ describe("calculatePAR", () => {
       expect(starterPar?.par ?? 0).toBeLessThan(relieverPar?.par ?? 0);
     });
 
-    it("treats SP-eligible pitchers with zero projected GS as relief-only for capped-start demand", () => {
-      const zeroGsSwingmen = createPitcherPool(140, { isSP: true, isRP: false, G: 40, GS: 0 }, 500).map(
-        (player, index) => withPitcherIdentity(player, "sp0", index)
-      );
-      const actualStarters = createPitcherPool(140, { isSP: true, isRP: false, G: 40, GS: 30 }, 500).map(
-        (player, index) => withPitcherIdentity(player, "sp1", index)
-      );
+    it("does not apply the start penalty to SP-eligible pitchers with zero projected GS", () => {
+      const zeroGsPitcher = createPitcher("zero-gs", { isSP: true, isRP: false, G: 40, GS: 0 }, 360);
+      const actualStarter = createPitcher("actual-starter", { isSP: true, isRP: false, G: 40, GS: 30 }, 360);
+      const starters = createPitcherPool(140, { isSP: true, isRP: false }, 500);
       const relievers = createPitcherPool(140, { isSP: false, isRP: true }, 320).map((player, index) =>
         withPitcherIdentity(player, "rp", index)
       );
-      const zeroGsResult = calculatePAR(
-        [...zeroGsSwingmen, ...relievers],
-        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
-      );
-      const starterResult = calculatePAR(
-        [...actualStarters, ...relievers],
-        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      const result = calculatePAR(
+        [...starters, zeroGsPitcher, actualStarter, ...relievers],
+        createLeagueSettings({ SP: 2, RP: 2, P: 5 }, 12, { weeklyStartLimit: 12 })
       );
 
-      const zeroGsReliever = zeroGsResult.find(player => player.player.Name === "RP20");
-      const starterReliever = starterResult.find(player => player.player.Name === "RP20");
+      const zeroGsPar = result.find(player => player.player.Name === "Playerzero-gs");
+      const starterPar = result.find(player => player.player.Name === "Playeractual-starter");
 
-      expect(zeroGsReliever?.par ?? 0).toBeLessThan(starterReliever?.par ?? 0);
+      expect(zeroGsPar?.par ?? 0).toBeGreaterThan(starterPar?.par ?? 0);
     });
 
     it("splits swingman supply proportionally between starter and reliever replacement", () => {
@@ -444,15 +389,15 @@ describe("calculatePAR", () => {
       );
       const relieverLikeResult = calculatePAR(
         [...starters, ...relieverLikeSwingmen, ...relievers],
-        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+        createLeagueSettings({ SP: 2, RP: 2, P: 5 }, 12, { weeklyStartLimit: 12 })
       );
       const balancedResult = calculatePAR(
         [...starters, ...balancedSwingmen, ...relievers],
-        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+        createLeagueSettings({ SP: 2, RP: 2, P: 5 }, 12, { weeklyStartLimit: 12 })
       );
       const starterLikeResult = calculatePAR(
         [...starters, ...starterLikeSwingmen, ...relievers],
-        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+        createLeagueSettings({ SP: 2, RP: 2, P: 5 }, 12, { weeklyStartLimit: 12 })
       );
 
       const relieverLikeReliever = relieverLikeResult.find(player => player.player.Name === "RP20");
@@ -549,46 +494,42 @@ describe("calculatePAR", () => {
         isDrafted: false,
         isKeeper: false,
       } satisfies RankedPlayer;
-      const twoWayStarters = Array.from({ length: 20 }, (_, index) => ({
+      const twoWayStarter = {
         ...baseTwoWay,
         player: {
           ...baseTwoWay.player,
-          _id: `tws-${index + 1}`,
-          Name: `TwoWayStarter${index + 1}`,
-          PlayerId: `tws-${index + 1}`,
-          MLBAMID: `tws-${index + 1}`,
+          _id: "two-way-starter",
+          Name: "TwoWayStarter",
+          PlayerId: "two-way-starter",
+          MLBAMID: "two-way-starter",
         },
-        projectedPoints: 430 - index,
-      })) satisfies RankedPlayer[];
-      const twoWayRelievers = Array.from({ length: 20 }, (_, index) => ({
+        projectedPoints: 430,
+      } satisfies RankedPlayer;
+      const twoWayReliever = {
         ...baseTwoWay,
         player: {
           ...baseTwoWay.player,
-          _id: `twr-${index + 1}`,
-          Name: `TwoWayReliever${index + 1}`,
-          PlayerId: `twr-${index + 1}`,
-          MLBAMID: `twr-${index + 1}`,
+          _id: "two-way-reliever",
+          Name: "TwoWayReliever",
+          PlayerId: "two-way-reliever",
+          MLBAMID: "two-way-reliever",
           _pitchingStats: {
             ...baseTwoWay.player._pitchingStats,
             GS: 0,
           },
         },
-        projectedPoints: 430 - index,
-      })) satisfies RankedPlayer[];
+        projectedPoints: 430,
+      } satisfies RankedPlayer;
 
-      const starterResult = calculatePAR(
-        [...starters, ...twoWayStarters, ...relievers],
-        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
-      );
-      const relieverResult = calculatePAR(
-        [...starters, ...twoWayRelievers, ...relievers],
-        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 12 })
+      const result = calculatePAR(
+        [...starters, twoWayStarter, twoWayReliever, ...relievers],
+        createLeagueSettings({ SP: 2, RP: 2, P: 5 }, 12, { weeklyStartLimit: 12 })
       );
 
-      const starterReliever = starterResult.find(player => player.player.Name === "RP20");
-      const relieverReliever = relieverResult.find(player => player.player.Name === "RP20");
+      const starterPar = result.find(player => player.player.Name === "TwoWayStarter");
+      const relieverPar = result.find(player => player.player.Name === "TwoWayReliever");
 
-      expect(starterReliever?.par ?? 0).toBeGreaterThan(relieverReliever?.par ?? 0);
+      expect(starterPar?.par ?? 0).toBeLessThan(relieverPar?.par ?? 0);
     });
 
     it("does not round replacement-adjacent mixed-role pitchers up to zero from tiny weighted slot shares", () => {
@@ -610,6 +551,92 @@ describe("calculatePAR", () => {
       const fringePar = capped.find(player => player.player.Name === "Playerfringe-dual");
 
       expect(fringePar?.par ?? 0).toBeLessThan(0);
+    });
+
+    it("gives non-starting pitchers a PAR premium over raw-equivalent starters in P-only capped leagues", () => {
+      const highStarters = createPitcherPool(66, { isSP: true, isRP: false, G: 30, GS: 30 }, 500);
+      const lowStarters = createPitcherPool(74, { isSP: true, isRP: false, G: 30, GS: 30 }, 260).map(
+        (player, index) => withPitcherIdentity(player, "sp-low", index)
+      );
+      const highRelievers = createPitcherPool(42, { isSP: false, isRP: true, G: 65, GS: 0 }, 320).map(
+        (player, index) => withPitcherIdentity(player, "rp-high", index)
+      );
+      const lowRelievers = createPitcherPool(98, { isSP: false, isRP: true, G: 65, GS: 0 }, 180).map(
+        (player, index) => withPitcherIdentity(player, "rp-low", index)
+      );
+      const targetReliever = createPitcher("target-rp", { isSP: false, isRP: true, G: 65, GS: 0 }, 300);
+      const targetStarter = createPitcher("target-sp", { isSP: true, isRP: false, G: 30, GS: 30 }, 300);
+
+      const result = calculatePAR(
+        [
+          ...highStarters,
+          targetReliever,
+          targetStarter,
+          ...lowStarters,
+          ...highRelievers,
+          ...lowRelievers,
+        ],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 11 })
+      );
+
+      const reliever = result.find(player => player.player.Name === "Playertarget-rp");
+      const starter = result.find(player => player.player.Name === "Playertarget-sp");
+
+      expect(reliever?.par ?? 0).toBeGreaterThan(starter?.par ?? 0);
+    });
+
+    it("scales capped-start penalties by excess starter capacity instead of full replacement PPS", () => {
+      const highStarters = createPitcherPool(66, { isSP: true, isRP: false, G: 30, GS: 30 }, 500);
+      const lowStarters = createPitcherPool(74, { isSP: true, isRP: false, G: 30, GS: 30 }, 260).map(
+        (player, index) => withPitcherIdentity(player, "sp-low", index)
+      );
+      const highRelievers = createPitcherPool(42, { isSP: false, isRP: true, G: 65, GS: 0 }, 320).map(
+        (player, index) => withPitcherIdentity(player, "rp-high", index)
+      );
+      const lowRelievers = createPitcherPool(98, { isSP: false, isRP: true, G: 65, GS: 0 }, 180).map(
+        (player, index) => withPitcherIdentity(player, "rp-low", index)
+      );
+      const targetReliever = createPitcher("target-rp", { isSP: false, isRP: true, G: 65, GS: 0 }, 300);
+      const targetStarter = createPitcher("target-sp", { isSP: true, isRP: false, G: 30, GS: 30 }, 300);
+
+      const result = calculatePAR(
+        [
+          ...highStarters,
+          targetReliever,
+          targetStarter,
+          ...lowStarters,
+          ...highRelievers,
+          ...lowRelievers,
+        ],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 11, bench: 3 })
+      );
+
+      const reliever = result.find(player => player.player.Name === "Playertarget-rp");
+      const starter = result.find(player => player.player.Name === "Playertarget-sp");
+      const premium = (reliever?.par ?? 0) - (starter?.par ?? 0);
+
+      expect(premium).toBeGreaterThan(0);
+      expect(premium).toBeLessThan(60);
+    });
+
+    it("uses excess capped-start capacity as true reliever replacement demand", () => {
+      const starters = createPitcherPool(140, { isSP: true, isRP: false, G: 30, GS: 30 }, 500);
+      const trueRelievers = createPitcherPool(60, { isSP: false, isRP: true, G: 65, GS: 0 }, 320).map(
+        (player, index) => withPitcherIdentity(player, "trp", index)
+      );
+
+      const result = calculatePAR(
+        [...starters, ...trueRelievers],
+        createLeagueSettings({ P: 9 }, 12, { weeklyStartLimit: 11, bench: 3 })
+      );
+
+      const relieverBeforeReplacement = result.find(player => player.player.Name === "TRP34");
+      const relieverAtReplacement = result.find(player => player.player.Name === "TRP35");
+      const relieverAfterReplacement = result.find(player => player.player.Name === "TRP36");
+
+      expect(relieverBeforeReplacement?.par).toBe(1);
+      expect(relieverAtReplacement?.par).toBe(0);
+      expect(relieverAfterReplacement?.par).toBe(-1);
     });
   });
 

@@ -51,19 +51,21 @@ Replacement is computed from a single global starter allocation. The system fill
 
 ## Weekly Start Limits
 
-When `leagueSettings.weeklyStartLimit` is set, pitcher replacement uses a first-pass role split instead of treating every `P` slot as unconstrained SP demand.
+When `leagueSettings.weeklyStartLimit` is set, pitcher PAR uses start-scarcity-adjusted effective points before replacement levels are calculated.
 
-- The model estimates how many SP slots a team can realistically use from flexible `P` slots with `ceil(weeklyStartLimit / 2)`.
-- Explicit `SP` slots are always preserved; the cap only reduces the SP share of flexible `P` slots.
-- Any remaining flexible `P` demand is treated as RP-like demand.
-- Pitcher supply for those capped role demands is weighted by projected role share using `GS / G`, rather than only SP/RP eligibility.
-- RP-eligible pitchers projected mostly as starters still consume scarce start supply.
-- SP-eligible pitchers projected with `GS = 0` are treated as relief-only for capped-start scarcity.
-- Swingmen contribute partially to both starter and reliever supply based on their projected `GS / G`.
-- `SP` and `RP` replacement levels are computed from those capped role demands, even in leagues with `P` slots but no explicit `SP`/`RP` slots.
-- `P` replacement becomes `max(SP replacement, RP replacement)`, representing the best pitcher likely left after the capped role mix is filled.
+- Starter capacity per team is estimated as `SP slots + P slots + bench slots`. Explicit `RP` slots are excluded because they do not create starter capacity.
+- Expected starts per team per week are `starterCapacity * 1.2`, where `1.2` is the current first-pass assumption for starts per rostered SP per week.
+- If expected weekly starts are above the weekly cap, start scarcity weight is the excess-start fraction: `(expectedStarts - weeklyStartLimit) / expectedStarts`.
+- If expected weekly starts are at or below the cap, start scarcity weight is the Poisson probability that a team still reaches the cap in a given week. This keeps the penalty non-zero in loose-cap leagues while allowing it to fade when the cap is unlikely to matter.
+- Replacement points per start are estimated from the marginal starter-like pitcher at the starter-capacity boundary, divided by `1.2 * 25` season starts. The `25` week season is another first-pass assumption.
+- Each pitcher then receives an effective-points adjustment: `effectivePoints = projectedPoints - (projectedGS * replacementPointsPerStart * startScarcityWeight)`.
+- Pitchers with `GS = 0` receive no start penalty. RP-eligible projected starters, SP/RP swingmen, and two-way pitchers pay the penalty in proportion to projected starts.
+- Normal starter-side slot replacement runs on those effective points.
+- Relief-side replacement demand is estimated as `explicit RP slots + flexible over-cap starter capacity`, where flexible over-cap capacity is capped to `P slots + bench slots`. This prevents explicit `SP` slots from creating RP-only demand.
+- Relief-side replacement uses projected reliever share (`1 - GS / G`) rather than SP/RP eligibility alone. In a `9 P`, `3 bench`, `11 start` league, the flexible over-cap capacity is about `2.8` slots per team, so the true-reliever replacement boundary lands around the 35th reliever in a 12-team league.
+- Pitcher PAR blends starter-side PAR and relief-side PAR by projected usage share. Pure RPs use the relief-side replacement boundary; pure SPs use starter-side replacement after the start penalty; swingmen land between them.
 
-This is intentionally a draft-oriented approximation rather than a full weekly lineup simulation. It pushes marginal SP down and RP up in capped-start formats without trying to predict streaming behavior.
+This is intentionally a draft-oriented approximation rather than a full weekly lineup simulation. It prices the opportunity cost of starts in capped-start formats without inventing synthetic SP/RP roster buckets.
 
 ## Player PAR Selection
 
@@ -73,7 +75,7 @@ For a player's overall PAR, the system selects the **maximum PAR** across all sl
 
 **Note:** Slots with zero allocated positions (e.g., DH, CI, MI in standard ESPN/Yahoo configs) are skipped entirely. A player eligible at C, 1B, and DH uses C and 1B for PAR calculation — DH is ignored since it has 0 slots. A player only eligible at positions with zero slots (e.g., only LF with no OF allocation) would use the parent pooled slot (OF) since LF feeds into the OF pool.
 
-**Capped-start pitcher role weighting.** When `weeklyStartLimit` is enabled, pitcher PAR is computed as one blended role-weighted value rather than the max of separate `SP`/`RP`/`P` slot PARs. The model uses projected starter share (`GS / G`) to weight starter-side PAR and projected reliever share (`1 - GS / G`) to weight reliever-side PAR, falling back to `P` PAR when a role-specific slot is not eligible. This prevents RP-eligible projected starters from claiming reliever-style PAR through the generic `P` slot and avoids tiny role shares rounding fringe pitchers up to `0`.
+**Capped-start pitcher adjustment.** When `weeklyStartLimit` is enabled, pitcher PAR is computed from start-scarcity-adjusted effective points. Starter-side PAR still selects the maximum PAR among eligible `SP`/`RP`/`P` slots, but pitchers with projected starts have paid the start opportunity cost before replacement levels are computed. Reliever-side PAR uses the true-reliever replacement boundary created by explicit `RP` slots and flexible over-cap starter capacity.
 
 ## Two-Way Players
 
@@ -100,7 +102,7 @@ The replacement threshold is computed once at PAR calculation time, using the st
 
 **Global allocation.** All replacement levels come from the same final rostered universe. This keeps pooled slots aligned with their component positions, so `MI` reflects the better of the available `2B`/`SS` leftovers, `CI` reflects the better of `1B`/`3B`, and `UTIL` reflects the best hitter actually left on the waiver wire after the whole starting lineup is filled.
 
-**Start-limit approximation.** Weekly start limits make marginal SP less scarce than raw `P` slot counts suggest. The first-pass model still converts part of flexible `P` demand into RP-like demand using a simple `2 starts per rostered SP per week` heuristic, but player-side role supply is weighted by projected `GS / G`. This keeps the behavior explainable while handling RP-eligible projected starters, SP-eligible projected relievers, and swingmen more realistically for draft prep.
+**Start-limit approximation.** Weekly start limits make starts a scarce resource. The first-pass model assumes `1.2` starts per rostered SP per week and a `25` week fantasy season; both constants are defined in `src/lib/leaderboard/par.ts` and should become configurable if owners need league-specific tuning. Starter capacity is estimated as `SP + P + bench`, and the start penalty scales with the share of expected starts above the cap. At or below the cap, a Poisson tail probability provides a small non-zero penalty for loose-cap leagues where individual teams can still run into clustered start weeks. When the cap leaves flexible starter-capable slots over-provisioned, those slots become relief-side replacement demand, so true RPs are compared against the marginal reliever needed to absorb that free pitching capacity.
 
 **Zero-slot positions are skipped.** Positions with zero allocated roster slots (e.g., individual LF/CF/RF in most league configs, or individual IF in standard configs) do not contribute to replacement calculation. This prevents players who are only eligible at those positions from appearing to have artificially high PAR. Instead, those players are evaluated using the parent pooled slot (OF for outfielders, P for pitchers).
 

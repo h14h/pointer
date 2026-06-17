@@ -1,8 +1,22 @@
 import type { Player, RankedPlayer, LeagueSettings, RosterSlot, Position } from "@/types";
 
 type SlotType = RosterSlot;
-const AVERAGE_STARTS_PER_ROSTERED_SP_PER_WEEK = 2;
+
+// First-pass start-limit model assumptions. These should become league-level
+// settings if we want owners to tune PAR for their scoring environment.
+const STARTS_PER_WEEK_PER_SP = 1.2;
+const FANTASY_SEASON_WEEKS = 25;
+const STARTS_PER_SEASON_PER_SP = STARTS_PER_WEEK_PER_SP * FANTASY_SEASON_WEEKS;
+const REPLACEMENT_DEMAND_EPSILON = 1e-9;
+
 type PitchingUsage = { G: number; GS: number };
+type StartScarcityAdjustment = {
+  weight: number;
+  replacementPointsPerStart: number;
+};
+type StartLimitReplacementContext = {
+  reliefReplacementLevel: number | null;
+};
 
 const SLOT_POSITION_MAP: Record<SlotType, Position[]> = {
   C: ["C"],
@@ -197,73 +211,189 @@ function getRelieverShare(player: Player): number {
   return 1 - getStarterShare(player);
 }
 
-function getWeightedRoleReplacementLevel(
+function getProjectedSeasonStarts(player: Player): number {
+  return Math.max(0, getProjectedPitchingGames(player)?.GS ?? 0);
+}
+
+function getStarterCapacitySlotsPerTeam(settings: LeagueSettings): number {
+  return (
+    (settings.roster.positions.SP ?? 0) +
+    (settings.roster.positions.P ?? 0) +
+    Math.max(0, settings.roster.bench ?? 0)
+  );
+}
+
+function getFlexibleStarterCapacitySlotsPerTeam(settings: LeagueSettings): number {
+  return (settings.roster.positions.P ?? 0) + Math.max(0, settings.roster.bench ?? 0);
+}
+
+function getExcessFlexibleStarterCapacitySlotsPerTeam(settings: LeagueSettings): number {
+  const weeklyStartLimit = settings.weeklyStartLimit ?? null;
+  if (weeklyStartLimit === null || weeklyStartLimit <= 0) return 0;
+
+  const starterCapacitySlots = getStarterCapacitySlotsPerTeam(settings);
+  if (starterCapacitySlots <= 0) return 0;
+
+  const starterSlotsNeededForCap = weeklyStartLimit / STARTS_PER_WEEK_PER_SP;
+  const excessStarterSlots = Math.max(0, starterCapacitySlots - starterSlotsNeededForCap);
+
+  return Math.min(excessStarterSlots, getFlexibleStarterCapacitySlotsPerTeam(settings));
+}
+
+function getReliefDemandSlotsPerTeam(settings: LeagueSettings): number {
+  const weeklyStartLimit = settings.weeklyStartLimit ?? null;
+  if (weeklyStartLimit === null || weeklyStartLimit <= 0) return 0;
+
+  return (
+    (settings.roster.positions.RP ?? 0) +
+    getExcessFlexibleStarterCapacitySlotsPerTeam(settings)
+  );
+}
+
+function getPoissonProbabilityAtLeast(threshold: number, lambda: number): number {
+  if (threshold <= 0) return 1;
+  if (lambda <= 0) return 0;
+
+  let probability = Math.exp(-lambda);
+  let cumulative = probability;
+
+  for (let count = 1; count < threshold; count += 1) {
+    probability *= lambda / count;
+    cumulative += probability;
+  }
+
+  return Math.min(Math.max(1 - cumulative, 0), 1);
+}
+
+function getStartScarcityWeight(settings: LeagueSettings): number {
+  const weeklyStartLimit = settings.weeklyStartLimit ?? null;
+  if (weeklyStartLimit === null || weeklyStartLimit <= 0) return 0;
+
+  const starterCapacitySlots = getStarterCapacitySlotsPerTeam(settings);
+  if (starterCapacitySlots <= 0) return 0;
+
+  const expectedStartsPerTeamPerWeek = starterCapacitySlots * STARTS_PER_WEEK_PER_SP;
+  if (expectedStartsPerTeamPerWeek > weeklyStartLimit) {
+    return (expectedStartsPerTeamPerWeek - weeklyStartLimit) / expectedStartsPerTeamPerWeek;
+  }
+
+  return getPoissonProbabilityAtLeast(
+    Math.ceil(weeklyStartLimit),
+    expectedStartsPerTeamPerWeek
+  );
+}
+
+function getReplacementPointsPerStart(
   rankedPlayers: RankedPlayerForPAR[],
-  targetRoleDemand: number,
-  getRoleShare: (player: Player) => number
+  settings: LeagueSettings
 ): number {
-  const eligiblePlayers = getSortedPlayers(rankedPlayers).filter(rp =>
-    getProjectedPitchingGames(rp.player) !== null
+  const starterCapacitySlots = getStarterCapacitySlotsPerTeam(settings);
+  if (starterCapacitySlots <= 0) return 0;
+
+  const starterReplacementIndex = Math.floor(starterCapacitySlots * settings.leagueSize);
+  const starterLikePitchers = rankedPlayers
+    .filter(({ player }) =>
+      getProjectedSeasonStarts(player) > 0 &&
+      getStarterShare(player) >= 0.5 &&
+      playerMeetsSlotRequirement(player, "P")
+    )
+    .map((rankedPlayer) => ({
+      rankedPlayer,
+      pointsPerStart: rankedPlayer.projectedPoints / STARTS_PER_SEASON_PER_SP,
+    }))
+    .sort((left, right) => right.pointsPerStart - left.pointsPerStart);
+
+  if (starterLikePitchers.length === 0) return 0;
+
+  const replacementPitcher =
+    starterLikePitchers[
+      Math.min(starterReplacementIndex, starterLikePitchers.length - 1)
+    ];
+
+  return Math.max(0, replacementPitcher.pointsPerStart);
+}
+
+function getWeightedUsageReplacementLevel(
+  rankedPlayers: RankedPlayerForPAR[],
+  targetDemand: number,
+  getUsageShare: (player: Player) => number
+): number | null {
+  if (targetDemand <= 0) return null;
+
+  const eligiblePlayers = getSortedPlayers(rankedPlayers).filter(({ player }) =>
+    getProjectedPitchingGames(player) !== null && playerMeetsSlotRequirement(player, "P")
   );
 
-  if (eligiblePlayers.length === 0) return 0;
-  if (targetRoleDemand <= 0) return eligiblePlayers[0].projectedPoints;
-
-  let cumulativeRoleShare = 0;
-
+  let cumulativeUsageShare = 0;
   for (const rankedPlayer of eligiblePlayers) {
-    const roleShare = Math.max(0, getRoleShare(rankedPlayer.player));
-    if (roleShare <= 0) continue;
+    const usageShare = Math.max(0, getUsageShare(rankedPlayer.player));
+    if (usageShare <= 0) continue;
 
-    cumulativeRoleShare += roleShare;
-    if (cumulativeRoleShare > targetRoleDemand) {
+    cumulativeUsageShare += usageShare;
+    if (cumulativeUsageShare - targetDemand > REPLACEMENT_DEMAND_EPSILON) {
       return rankedPlayer.projectedPoints;
     }
   }
 
-  return 0;
+  return null;
 }
 
-function getPitcherReplacementLevelsWithStartLimit(
+function getStartLimitReplacementContext(
   rankedPlayers: RankedPlayerForPAR[],
   settings: LeagueSettings
-): Partial<Record<SlotType, number>> {
-  const weeklyStartLimit = settings.weeklyStartLimit ?? null;
-  if (weeklyStartLimit === null || weeklyStartLimit <= 0) return {};
-
-  const perTeamSpSlots = settings.roster.positions.SP ?? 0;
-  const perTeamRpSlots = settings.roster.positions.RP ?? 0;
-  const perTeamPitcherFlexSlots = settings.roster.positions.P ?? 0;
-
-  if (perTeamSpSlots + perTeamPitcherFlexSlots === 0) return {};
-
-  const cappedTotalSpSlotsPerTeam = Math.max(
-    perTeamSpSlots,
-    Math.min(
-      perTeamSpSlots + perTeamPitcherFlexSlots,
-      Math.ceil(weeklyStartLimit / AVERAGE_STARTS_PER_ROSTERED_SP_PER_WEEK)
-    )
-  );
-  const cappedFlexibleSpSlotsPerTeam = Math.max(0, cappedTotalSpSlotsPerTeam - perTeamSpSlots);
-  const reliefLikeSlotsPerTeam =
-    perTeamRpSlots + Math.max(0, perTeamPitcherFlexSlots - cappedFlexibleSpSlotsPerTeam);
-
-  const spReplacement = getWeightedRoleReplacementLevel(
-    rankedPlayers,
-    cappedTotalSpSlotsPerTeam * settings.leagueSize,
-    getStarterShare
-  );
-  const rpReplacement = getWeightedRoleReplacementLevel(
-    rankedPlayers,
-    reliefLikeSlotsPerTeam * settings.leagueSize,
-    getRelieverShare
-  );
+): StartLimitReplacementContext {
+  const reliefDemandSlots = getReliefDemandSlotsPerTeam(settings);
 
   return {
-    SP: spReplacement,
-    RP: rpReplacement,
-    P: Math.max(spReplacement, rpReplacement),
+    reliefReplacementLevel: getWeightedUsageReplacementLevel(
+      rankedPlayers,
+      reliefDemandSlots * settings.leagueSize,
+      getRelieverShare
+    ),
   };
+}
+
+function getStartScarcityAdjustment(
+  rankedPlayers: RankedPlayerForPAR[],
+  settings: LeagueSettings
+): StartScarcityAdjustment {
+  const weight = getStartScarcityWeight(settings);
+  if (weight <= 0) {
+    return { weight: 0, replacementPointsPerStart: 0 };
+  }
+
+  return {
+    weight,
+    replacementPointsPerStart: getReplacementPointsPerStart(rankedPlayers, settings),
+  };
+}
+
+function applyStartScarcityAdjustment(
+  rankedPlayer: RankedPlayerForPAR,
+  adjustment: StartScarcityAdjustment
+): RankedPlayerForPAR {
+  const projectedStarts = getProjectedSeasonStarts(rankedPlayer.player);
+  if (projectedStarts <= 0 || adjustment.replacementPointsPerStart <= 0 || adjustment.weight <= 0) {
+    return rankedPlayer;
+  }
+
+  return {
+    ...rankedPlayer,
+    projectedPoints:
+      rankedPlayer.projectedPoints -
+      projectedStarts * adjustment.replacementPointsPerStart * adjustment.weight,
+  };
+}
+
+function applyStartScarcityAdjustments(
+  rankedPlayers: RankedPlayerForPAR[],
+  settings: LeagueSettings
+): RankedPlayerForPAR[] {
+  const adjustment = getStartScarcityAdjustment(rankedPlayers, settings);
+
+  return rankedPlayers.map((rankedPlayer) =>
+    applyStartScarcityAdjustment(rankedPlayer, adjustment)
+  );
 }
 
 function computePlayerPARForSlot(
@@ -296,12 +426,11 @@ function computePitcherPAR(
   player: Player,
   projectedPoints: number,
   replacementLevels: Record<SlotType, number>,
-  settings: LeagueSettings
+  startLimitContext: StartLimitReplacementContext
 ): number {
   const eligibleSlots = getEligibleSlotTypes(player).filter(isPitcherSlot);
   if (eligibleSlots.length === 0) return 0;
 
-  const useWeightedRolePar = (settings.weeklyStartLimit ?? 0) > 0;
   const slotPars = Object.fromEntries(
     eligibleSlots
       .filter(slot => slot in replacementLevels)
@@ -310,23 +439,25 @@ function computePitcherPAR(
 
   if (Object.keys(slotPars).length === 0) return 0;
 
-  if (!useWeightedRolePar) {
-    return Math.max(...Object.values(slotPars));
-  }
-
-  const starterShare = getStarterShare(player);
+  const normalPar = Math.max(...Object.values(slotPars));
+  const reliefReplacementLevel = startLimitContext.reliefReplacementLevel;
   const relieverShare = getRelieverShare(player);
-  const blendedPar =
-    starterShare * (slotPars.SP ?? slotPars.P ?? 0)
-    + relieverShare * (slotPars.RP ?? slotPars.P ?? 0);
+  if (reliefReplacementLevel === null || relieverShare <= 0) return normalPar;
 
-  return Math.round(blendedPar * 10) / 10;
+  const starterShare = 1 - relieverShare;
+  const reliefPar = Math.round((projectedPoints - reliefReplacementLevel) * 10) / 10;
+  const reliefSidePar = Math.max(normalPar, reliefPar);
+
+  return Math.round(
+    (starterShare * normalPar + relieverShare * reliefSidePar) * 10
+  ) / 10;
 }
 
 export function calculatePAR(
   rankedPlayers: RankedPlayer[],
   settings: LeagueSettings
 ): RankedPlayer[] {
+  const rankedPlayersForPar = applyStartScarcityAdjustments(rankedPlayers, settings);
   const relevantSlots: SlotType[] = [
     "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH", "OF", "IF", "CI", "MI", "UTIL",
     "SP", "RP", "P"
@@ -337,27 +468,19 @@ export function calculatePAR(
       .map(slot => [slot, getTotalRosterSlots(settings, slot)] as const)
       .filter(([, count]) => count > 0)
   ) as SlotCountMap;
-  const assignedPlayerIds = allocatePlayersToSlots(rankedPlayers, activeSlotCounts);
+  const assignedPlayerIds = allocatePlayersToSlots(rankedPlayersForPar, activeSlotCounts);
 
   const replacementLevels = {} as Record<SlotType, number>;
   for (const slot of relevantSlots) {
     if ((activeSlotCounts[slot] ?? 0) === 0) continue;
     replacementLevels[slot] = getReplacementLevelFromRemainingPool(
-      rankedPlayers,
+      rankedPlayersForPar,
       slot,
       settings,
       assignedPlayerIds
     );
   }
-
-  const pitcherReplacementLevels = getPitcherReplacementLevelsWithStartLimit(
-    rankedPlayers,
-    settings
-  );
-  for (const [slot, replacement] of Object.entries(pitcherReplacementLevels)) {
-    if (replacement === undefined) continue;
-    replacementLevels[slot as SlotType] = replacement;
-  }
+  const startLimitContext = getStartLimitReplacementContext(rankedPlayersForPar, settings);
 
   if (
     typeof window !== "undefined" &&
@@ -369,20 +492,30 @@ export function calculatePAR(
     console.groupEnd();
   }
 
-  return rankedPlayers.map(rankedPlayer => {
+  return rankedPlayers.map((rankedPlayer, index) => {
     const player = rankedPlayer.player;
-    const projectedPoints = rankedPlayer.projectedPoints;
+    const projectedPoints = rankedPlayersForPar[index]?.projectedPoints ?? rankedPlayer.projectedPoints;
 
     let par: number;
 
     if (player._type === "two-way") {
       const battingPar = computeBatterPAR(player, projectedPoints, replacementLevels);
-      const pitchingPar = computePitcherPAR(player, projectedPoints, replacementLevels, settings);
+      const pitchingPar = computePitcherPAR(
+        player,
+        projectedPoints,
+        replacementLevels,
+        startLimitContext
+      );
       par = Math.max(battingPar, pitchingPar);
     } else if (player._type === "batter") {
       par = computeBatterPAR(player, projectedPoints, replacementLevels);
     } else {
-      par = computePitcherPAR(player, projectedPoints, replacementLevels, settings);
+      par = computePitcherPAR(
+        player,
+        projectedPoints,
+        replacementLevels,
+        startLimitContext
+      );
     }
 
     return {
