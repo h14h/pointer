@@ -38,6 +38,12 @@ import { randomUUID } from "@/lib/uuid";
 
 type StoreState = Pick<Store, "leagues" | "activeLeagueId">;
 
+function projectionGroupHasPlayers(group: ProjectionGroup): boolean {
+  return group.sport === "football"
+    ? (group.footballPlayers?.length ?? 0) > 0
+    : group.batters.length + group.pitchers.length + group.twoWayPlayers.length > 0;
+}
+
 function updateActiveLeague(
   state: StoreState,
   updater: (league: League) => Partial<League>,
@@ -375,7 +381,22 @@ export const useStore = create<Store>()(
               current.source.slug === normalized.source.slug
             );
           });
-          if (exists) return state;
+          if (exists) {
+            if (
+              exists.source.kind === "public-dataset" &&
+              normalized.source.kind === "public-dataset" &&
+              !projectionGroupHasPlayers(exists) &&
+              projectionGroupHasPlayers(normalized)
+            ) {
+              const replacement = normalizeProjectionGroup({ ...normalized, id: exists.id });
+              return {
+                projectionGroups: state.projectionGroups.map((current) =>
+                  current.id === exists.id ? replacement : current,
+                ),
+              };
+            }
+            return state;
+          }
           const projectionGroups = [...state.projectionGroups, normalized];
           return {
             projectionGroups,

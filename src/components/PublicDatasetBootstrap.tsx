@@ -16,6 +16,12 @@ import { Panel } from "@/components/ui/Panel";
 
 type BootstrapStatus = "idle" | "loading-dataset" | "loading-eligibility" | "error";
 
+function hasDatasetPlayers(group: ProjectionGroup): boolean {
+  return group.sport === "football"
+    ? (group.footballPlayers?.length ?? 0) > 0
+    : group.batters.length + group.pitchers.length + group.twoWayPlayers.length > 0;
+}
+
 // Datasets are plain static assets under /datasets (mirrored there by
 // scripts/generate-public-dataset.ts) — no server handler, normal HTTP
 // caching, zero backend compute for anonymous users.
@@ -96,7 +102,9 @@ export function PublicDatasetBootstrap() {
     try {
       const manifest = await fetchJson<PublicDatasetManifest>("/datasets/manifest.json");
       const existingSports = new Set<Sport>(
-        protectedBaselines.map((group) => (group.sport === "football" ? "football" : "baseball"))
+        protectedBaselines
+          .filter(hasDatasetPlayers)
+          .map((group) => (group.sport === "football" ? "football" : "baseball"))
       );
       const defaultDatasets = manifest.datasets
         .filter((dataset) => dataset.default)
