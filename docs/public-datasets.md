@@ -21,12 +21,12 @@
 
 ## Catalog Model
 
-Public datasets are modeled as a catalog even though production currently ships a single entry. Storage always uses:
+Public datasets are modeled as a sport-scoped catalog. Storage always uses:
 
 - `public-datasets/manifest.json`
 - `public-datasets/{slug}.json`
 
-The manifest is lightweight metadata for discovery. Each dataset object contains a fully normalized payload that can be turned into an app-ready `ProjectionGroup` without running the CSV parser.
+The manifest is lightweight metadata for discovery. Each entry declares a `sport` (`baseball` or `football`) and at most one default per sport. Each dataset object contains a fully normalized payload that can be turned into an app-ready `ProjectionGroup` without running the CSV parser.
 
 ## Tigris Boundary
 
@@ -52,11 +52,11 @@ This keeps a universal starting point available without introducing a separate l
 
 ## Bootstrap Flow
 
-`PublicDatasetBootstrap` waits until Zustand persistence has hydrated, then checks for any existing protected public group in local state.
+`PublicDatasetBootstrap` waits until Zustand persistence has hydrated, then checks which sports already have protected public groups in local state.
 
-- If one exists, it does nothing.
-- If none exists, it fetches the manifest, selects the default dataset, fetches that dataset payload, converts it into a protected `ProjectionGroup`, and seeds it into the store.
-- After the built-in group is available, it automatically runs the shared eligibility importer for that season once and persists the result locally.
+- It fetches the manifest, selects default datasets for any missing sports, fetches those payloads, converts them into protected `ProjectionGroup`s, and seeds them into the store.
+- After the built-in baseball group is available, it automatically runs the shared eligibility importer for that season once and persists the result locally.
+- Football built-ins skip the baseball eligibility importer and rely on the fixed football positions in their `footballPlayers`.
 - If a previously seeded built-in group predates auto-import and still lacks eligibility metadata, bootstrap backfills that import on the next visit.
 - If the request fails, it renders a retryable banner above the leaderboard instead of blocking the rest of the app.
 
@@ -69,7 +69,8 @@ Annual public datasets are prepared as normalized JSON files under `data/public-
 - every dataset file parses successfully
 - manifest slugs match dataset filenames/payloads
 - manifest metadata matches each dataset payload
-- exactly one dataset is marked as the default
+- at least one dataset is marked as a default
+- no sport has more than one default dataset
 
 The script then uploads each dataset object and finally uploads `manifest.json`, making the catalog update atomic enough for this simple immutable-dataset workflow.
 
@@ -88,7 +89,38 @@ bun run generate:public-dataset -- \
   --default
 ```
 
-This writes `data/public-datasets/{slug}.json` and upserts the matching manifest entry.
+For football, first generate a normalized CSV from nflverse's free season-level
+regular-season player/team stats:
+
+```bash
+bun run generate:nflverse-football-csv -- \
+  --season 2025 \
+  --out data/nflverse/football-stats-2025.csv
+```
+
+That script downloads:
+
+- `stats_player_reg_{season}.csv` from the `stats_player` nflverse release
+- `stats_team_reg_{season}.csv` from the `stats_team` nflverse release for DST rows
+
+It writes Pointer-compatible offensive, kicker, and DST component columns. The
+DST `PTS_ALLOWED` column is set to `0` because Pointer currently parses it but
+does not score points-allowed tiers.
+
+Then pass the normalized football CSV into the public dataset generator:
+
+```bash
+bun run generate:public-dataset -- \
+  --sport football \
+  --football data/nflverse/football-stats-2025.csv \
+  --slug football-historical-2025 \
+  --season 2025 \
+  --dataset-name "2025 Football Prior-Year Baseline" \
+  --group-name "2025 Football Prior-Year Stats" \
+  --default
+```
+
+This writes `data/public-datasets/{slug}.json`, mirrors it into `public/datasets/`, and upserts the matching manifest entry.
 
 ## Environment
 

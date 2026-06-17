@@ -11,6 +11,7 @@ const minimalDatasetPayload: PublicDatasetPayload = {
   slug: "historical-2025",
   name: "2025 Prior-Year Baseline",
   season: 2025,
+  sport: "baseball",
   datasetType: "historical-stats",
   projectionGroup: {
     id: "public-historical-2025",
@@ -100,19 +101,36 @@ describe("public dataset manifest", () => {
   it("parses the checked-in public dataset catalog", () => {
     const manifest = parsePublicDatasetManifest(manifestFixture);
 
-    expect(manifest.datasets).toHaveLength(1);
-    expect(manifest.datasets[0]?.slug).toBe("historical-2025");
-    expect(manifest.datasets[0]?.default).toBe(true);
+    expect(manifest.datasets).toHaveLength(2);
+    expect(manifest.datasets.find((dataset) => dataset.sport === "baseball")).toMatchObject({
+      slug: "historical-2025",
+      default: true,
+    });
+    expect(manifest.datasets.find((dataset) => dataset.sport === "football")).toMatchObject({
+      slug: "football-historical-2025",
+      default: true,
+    });
   });
 
-  it("rejects manifests without exactly one default dataset", () => {
+  it("rejects manifests without any default dataset", () => {
     expect(() =>
       parsePublicDatasetManifest({
         datasets: [
-          { slug: "a", name: "A", season: 2025, datasetType: "historical-stats", default: false },
+          { slug: "a", name: "A", season: 2025, sport: "baseball", datasetType: "historical-stats", default: false },
         ],
       })
-    ).toThrow("exactly one default dataset");
+    ).toThrow("at least one default dataset");
+  });
+
+  it("allows one default dataset per sport", () => {
+    const manifest = parsePublicDatasetManifest({
+      datasets: [
+        { slug: "baseball", name: "Baseball", season: 2025, sport: "baseball", datasetType: "historical-stats", default: true },
+        { slug: "football", name: "Football", season: 2025, sport: "football", datasetType: "historical-stats", default: true },
+      ],
+    });
+
+    expect(manifest.datasets.map((dataset) => dataset.sport).sort()).toEqual(["baseball", "football"]);
   });
 });
 
@@ -121,6 +139,7 @@ describe("public dataset payload", () => {
     const payload = parsePublicDatasetPayload(minimalDatasetPayload);
 
     expect(payload.slug).toBe("historical-2025");
+    expect(payload.sport).toBe("baseball");
     expect(payload.projectionGroup.name).toBe("2025 Prior-Year Stats");
     expect(payload.projectionGroup.batters.length).toBeGreaterThan(0);
     expect(payload.projectionGroup.pitchers.length).toBeGreaterThan(0);
@@ -138,6 +157,72 @@ describe("public dataset payload", () => {
       protected: true,
       seededAt: "2026-03-22T12:00:00.000Z",
     });
+    expect(group.sport).toBe("baseball");
     expect(group.name).toBe(payload.projectionGroup.name);
+  });
+
+  it("builds a football projection group from a football public dataset payload", () => {
+    const payload = parsePublicDatasetPayload({
+      slug: "football-historical-2025",
+      name: "2025 Football Prior-Year Baseline",
+      season: 2025,
+      sport: "football",
+      datasetType: "historical-stats",
+      projectionGroup: {
+        id: "public-football-historical-2025",
+        name: "2025 Football Prior-Year Stats",
+        createdAt: "2026-03-22T00:00:00.000Z",
+        batters: [],
+        pitchers: [],
+        twoWayPlayers: [],
+        footballPlayers: [
+          {
+            _type: "football",
+            _id: "qb-1",
+            Name: "Test QB",
+            Team: "BUF",
+            PlayerId: "qb-1",
+            Position: "QB",
+            BYE: 7,
+            PASS_ATT: 500,
+            PASS_CMP: 330,
+            PASS_YDS: 4100,
+            PASS_TD: 32,
+            PASS_INT: 10,
+            RUSH_ATT: 90,
+            RUSH_YDS: 450,
+            RUSH_TD: 6,
+            TGT: 0,
+            REC: 0,
+            REC_YDS: 0,
+            REC_TD: 0,
+            TWO_PT: 2,
+            FUML: 3,
+            FG: 0,
+            FGA: 0,
+            FG50: 0,
+            XP: 0,
+            SACK: 0,
+            DST_INT: 0,
+            FR: 0,
+            FF: 0,
+            DST_TD: 0,
+            SAFETY: 0,
+            BLK: 0,
+            PTS_ALLOWED: 0,
+            FPTS: null,
+            ADP: null,
+          },
+        ],
+        batterIdSource: null,
+        pitcherIdSource: null,
+      },
+    });
+
+    const group = createProjectionGroupFromPublicDataset(payload);
+
+    expect(group.sport).toBe("football");
+    expect(group.footballPlayers).toHaveLength(1);
+    expect(group.batters).toEqual([]);
   });
 });

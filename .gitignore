@@ -49,3 +49,7 @@ next-env.d.ts
 data/public-datasets/*.json
 !data/public-datasets/manifest.json
 !data/public-datasets/historical-2025.json
+!data/public-datasets/football-historical-2025.json
+
+# reproducible nflverse source exports for generating football public datasets
+data/nflverse/*.csv

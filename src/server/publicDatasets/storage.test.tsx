@@ -15,8 +15,11 @@ describe("public dataset storage", () => {
   it("loads the checked-in manifest when Tigris is not configured", async () => {
     const manifest = await getPublicDatasetManifest();
 
-    expect(manifest.datasets).toHaveLength(1);
-    expect(manifest.datasets[0]?.slug).toBe("historical-2025");
+    expect(manifest.datasets).toHaveLength(2);
+    expect(manifest.datasets.find((dataset) => dataset.sport === "baseball")?.slug).toBe("historical-2025");
+    expect(manifest.datasets.find((dataset) => dataset.sport === "football")?.slug).toBe(
+      "football-historical-2025"
+    );
   });
 
   it("throws a controlled error for a missing dataset", async () => {

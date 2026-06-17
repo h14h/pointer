@@ -13,6 +13,7 @@
     "test:visual": "bunx playwright test",
     "test:visual:update": "bunx playwright test --update-snapshots",
     "lint": "eslint",
+    "generate:nflverse-football-csv": "bun run scripts/generate-nflverse-football-csv.ts",
     "generate:public-dataset": "bun run scripts/generate-public-dataset.ts",
     "publish:public-datasets": "bun run scripts/publish-public-dataset.ts"
   },

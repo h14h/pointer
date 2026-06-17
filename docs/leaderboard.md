@@ -26,7 +26,7 @@ Split into two UI components plus a pure derivation helper:
 
 **`src/lib/leaderboard/`** — owns the expensive ranking pipeline plus lightweight filter/sort helpers so text search and position changes do not recompute PAR or view-specific points.
 
-**`PublicDatasetBootstrap` (sibling on the page)** — waits for persisted store hydration, auto-loads the default public dataset when no protected baseline is present, and renders retryable loading/failure UI above the leaderboard when the built-in 2025 stats are unavailable.
+**`PublicDatasetBootstrap` (sibling on the page)** — waits for persisted store hydration, auto-loads missing default public datasets per sport, and renders retryable loading/failure UI above the leaderboard when built-in prior-year stats are unavailable.
 
 ## Ranking Pipeline
 

@@ -2,9 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { createProjectionGroupFromPublicDataset, type PublicDatasetManifest, type PublicDatasetPayload } from "@/lib/projections";
+import {
+  createProjectionGroupFromPublicDataset,
+  type PublicDatasetManifest,
+  type PublicDatasetPayload,
+} from "@/lib/projections";
 import { runProjectionEligibilityImport } from "@/lib/eligibility";
-import type { ProjectionGroup } from "@/types";
+import type { ProjectionGroup, Sport } from "@/types";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/Button";
 import { FieldLabel } from "@/components/ui/FieldLabel";
@@ -43,15 +47,17 @@ export function PublicDatasetBootstrap() {
   const attemptedSeedRef = useRef(false);
   const attemptedEligibilityGroupIdRef = useRef<string | null>(null);
 
-  const protectedBaseline = useMemo(
+  const protectedBaselines = useMemo(
     () =>
-      projectionGroups.find(
+      projectionGroups.filter(
         (group) => group.source.kind === "public-dataset" && group.source.protected
-      ) ?? null,
+      ),
     [projectionGroups]
   );
+  const baseballProtectedBaseline =
+    protectedBaselines.find((group) => group.sport === "baseball") ?? null;
   const needsBaselineEligibility =
-    protectedBaseline !== null && !protectedBaseline.eligibilityImportedAt;
+    baseballProtectedBaseline !== null && !baseballProtectedBaseline.eligibilityImportedAt;
 
   const importBuiltInEligibility = useCallback(
     async (group: ProjectionGroup) => {
@@ -83,52 +89,75 @@ export function PublicDatasetBootstrap() {
     [applyEligibility]
   );
 
-  const loadDefaultDataset = useCallback(async () => {
+  const loadDefaultDatasets = useCallback(async () => {
     setStatus("loading-dataset");
     setErrorMessage(null);
 
     try {
       const manifest = await fetchJson<PublicDatasetManifest>("/datasets/manifest.json");
-      const defaultDataset = manifest.datasets.find((dataset) => dataset.default) ?? manifest.datasets[0];
+      const existingSports = new Set<Sport>(
+        protectedBaselines.map((group) => (group.sport === "football" ? "football" : "baseball"))
+      );
+      const defaultDatasets = manifest.datasets
+        .filter((dataset) => dataset.default)
+        .filter((dataset) => !existingSports.has(dataset.sport));
 
-      if (!defaultDataset) {
-        throw new Error("The built-in dataset catalog is empty.");
+      if (defaultDatasets.length === 0) {
+        setStatus("idle");
+        return;
       }
 
-      const payload = await fetchJson<PublicDatasetPayload>(
-        `/datasets/${encodeURIComponent(defaultDataset.slug)}.json`
+      const payloads = await Promise.all(
+        defaultDatasets.map((dataset) =>
+          fetchJson<PublicDatasetPayload>(`/datasets/${encodeURIComponent(dataset.slug)}.json`)
+        )
       );
 
-      const group = createProjectionGroupFromPublicDataset(payload);
-      seedProjectionGroup(group);
-      attemptedEligibilityGroupIdRef.current = group.id;
-      await importBuiltInEligibility(group);
+      let seededBaseballGroup: ProjectionGroup | null = null;
+      for (const payload of payloads) {
+        const group = createProjectionGroupFromPublicDataset(payload);
+        seedProjectionGroup(group);
+        if (group.sport === "baseball") {
+          seededBaseballGroup = group;
+        }
+      }
+
+      if (seededBaseballGroup) {
+        attemptedEligibilityGroupIdRef.current = seededBaseballGroup.id;
+        await importBuiltInEligibility(seededBaseballGroup);
+      } else {
+        setStatus("idle");
+      }
     } catch (error) {
       setStatus("error");
-      setErrorMessage(error instanceof Error ? error.message : "Unable to load the built-in 2025 Leaders dataset.");
+      setErrorMessage(error instanceof Error ? error.message : "Unable to load the built-in prior-year datasets.");
     }
-  }, [importBuiltInEligibility, seedProjectionGroup]);
+  }, [importBuiltInEligibility, protectedBaselines, seedProjectionGroup]);
 
   useEffect(() => {
-    if (!hasHydrated || protectedBaseline || attemptedSeedRef.current) {
+    if (!hasHydrated || attemptedSeedRef.current) {
       return;
     }
     attemptedSeedRef.current = true;
-    void loadDefaultDataset();
-  }, [hasHydrated, loadDefaultDataset, protectedBaseline]);
+    queueMicrotask(() => {
+      void loadDefaultDatasets();
+    });
+  }, [hasHydrated, loadDefaultDatasets]);
 
   useEffect(() => {
-    if (!hasHydrated || !protectedBaseline || !needsBaselineEligibility) {
+    if (!hasHydrated || !baseballProtectedBaseline || !needsBaselineEligibility) {
       return;
     }
-    if (attemptedEligibilityGroupIdRef.current === protectedBaseline.id) {
+    if (attemptedEligibilityGroupIdRef.current === baseballProtectedBaseline.id) {
       return;
     }
-    attemptedEligibilityGroupIdRef.current = protectedBaseline.id;
-    void importBuiltInEligibility(protectedBaseline);
-  }, [hasHydrated, importBuiltInEligibility, needsBaselineEligibility, protectedBaseline]);
+    attemptedEligibilityGroupIdRef.current = baseballProtectedBaseline.id;
+    queueMicrotask(() => {
+      void importBuiltInEligibility(baseballProtectedBaseline);
+    });
+  }, [baseballProtectedBaseline, hasHydrated, importBuiltInEligibility, needsBaselineEligibility]);
 
-  if (!hasHydrated || (protectedBaseline && status === "idle")) {
+  if (!hasHydrated || (protectedBaselines.length > 0 && status === "idle")) {
     return null;
   }
 
@@ -161,19 +190,19 @@ export function PublicDatasetBootstrap() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <FieldLabel className="tracking-[0.18em] text-[var(--color-warning)]">
-              {protectedBaseline ? "Built-In Eligibility Unavailable" : "Built-In Dataset Unavailable"}
+              {baseballProtectedBaseline ? "Built-In Eligibility Unavailable" : "Built-In Dataset Unavailable"}
             </FieldLabel>
             <p className="text-sm text-[var(--color-fg-muted)]">
               {errorMessage ??
-                (protectedBaseline
+                (baseballProtectedBaseline
                   ? "Unable to import position eligibility for 2025 Leaders."
-                  : "Unable to load the built-in 2025 Leaders dataset.")}
+                  : "Unable to load the built-in prior-year datasets.")}
             </p>
             {!hasAnyProjectionGroup ? (
               <p className="text-xs text-[var(--color-fg-subtle)]">
                 You can retry now or upload your own projections to continue.
               </p>
-            ) : protectedBaseline ? (
+            ) : baseballProtectedBaseline ? (
               <p className="text-xs text-[var(--color-fg-subtle)]">
                 The leaders dataset is available now. You can retry the automatic import or re-run it later from your league&apos;s Intel tab.
               </p>
@@ -183,13 +212,13 @@ export function PublicDatasetBootstrap() {
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (protectedBaseline) {
-                attemptedEligibilityGroupIdRef.current = protectedBaseline.id;
-                void importBuiltInEligibility(protectedBaseline);
+              if (baseballProtectedBaseline) {
+                attemptedEligibilityGroupIdRef.current = baseballProtectedBaseline.id;
+                void importBuiltInEligibility(baseballProtectedBaseline);
                 return;
               }
               attemptedSeedRef.current = true;
-              void loadDefaultDataset();
+              void loadDefaultDatasets();
             }}
           >
             Retry

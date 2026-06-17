@@ -2,6 +2,7 @@
   "slug": "historical-2025",
   "name": "2025 Prior-Year Baseline",
   "season": 2025,
+  "sport": "baseball",
   "datasetType": "historical-stats",
   "projectionGroup": {
     "id": "public-historical-2025",

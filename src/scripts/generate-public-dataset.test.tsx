@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   generatePublicDataset,
   parseGenerateOptions,
+  buildManifest,
 } from "../../scripts/generate-public-dataset";
 
 describe("generate public dataset script", () => {
@@ -30,8 +31,10 @@ describe("generate public dataset script", () => {
     ]);
 
     expect(options).toMatchObject({
+      sport: "baseball",
       battersPath: "/tmp/batters.csv",
       pitchersPath: "/tmp/pitchers.csv",
+      footballPath: null,
       slug: "historical-2025",
       season: 2025,
       datasetName: "2025 Prior-Year Baseline",
@@ -65,8 +68,10 @@ describe("generate public dataset script", () => {
     );
 
     const payload = await generatePublicDataset({
+      sport: "baseball",
       battersPath: batterPath,
       pitchersPath: pitcherPath,
+      footballPath: null,
       slug: "historical-2025",
       datasetName: "2025 Prior-Year Baseline",
       projectionGroupName: "2025 Prior-Year Stats",
@@ -76,10 +81,73 @@ describe("generate public dataset script", () => {
     });
 
     expect(payload.slug).toBe("historical-2025");
+    expect(payload.sport).toBe("baseball");
     expect(payload.projectionGroup.batters).toHaveLength(1);
     expect(payload.projectionGroup.pitchers).toHaveLength(1);
     expect(payload.projectionGroup.twoWayPlayers).toHaveLength(1);
     expect(payload.projectionGroup.batterIdSource).toBe("MLBAMID");
     expect(payload.projectionGroup.pitcherIdSource).toBe("MLBAMID");
+  });
+
+  it("generates a normalized football dataset payload from a football CSV file", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "pointer-football-dataset-"));
+    const footballPath = path.join(tempDir, "football.csv");
+
+    await writeFile(
+      footballPath,
+      [
+        "Name,Team,Position,PlayerId,Bye,Pass Yds,Pass TD,Pass INT,Rush Yds,Rush TD,Rec,Rec Yds,Rec TD,FPTS,ADP",
+        "Josh Allen,BUF,QB,allen-1,7,4100,32,10,450,6,0,0,0,380,1",
+      ].join("\n"),
+      "utf8"
+    );
+
+    const payload = await generatePublicDataset({
+      sport: "football",
+      battersPath: null,
+      pitchersPath: null,
+      footballPath,
+      slug: "football-historical-2025",
+      datasetName: "2025 Football Prior-Year Baseline",
+      projectionGroupName: "2025 Football Prior-Year Stats",
+      season: 2025,
+      outputPath: path.join(tempDir, "football-historical-2025.json"),
+      setDefault: true,
+    });
+
+    expect(payload.slug).toBe("football-historical-2025");
+    expect(payload.sport).toBe("football");
+    expect(payload.projectionGroup.footballPlayers).toHaveLength(1);
+    expect(payload.projectionGroup.batters).toEqual([]);
+    expect(payload.projectionGroup.pitchers).toEqual([]);
+  });
+
+  it("keeps defaults scoped by sport when upserting a football default", async () => {
+    const manifest = buildManifest(
+      {
+        datasets: [
+          {
+            slug: "historical-2025",
+            name: "2025 Prior-Year Baseline",
+            season: 2025,
+            sport: "baseball",
+            datasetType: "historical-stats",
+            default: true,
+          },
+        ],
+      },
+      {
+        slug: "football-historical-2025",
+        name: "2025 Football Prior-Year Baseline",
+        season: 2025,
+        sport: "football",
+        datasetType: "historical-stats",
+        default: true,
+      },
+      true
+    );
+
+    expect(manifest.datasets.find((dataset) => dataset.slug === "historical-2025")?.default).toBe(true);
+    expect(manifest.datasets.find((dataset) => dataset.slug === "football-historical-2025")?.default).toBe(true);
   });
 });

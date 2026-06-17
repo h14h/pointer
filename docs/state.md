@@ -56,9 +56,9 @@ Given a first-round keeper reserved at overall pick 3, when overall picks 1, 2, 
 
 **Draft setup lock.** League resize, add/remove team, and reorder operations are blocked only once manual draft picks exist. Keeper-only state does not lock structure, so reserved keepers can be configured before the live draft and the team order can still be finalized afterward.
 
-**Protected public groups survive destructive clears.** Projection groups seeded from the public dataset catalog carry provenance metadata and are treated as protected baselines. `removeProjectionGroup` is a no-op for them, `clearProjectionGroups` removes only uploaded/custom groups, and `clearAllData` preserves them while still resetting every league's draft state.
+**Protected public groups survive destructive clears.** Projection groups seeded from the public dataset catalog carry provenance metadata and are treated as protected sport baselines. `removeProjectionGroup` is a no-op for them, `clearProjectionGroups` removes only uploaded/custom groups, and `clearAllData` preserves them while still resetting every league's draft state.
 
-**Active group fallback.** Removing the active projection group falls back to the first protected public group when one exists, otherwise the first remaining group's ID, or `null`. A stale `activeProjectionGroupId` is never left behind.
+**Active group fallback.** Removing the active projection group falls back to the first protected public group when one exists, otherwise the first remaining group's ID, or `null`. League-level projection resolution is sport-scoped, so each league falls back to the protected public group for its own sport when available. A stale `activeProjectionGroupId` is never left behind.
 
 **Projection groups now carry next-run eligibility intent.** Each group stores an `eligibilityImportSeason` separately from `eligibilitySeason`, which records the season used by the last successful run. This lets the settings UI expose retroactive import and re-run without overloading the historical metadata.
 

@@ -15,6 +15,7 @@ football projection groups store players in `group.footballPlayers`.
 - `src/lib/football/par.ts` — FLEX/Superflex-aware replacement levels and PAR
 - `src/lib/football/ranking.ts` — ranked-row build, filtering, sorting
 - `src/lib/football/football.test.ts` — unit tests
+- `src/lib/projections/publicDatasets.ts`, `scripts/generate-public-dataset.ts`, `scripts/generate-nflverse-football-csv.ts` — sport-scoped built-in prior-year dataset support
 - `src/components/FootballLeaderboard.tsx` — football leaderboard UI
 - `src/components/FootballCsvUpload.tsx` — football upload dialog
 - `src/components/settings/FootballScoringSection.tsx`, `src/components/settings/FootballRosterSection.tsx`, `src/components/settings/footballConstants.ts` — settings UI
@@ -61,6 +62,11 @@ UI to collect one (`needsPositionSelection`). Player ids come from a
 `PlayerId`-style column when present, otherwise a stable slug of
 `name + position`, which lets per-position uploads merge into one group via
 `mergeFootballPlayers`.
+
+The same parser powers football public dataset generation. A generated
+football prior-year payload stores players in `projectionGroup.footballPlayers`
+with `sport: "football"` so the built-in baseline is resolved by football
+leagues the same way baseball leagues resolve the built-in leaders dataset.
 
 ## PAR
 

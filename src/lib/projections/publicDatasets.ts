@@ -1,4 +1,12 @@
-import type { IdSource, ProjectionGroup, ProjectionGroupSource, TwoWayPlayer, Player } from "@/types";
+import type {
+  FootballPlayer,
+  IdSource,
+  Player,
+  ProjectionGroup,
+  ProjectionGroupSource,
+  Sport,
+  TwoWayPlayer,
+} from "@/types";
 
 export const PUBLIC_DATASET_MANIFEST_KEY = "public-datasets/manifest.json";
 export const DEFAULT_PUBLIC_DATASET_SLUG = "historical-2025";
@@ -14,6 +22,7 @@ export type SeedProjectionGroupInput = {
   twoWayPlayers: TwoWayPlayer[];
   batterIdSource: IdSource | null;
   pitcherIdSource: IdSource | null;
+  footballPlayers?: FootballPlayer[];
   eligibilityImportedAt?: string;
   eligibilitySeason?: number;
 };
@@ -22,6 +31,7 @@ export type PublicDatasetManifestEntry = {
   slug: string;
   name: string;
   season: number;
+  sport: Sport;
   datasetType: PublicDatasetType;
   default: boolean;
 };
@@ -34,6 +44,7 @@ export type PublicDatasetPayload = {
   slug: string;
   name: string;
   season: number;
+  sport: Sport;
   datasetType: PublicDatasetType;
   projectionGroup: SeedProjectionGroupInput;
 };
@@ -44,6 +55,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isPlayerArray(value: unknown): value is Player[] {
   return Array.isArray(value);
+}
+
+function assertSport(value: unknown): Sport {
+  if (value === undefined) return "baseball";
+  if (value === "baseball" || value === "football") return value;
+  throw new Error("Public dataset has an unsupported sport.");
 }
 
 function assertManifestEntry(value: unknown, index: number): PublicDatasetManifestEntry {
@@ -59,6 +76,7 @@ function assertManifestEntry(value: unknown, index: number): PublicDatasetManife
   if (!Number.isFinite(value.season)) {
     throw new Error(`Manifest entry ${index} is missing a valid season.`);
   }
+  const sport = assertSport(value.sport);
   if (value.datasetType !== "historical-stats") {
     throw new Error(`Manifest entry ${index} has an unsupported datasetType.`);
   }
@@ -69,6 +87,7 @@ function assertManifestEntry(value: unknown, index: number): PublicDatasetManife
     slug: value.slug,
     name: value.name,
     season: Math.round(Number(value.season)),
+    sport,
     datasetType: value.datasetType,
     default: value.default,
   };
@@ -90,6 +109,9 @@ function assertSeedProjectionGroupInput(value: unknown): SeedProjectionGroupInpu
   if (!isPlayerArray(value.batters) || !isPlayerArray(value.pitchers) || !Array.isArray(value.twoWayPlayers)) {
     throw new Error("Dataset projectionGroup player arrays are invalid.");
   }
+  if (value.footballPlayers !== undefined && !Array.isArray(value.footballPlayers)) {
+    throw new Error("Dataset projectionGroup footballPlayers array is invalid.");
+  }
 
   return {
     id: value.id,
@@ -100,6 +122,7 @@ function assertSeedProjectionGroupInput(value: unknown): SeedProjectionGroupInpu
     twoWayPlayers: value.twoWayPlayers as TwoWayPlayer[],
     batterIdSource: (value.batterIdSource as IdSource | null | undefined) ?? null,
     pitcherIdSource: (value.pitcherIdSource as IdSource | null | undefined) ?? null,
+    footballPlayers: value.footballPlayers as FootballPlayer[] | undefined,
     eligibilityImportedAt:
       typeof value.eligibilityImportedAt === "string" ? value.eligibilityImportedAt : undefined,
     eligibilitySeason:
@@ -114,9 +137,14 @@ export function parsePublicDatasetManifest(input: unknown): PublicDatasetManifes
     throw new Error("Public dataset manifest must contain a datasets array.");
   }
   const datasets = input.datasets.map(assertManifestEntry);
-  const defaultCount = datasets.filter((dataset) => dataset.default).length;
-  if (defaultCount !== 1) {
-    throw new Error("Public dataset manifest must contain exactly one default dataset.");
+  for (const sport of ["baseball", "football"] satisfies Sport[]) {
+    const defaultCount = datasets.filter((dataset) => dataset.sport === sport && dataset.default).length;
+    if (defaultCount > 1) {
+      throw new Error(`Public dataset manifest must contain at most one default ${sport} dataset.`);
+    }
+  }
+  if (!datasets.some((dataset) => dataset.default)) {
+    throw new Error("Public dataset manifest must contain at least one default dataset.");
   }
   return { datasets };
 }
@@ -134,6 +162,7 @@ export function parsePublicDatasetPayload(input: unknown): PublicDatasetPayload 
   if (!Number.isFinite(input.season)) {
     throw new Error("Public dataset payload is missing a valid season.");
   }
+  const sport = assertSport(input.sport);
   if (input.datasetType !== "historical-stats") {
     throw new Error("Public dataset payload has an unsupported datasetType.");
   }
@@ -142,6 +171,7 @@ export function parsePublicDatasetPayload(input: unknown): PublicDatasetPayload 
     slug: input.slug,
     name: input.name,
     season: Math.round(Number(input.season)),
+    sport,
     datasetType: input.datasetType,
     projectionGroup: assertSeedProjectionGroupInput(input.projectionGroup),
   };
@@ -167,8 +197,8 @@ export function createProjectionGroupFromPublicDataset(
 ): ProjectionGroup {
   return {
     ...payload.projectionGroup,
-    sport: "baseball",
-    eligibilityImportSeason: payload.season,
+    sport: payload.sport,
+    eligibilityImportSeason: payload.sport === "baseball" ? payload.season : undefined,
     source: createPublicDatasetSource(payload, seededAt),
   };
 }

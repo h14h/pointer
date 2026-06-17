@@ -10,7 +10,8 @@ import {
   type PublicDatasetManifestEntry,
   type PublicDatasetPayload,
 } from "@/lib/projections";
-import type { TwoWayPlayer } from "@/types";
+import { parseFootballCsv } from "@/lib/football";
+import type { Sport, TwoWayPlayer } from "@/types";
 
 loadEnvConfig(process.cwd());
 
@@ -18,8 +19,10 @@ const DATASET_DIR = path.join(process.cwd(), "data", "public-datasets");
 const MANIFEST_PATH = path.join(DATASET_DIR, "manifest.json");
 
 type GenerateOptions = {
-  battersPath: string;
-  pitchersPath: string;
+  sport: Sport;
+  battersPath: string | null;
+  pitchersPath: string | null;
+  footballPath: string | null;
   slug: string;
   datasetName: string;
   projectionGroupName: string;
@@ -53,9 +56,26 @@ function parseGenerateOptions(args: string[]): GenerateOptions {
     throw new Error("`--season` must be a number.");
   }
 
+  const sport = (getArgValue(args, "--sport") ?? "baseball") as Sport;
+  if (sport !== "baseball" && sport !== "football") {
+    throw new Error("`--sport` must be either baseball or football.");
+  }
+  const battersPath = getArgValue(args, "--batters");
+  const pitchersPath = getArgValue(args, "--pitchers");
+  const footballPath = getArgValue(args, "--football");
+
+  if (sport === "baseball" && (!battersPath || !pitchersPath)) {
+    throw new Error("Baseball datasets require --batters and --pitchers.");
+  }
+  if (sport === "football" && !footballPath) {
+    throw new Error("Football datasets require --football.");
+  }
+
   return {
-    battersPath: getRequiredArg(args, "--batters"),
-    pitchersPath: getRequiredArg(args, "--pitchers"),
+    sport,
+    battersPath,
+    pitchersPath,
+    footballPath,
     slug,
     datasetName: getArgValue(args, "--dataset-name") ?? `${season} Prior-Year Baseline`,
     projectionGroupName: getArgValue(args, "--group-name") ?? `${season} Prior-Year Stats`,
@@ -79,21 +99,72 @@ async function readManifest(): Promise<PublicDatasetManifest> {
   }
 }
 
-function buildManifest(manifest: PublicDatasetManifest, entry: PublicDatasetManifestEntry, setDefault: boolean) {
+export function buildManifest(
+  manifest: PublicDatasetManifest,
+  entry: PublicDatasetManifestEntry,
+  setDefault: boolean
+) {
   const withoutSlug = manifest.datasets.filter((dataset) => dataset.slug !== entry.slug);
   const nextDatasets = [...withoutSlug, entry].sort((left, right) => left.slug.localeCompare(right.slug));
 
-  const shouldSetDefault = setDefault || nextDatasets.every((dataset) => !dataset.default);
+  const shouldSetDefault =
+    setDefault ||
+    nextDatasets
+      .filter((dataset) => dataset.sport === entry.sport)
+      .every((dataset) => !dataset.default);
 
   return {
     datasets: nextDatasets.map((dataset) => ({
       ...dataset,
-      default: shouldSetDefault ? dataset.slug === entry.slug : dataset.default,
+      default:
+        dataset.sport === entry.sport && shouldSetDefault
+          ? dataset.slug === entry.slug
+          : dataset.default,
     })),
   } satisfies PublicDatasetManifest;
 }
 
 export async function generatePublicDataset(options: GenerateOptions): Promise<PublicDatasetPayload> {
+  if (options.sport === "football") {
+    if (!options.footballPath) {
+      throw new Error("Football datasets require --football.");
+    }
+    const footballContent = await readFile(options.footballPath, "utf8");
+    const footballResult = parseFootballCsv(footballContent);
+
+    if (footballResult.needsPositionSelection) {
+      throw new Error("Football file must include or imply player positions.");
+    }
+    if (footballResult.errors.length > 0) {
+      console.warn(`Football parse warnings:\n${footballResult.errors.join("\n")}`);
+    }
+    if (footballResult.warnings.length > 0) {
+      console.warn(`Football parse warnings:\n${footballResult.warnings.join("\n")}`);
+    }
+
+    return {
+      slug: options.slug,
+      name: options.datasetName,
+      season: options.season,
+      sport: "football",
+      datasetType: "historical-stats",
+      projectionGroup: {
+        id: `public-${options.slug}`,
+        name: options.projectionGroupName,
+        createdAt: new Date().toISOString(),
+        batters: [],
+        pitchers: [],
+        twoWayPlayers: [],
+        footballPlayers: footballResult.players,
+        batterIdSource: null,
+        pitcherIdSource: null,
+      },
+    };
+  }
+
+  if (!options.battersPath || !options.pitchersPath) {
+    throw new Error("Baseball datasets require --batters and --pitchers.");
+  }
   const [battersContent, pitchersContent] = await Promise.all([
     readFile(options.battersPath, "utf8"),
     readFile(options.pitchersPath, "utf8"),
@@ -119,6 +190,7 @@ export async function generatePublicDataset(options: GenerateOptions): Promise<P
     slug: options.slug,
     name: options.datasetName,
     season: options.season,
+    sport: "baseball",
     datasetType: "historical-stats",
     projectionGroup: {
       id: `public-${options.slug}`,
@@ -169,6 +241,7 @@ async function main() {
       slug: payload.slug,
       name: payload.name,
       season: payload.season,
+      sport: payload.sport,
       datasetType: payload.datasetType,
       default: options.setDefault,
     },

@@ -29,6 +29,7 @@ const manifestResponse = {
       slug: "historical-2025",
       name: "2025 Prior-Year Baseline",
       season: 2025,
+      sport: "baseball" as const,
       datasetType: "historical-stats" as const,
       default: true,
     },
@@ -39,6 +40,7 @@ const payloadResponse = {
   slug: "historical-2025",
   name: "2025 Prior-Year Baseline",
   season: 2025,
+  sport: "baseball" as const,
   datasetType: "historical-stats" as const,
   projectionGroup: {
     id: "public-historical-2025",
@@ -49,6 +51,25 @@ const payloadResponse = {
     twoWayPlayers: [],
     batterIdSource: "MLBAMID" as const,
     pitcherIdSource: "MLBAMID" as const,
+  },
+};
+
+const footballPayloadResponse = {
+  slug: "football-historical-2025",
+  name: "2025 Football Prior-Year Baseline",
+  season: 2025,
+  sport: "football" as const,
+  datasetType: "historical-stats" as const,
+  projectionGroup: {
+    id: "public-football-historical-2025",
+    name: "2025 Football Prior-Year Stats",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    batters: [],
+    pitchers: [],
+    twoWayPlayers: [],
+    footballPlayers: [],
+    batterIdSource: null,
+    pitcherIdSource: null,
   },
 };
 
@@ -106,7 +127,7 @@ describe("PublicDatasetBootstrap", () => {
     expect(seededGroup?.source.slug).toBe("historical-2025");
   });
 
-  it("does not fetch or re-import when a protected baseline already has eligibility", () => {
+  it("does not fetch or re-import when a protected baseline already has eligibility", async () => {
     const state = createStoreState({
       projectionGroups: [
         {
@@ -121,6 +142,7 @@ describe("PublicDatasetBootstrap", () => {
             protected: true,
             seededAt: "2026-03-22T12:00:00.000Z",
           },
+          sport: "baseball",
           batters: [],
           pitchers: [],
           twoWayPlayers: [],
@@ -139,7 +161,70 @@ describe("PublicDatasetBootstrap", () => {
 
     render(<PublicDatasetBootstrap />);
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith("/datasets/manifest.json");
+    });
+    expect(runProjectionEligibilityImportMock).not.toHaveBeenCalled();
+  });
+
+  it("seeds a missing football default when baseball baseline already exists", async () => {
+    const state = createStoreState({
+      projectionGroups: [
+        {
+          id: "public-historical-2025",
+          name: "2025 Prior-Year Stats",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          source: {
+            kind: "public-dataset",
+            slug: "historical-2025",
+            season: 2025,
+            datasetType: "historical-stats",
+            protected: true,
+            seededAt: "2026-03-22T12:00:00.000Z",
+          },
+          sport: "baseball",
+          batters: [],
+          pitchers: [],
+          twoWayPlayers: [],
+          batterIdSource: "MLBAMID",
+          pitcherIdSource: "MLBAMID",
+          eligibilityImportedAt: "2026-03-22T12:05:00.000Z",
+          eligibilitySeason: 2025,
+          eligibilityImportSeason: 2025,
+        },
+      ],
+      activeProjectionGroupId: "public-historical-2025",
+    });
+    useStoreMock.mockImplementation(() => state);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string) => ({
+        ok: true,
+        json: async () =>
+          input.endsWith("/datasets/manifest.json")
+            ? {
+                datasets: [
+                  ...manifestResponse.datasets,
+                  {
+                    slug: "football-historical-2025",
+                    name: "2025 Football Prior-Year Baseline",
+                    season: 2025,
+                    sport: "football" as const,
+                    datasetType: "historical-stats" as const,
+                    default: true,
+                  },
+                ],
+              }
+            : footballPayloadResponse,
+      }))
+    );
+
+    render(<PublicDatasetBootstrap />);
+
+    await waitFor(() => {
+      expect(state.seedProjectionGroup).toHaveBeenCalledTimes(1);
+    });
+    expect(state.projectionGroups[1]?.sport).toBe("football");
     expect(runProjectionEligibilityImportMock).not.toHaveBeenCalled();
   });
 
@@ -158,6 +243,7 @@ describe("PublicDatasetBootstrap", () => {
             protected: true,
             seededAt: "2026-03-22T12:00:00.000Z",
           },
+          sport: "baseball",
           batters: [],
           pitchers: [],
           twoWayPlayers: [],
@@ -177,7 +263,7 @@ describe("PublicDatasetBootstrap", () => {
     await waitFor(() => {
       expect(runProjectionEligibilityImportMock).toHaveBeenCalledTimes(1);
     });
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith("/datasets/manifest.json");
   });
 
   it("shows a retry action after a failed load and seeds on retry", async () => {
