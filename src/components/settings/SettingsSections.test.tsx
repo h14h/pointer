@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DraftSection } from "@/components/settings/DraftSection";
+import { FootballScoringSection } from "@/components/settings/FootballScoringSection";
 import { RosterSection } from "@/components/settings/RosterSection";
 import { ScoringSection } from "@/components/settings/ScoringSection";
-import type { LeagueSettings, ScoringSettings } from "@/types";
+import { createDefaultFootballConfig } from "@/lib/football";
+import type { FootballLeagueConfig, LeagueSettings, ScoringSettings, Sport } from "@/types";
 
 const useStoreMock = vi.fn();
 const toastSpy = vi.fn();
@@ -142,8 +144,10 @@ describe("settings sections", () => {
   type TestLeague = {
     id: string;
     name: string;
+    sport: Sport;
     scoringSettings: ScoringSettings;
     leagueSettings: LeagueSettings;
+    football?: FootballLeagueConfig;
     draftState: {
       format: "snake";
       draftedByTeam: Record<string, string>;
@@ -166,6 +170,7 @@ describe("settings sections", () => {
   const createLeague = (overrides: Partial<TestLeague> = {}): TestLeague => ({
     id: "league-1",
     name: "My League",
+    sport: "baseball",
     scoringSettings: createScoringSettings(),
     leagueSettings: createLeagueSettings(),
     draftState: {
@@ -228,6 +233,36 @@ describe("settings sections", () => {
     expect(updateLeagueSpy).toHaveBeenCalled();
     const scoringCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { scoringSettings?: { batting?: { H?: number } } };
     expect(scoringCall.scoringSettings?.batting?.H).toBe(7);
+  });
+
+  it("commits detailed football scoring changes", async () => {
+    const user = userEvent.setup();
+    const football = createDefaultFootballConfig();
+    useStoreMock.mockReturnValue({
+      ...createStoreState(),
+      leagues: [createLeague({ sport: "football", football })],
+    });
+    render(<FootballScoringSection />);
+
+    expect(screen.getByLabelText("FF points")).toHaveValue(1);
+
+    const fg50Input = screen.getByLabelText("FG 50+ points");
+    await user.click(fg50Input);
+    await user.clear(fg50Input);
+    await user.keyboard("6");
+    await user.tab();
+
+    const fgCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { football?: FootballLeagueConfig };
+    expect(fgCall.football?.scoring.kicking.FG50_PLUS).toBe(6);
+
+    const pa0Input = screen.getByLabelText("PA 0 points");
+    await user.click(pa0Input);
+    await user.clear(pa0Input);
+    await user.keyboard("12");
+    await user.tab();
+
+    const paCall = updateLeagueSpy.mock.calls.at(-1)?.[0] as { football?: FootballLeagueConfig };
+    expect(paCall.football?.scoring.dst.PA0).toBe(12);
   });
 
   it("commits roster slot and bench updates", async () => {

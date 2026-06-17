@@ -25,8 +25,13 @@ export interface FootballScoringSettings {
 
   kicking: {
     XP: number;
-    FG: number;     // points per made field goal
-    FG50: number;   // bonus per made field goal of 50+ yards
+    XP_MISS: number;
+    FG0_19: number;
+    FG20_29: number;
+    FG30_39: number;
+    FG40_49: number;
+    FG50_PLUS: number;
+    FG_MISS: number;
   };
 
   dst: {
@@ -37,6 +42,13 @@ export interface FootballScoringSettings {
     TD: number;
     SAFETY: number;
     BLK: number;
+    PA0: number;
+    PA1_6: number;
+    PA7_13: number;
+    PA14_20: number;
+    PA21_27: number;
+    PA28_34: number;
+    PA35_PLUS: number;
   };
 }
 
@@ -87,7 +99,15 @@ export interface FootballStats {
   FG: number;
   FGA: number;
   FG50: number;
+  FG0_19: number;
+  FG20_29: number;
+  FG30_39: number;
+  FG40_49: number;
+  FG50_PLUS: number;
+  FG_MISS: number;
+  XPA: number;
   XP: number;
+  XP_MISS: number;
 
   // Defense / special teams
   SACK: number;
@@ -95,9 +115,20 @@ export interface FootballStats {
   FR: number;
   FF: number;
   DST_TD: number;
+  ST_TD: number;
+  ST_FF: number;
+  ST_FR: number;
+  FR_TD: number;
   SAFETY: number;
   BLK: number;
   PTS_ALLOWED: number;
+  PA0: number;
+  PA1_6: number;
+  PA7_13: number;
+  PA14_20: number;
+  PA21_27: number;
+  PA28_34: number;
+  PA35_PLUS: number;
 
   // Source-provided fantasy points (fallback for K/DST rows that ship
   // aggregate points instead of component stats)

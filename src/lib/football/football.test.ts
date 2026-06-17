@@ -47,15 +47,34 @@ function makePlayer(overrides: Partial<FootballPlayer> = {}): FootballPlayer {
     FG: 0,
     FGA: 0,
     FG50: 0,
+    FG0_19: 0,
+    FG20_29: 0,
+    FG30_39: 0,
+    FG40_49: 0,
+    FG50_PLUS: 0,
+    FG_MISS: 0,
+    XPA: 0,
     XP: 0,
+    XP_MISS: 0,
     SACK: 0,
     DST_INT: 0,
     FR: 0,
     FF: 0,
     DST_TD: 0,
+    ST_TD: 0,
+    ST_FF: 0,
+    ST_FR: 0,
+    FR_TD: 0,
     SAFETY: 0,
     BLK: 0,
     PTS_ALLOWED: 0,
+    PA0: 0,
+    PA1_6: 0,
+    PA7_13: 0,
+    PA14_20: 0,
+    PA21_27: 0,
+    PA28_34: 0,
+    PA35_PLUS: 0,
     FPTS: null,
     ADP: null,
     ...overrides,
@@ -134,8 +153,23 @@ describe("calculateFootballPoints", () => {
 
   test("scores kickers from component stats", () => {
     const k = makePlayer({ Position: "K", FG: 28, FG50: 4, XP: 35 });
-    // 28*3 + 4*2 + 35*1
+    // (28 - 4)*3 + 4*5 + 35*1
     expect(calculateFootballPoints(k, standard)).toBe(127);
+  });
+
+  test("scores kickers from field goal ranges and missed kicks", () => {
+    const k = makePlayer({
+      Position: "K",
+      FG0_19: 1,
+      FG20_29: 2,
+      FG30_39: 3,
+      FG40_49: 4,
+      FG50_PLUS: 5,
+      FG_MISS: 2,
+      XP: 35,
+      XP_MISS: 1,
+    });
+    expect(calculateFootballPoints(k, standard)).toBe(91);
   });
 
   test("scores DST from component stats", () => {
@@ -145,11 +179,29 @@ describe("calculateFootballPoints", () => {
       DST_INT: 15,
       FR: 10,
       DST_TD: 3,
+      PA0: 1,
+      PA1_6: 2,
+      PA28_34: 1,
+      PA35_PLUS: 1,
       SAFETY: 1,
       BLK: 2,
     });
-    // 40 + 30 + 20 + 18 + 2 + 4
-    expect(calculateFootballPoints(dst, standard)).toBe(114);
+    // 40 + 30 + 20 + 18 + 10 + 14 - 1 - 4 + 2 + 4
+    expect(calculateFootballPoints(dst, standard)).toBe(133);
+  });
+
+  test("scores special teams and fumble recovery TD stats with the same D/ST weights", () => {
+    const dst = makePlayer({
+      Position: "DST",
+      DST_TD: 1,
+      ST_TD: 2,
+      FR_TD: 3,
+      FF: 3,
+      ST_FF: 4,
+      FR: 5,
+      ST_FR: 6,
+    });
+    expect(calculateFootballPoints(dst, standard)).toBe(65);
   });
 
   test("falls back to provided FPTS for K/DST rows without component stats", () => {
@@ -162,6 +214,48 @@ describe("calculateFootballPoints", () => {
   test("does not use FPTS fallback for offensive players", () => {
     const rb = makePlayer({ Position: "RB", FPTS: 250 });
     expect(calculateFootballPoints(rb, standard)).toBe(0);
+  });
+
+  test("treats missing stat fields on legacy football rows as zero", () => {
+    const legacy = {
+      _type: "football",
+      _id: "legacy-wr",
+      Name: "Legacy Receiver",
+      Team: "FA",
+      PlayerId: "",
+      Position: "WR",
+      BYE: null,
+      PASS_ATT: 0,
+      PASS_CMP: 0,
+      PASS_YDS: 0,
+      PASS_TD: 0,
+      PASS_INT: 0,
+      RUSH_ATT: 0,
+      RUSH_YDS: 0,
+      RUSH_TD: 0,
+      TGT: 0,
+      REC: 75,
+      REC_YDS: 900,
+      REC_TD: 6,
+      TWO_PT: 0,
+      FUML: 0,
+      FG: 0,
+      FGA: 0,
+      FG50: 0,
+      XP: 0,
+      SACK: 0,
+      DST_INT: 0,
+      FR: 0,
+      FF: 0,
+      DST_TD: 0,
+      SAFETY: 0,
+      BLK: 0,
+      PTS_ALLOWED: 0,
+      FPTS: null,
+      ADP: null,
+    } as FootballPlayer;
+
+    expect(calculateFootballPoints(legacy, ppr)).toBe(201);
   });
 });
 
@@ -276,6 +370,25 @@ describe("parseFootballCsv", () => {
     expect(dst.DST_INT).toBe(18);
     expect(dst.DST_TD).toBe(5);
     expect(dst.PTS_ALLOWED).toBe(310);
+  });
+
+  test("parses detailed kicker and DST scoring columns", () => {
+    const csv = [
+      "Player,Team,Pos,FG Made (0-19 yards),FG Made (20-29 yards),FG Made (30-39 yards),FG Made (40-49 yards),FG Made (50+ yards),FG Missed,PAT Made,PAT Missed,Points Allowed 0,Points Allowed 1-6,Special Teams TD,Fumble Recovery TD",
+      "Scoring Sample,DST,DST,1,2,3,4,5,2,6,1,3,4,2,1",
+    ].join("\n");
+
+    const result = parseFootballCsv(csv);
+    expect(result.players).toHaveLength(1);
+    expect(result.players[0].FG0_19).toBe(1);
+    expect(result.players[0].FG50_PLUS).toBe(5);
+    expect(result.players[0].FG_MISS).toBe(2);
+    expect(result.players[0].XP).toBe(6);
+    expect(result.players[0].XP_MISS).toBe(1);
+    expect(result.players[0].PA0).toBe(3);
+    expect(result.players[0].PA1_6).toBe(4);
+    expect(result.players[0].ST_TD).toBe(2);
+    expect(result.players[0].FR_TD).toBe(1);
   });
 
   test("requests position selection when nothing can be inferred", () => {
@@ -447,9 +560,9 @@ describe("football PAR", () => {
         const demand = calculateFootballPositionalRosterDemand(roster, leagueSize);
         const players = makePointCurvePlayers({
           QB: 80,
-          RB: 100,
-          WR: 100,
-          TE: 80,
+          RB: 220,
+          WR: 220,
+          TE: 120,
           K: 40,
           DST: 40,
         }, realisticFootballPointCurveStart);

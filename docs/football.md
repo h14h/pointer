@@ -33,16 +33,28 @@ football projection groups store players in `group.footballPlayers`.
 
 ## Scoring
 
-`calculateFootballPoints` is a flat weighted sum over passing, rushing,
-receiving, misc (2PT, fumbles lost), kicking, and DST stats. Yardage weights
-are per-yard (`0.04` = 1 pt / 25 passing yards). Presets differ only in the
-`REC` weight (0 / 0.5 / 1).
+`calculateFootballPoints` is a weighted sum over passing, rushing, receiving,
+misc (2PT, fumbles lost), kicking, DST, and special-teams stats. Yardage
+weights are per-yard (`0.04` = 1 pt / 25 passing yards). Presets differ mainly
+in the `REC` weight (0 / 0.5 / 1), with ESPN/Sleeper-style default kicking and
+DST values.
+
+Kicking scoring uses separate made-FG bands (`0-19`, `20-29`, `30-39`,
+`40-49`, `50+`), missed FG, made PAT, and missed PAT. When a projections
+source only provides aggregate `FG` and `FG50` stats, non-50 makes use the
+`30-39` weight and 50+ makes use the `50+` weight.
+
+D/ST supports sacks, interceptions, recoveries, forced fumbles, TDs, safeties,
+blocked kicks, and points-allowed bands (`0`, `1-6`, `7-13`, `14-20`, `21-27`,
+`28-34`, `35+`). Special-teams D/ST stats (`ST_TD`, `ST_FF`, `ST_FR`) and
+fumble-recovery TD stats (`FR_TD`) are parsed when present, but they use the
+same `TD`, `FF`, and `FR` weights as ordinary D/ST events. Points-allowed bands
+are counted when a CSV provides band counts; a season-total `PTS_ALLOWED`
+column is still parsed and displayed but cannot be converted into weekly band
+counts.
 
 K and DST rows from sources that ship only an aggregate fantasy-points column
 (no component stats) fall back to the provided `FPTS` value.
-
-DST points-allowed tiers are not modeled in v1; the `PTS_ALLOWED` stat is
-parsed and displayed but unweighted.
 
 ## CSV parsing
 

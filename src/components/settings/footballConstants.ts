@@ -16,31 +16,31 @@ export const footballOffenseGroups: {
   {
     label: "Passing",
     categories: [
-      { key: "PASS_YDS", label: "Passing Yards (per yard)" },
-      { key: "PASS_TD", label: "Passing Touchdowns" },
-      { key: "PASS_INT", label: "Interceptions Thrown" },
+      { key: "PASS_YDS", label: "Pass yd" },
+      { key: "PASS_TD", label: "Pass TD" },
+      { key: "PASS_INT", label: "INT thrown" },
     ],
   },
   {
     label: "Rushing",
     categories: [
-      { key: "RUSH_YDS", label: "Rushing Yards (per yard)" },
-      { key: "RUSH_TD", label: "Rushing Touchdowns" },
+      { key: "RUSH_YDS", label: "Rush yd" },
+      { key: "RUSH_TD", label: "Rush TD" },
     ],
   },
   {
     label: "Receiving",
     categories: [
-      { key: "REC", label: "Receptions (PPR)" },
-      { key: "REC_YDS", label: "Receiving Yards (per yard)" },
-      { key: "REC_TD", label: "Receiving Touchdowns" },
+      { key: "REC", label: "Reception" },
+      { key: "REC_YDS", label: "Rec yd" },
+      { key: "REC_TD", label: "Rec TD" },
     ],
   },
   {
-    label: "Miscellaneous",
+    label: "Misc",
     categories: [
-      { key: "TWO_PT", label: "Two-Point Conversions" },
-      { key: "FUML", label: "Fumbles Lost" },
+      { key: "TWO_PT", label: "2PT" },
+      { key: "FUML", label: "Fumble lost" },
     ],
   },
 ];
@@ -52,9 +52,14 @@ export const footballKickingGroups: {
   {
     label: "Kicking",
     categories: [
-      { key: "FG", label: "Field Goals Made" },
-      { key: "FG50", label: "50+ Yard FG Bonus" },
-      { key: "XP", label: "Extra Points Made" },
+      { key: "FG0_19", label: "FG 0-19" },
+      { key: "FG20_29", label: "FG 20-29" },
+      { key: "FG30_39", label: "FG 30-39" },
+      { key: "FG40_49", label: "FG 40-49" },
+      { key: "FG50_PLUS", label: "FG 50+" },
+      { key: "XP", label: "PAT Made" },
+      { key: "FG_MISS", label: "Missed FG" },
+      { key: "XP_MISS", label: "Missed PAT" },
     ],
   },
 ];
@@ -64,15 +69,22 @@ export const footballDstGroups: {
   categories: FootballDstCategory[];
 }[] = [
   {
-    label: "Defense / Special Teams",
+    label: "D/ST",
     categories: [
-      { key: "SACK", label: "Sacks" },
-      { key: "INT", label: "Interceptions" },
-      { key: "FR", label: "Fumble Recoveries" },
-      { key: "FF", label: "Forced Fumbles" },
-      { key: "TD", label: "Defensive/Return TDs" },
-      { key: "SAFETY", label: "Safeties" },
-      { key: "BLK", label: "Blocked Kicks" },
+      { key: "TD", label: "TD" },
+      { key: "PA0", label: "PA 0" },
+      { key: "PA1_6", label: "PA 1-6" },
+      { key: "PA7_13", label: "PA 7-13" },
+      { key: "PA14_20", label: "PA 14-20" },
+      { key: "PA21_27", label: "PA 21-27" },
+      { key: "PA28_34", label: "PA 28-34" },
+      { key: "PA35_PLUS", label: "PA 35+" },
+      { key: "SACK", label: "Sack" },
+      { key: "INT", label: "INT" },
+      { key: "FR", label: "FR" },
+      { key: "FF", label: "FF" },
+      { key: "SAFETY", label: "Safety" },
+      { key: "BLK", label: "Block" },
     ],
   },
 ];

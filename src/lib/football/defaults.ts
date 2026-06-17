@@ -22,18 +22,30 @@ const baseOffense = {
 
 const baseKicking = {
   XP: 1,
-  FG: 3,
-  FG50: 2,
+  XP_MISS: -1,
+  FG0_19: 3,
+  FG20_29: 3,
+  FG30_39: 3,
+  FG40_49: 4,
+  FG50_PLUS: 5,
+  FG_MISS: -1,
 };
 
 const baseDst = {
   SACK: 1,
   INT: 2,
   FR: 2,
-  FF: 0,
+  FF: 1,
   TD: 6,
   SAFETY: 2,
   BLK: 2,
+  PA0: 10,
+  PA1_6: 7,
+  PA7_13: 4,
+  PA14_20: 1,
+  PA21_27: 0,
+  PA28_34: -1,
+  PA35_PLUS: -4,
 };
 
 export const footballScoringPresets: Record<string, FootballScoringSettings> = {
@@ -72,8 +84,32 @@ export const footballScoringPresets: Record<string, FootballScoringSettings> = {
       TWO_PT: 0,
       FUML: 0,
     },
-    kicking: { XP: 0, FG: 0, FG50: 0 },
-    dst: { SACK: 0, INT: 0, FR: 0, FF: 0, TD: 0, SAFETY: 0, BLK: 0 },
+    kicking: {
+      XP: 0,
+      XP_MISS: 0,
+      FG0_19: 0,
+      FG20_29: 0,
+      FG30_39: 0,
+      FG40_49: 0,
+      FG50_PLUS: 0,
+      FG_MISS: 0,
+    },
+    dst: {
+      SACK: 0,
+      INT: 0,
+      FR: 0,
+      FF: 0,
+      TD: 0,
+      SAFETY: 0,
+      BLK: 0,
+      PA0: 0,
+      PA1_6: 0,
+      PA7_13: 0,
+      PA14_20: 0,
+      PA21_27: 0,
+      PA28_34: 0,
+      PA35_PLUS: 0,
+    },
   },
 };
 
@@ -97,7 +133,7 @@ export const defaultFootballRosterSettings: FootballRosterSettings = {
     K: 1,
     DST: 1,
   },
-  bench: 6,
+  bench: 5,
 };
 
 export const createDefaultFootballConfig = (): FootballLeagueConfig => ({

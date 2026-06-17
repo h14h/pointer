@@ -98,10 +98,8 @@ export function FootballScoringSection() {
         </Button>
       </div>
 
-      {/* Worksheet footnote: how yardage weights read */}
       <p className="border-b border-[var(--color-border-soft)] px-4 py-2.5 text-xs text-[var(--color-fg-muted)] sm:px-5">
-        Yardage weights are per yard (0.04 = 1 pt per 25 passing yards, 0.1 = 1 pt per 10
-        rushing/receiving yards).
+        Yardage rows are per yard: 0.04 = 1 point per 25 yards, 0.1 = 1 point per 10.
       </p>
 
       {/* Two-column layout: offense left, kicking + DST right */}
@@ -113,7 +111,7 @@ export function FootballScoringSection() {
               {group.categories.map(({ key, label }) => (
                 <NumericInputRow
                   key={key}
-                  label={key.replace(/_/g, " ")}
+                  label={label}
                   ariaLabel={`${label} points`}
                   increment={key.endsWith("YDS") ? 0.01 : 0.5}
                   value={scoring.offense[key]}
@@ -135,7 +133,7 @@ export function FootballScoringSection() {
               {group.categories.map(({ key, label }) => (
                 <NumericInputRow
                   key={key}
-                  label={key}
+                  label={label}
                   ariaLabel={`${label} points`}
                   increment={0.5}
                   value={scoring.kicking[key]}
@@ -153,7 +151,7 @@ export function FootballScoringSection() {
               {group.categories.map(({ key, label }) => (
                 <NumericInputRow
                   key={key}
-                  label={key}
+                  label={label}
                   ariaLabel={`${label} points`}
                   increment={0.5}
                   value={scoring.dst[key]}
