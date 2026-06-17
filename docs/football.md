@@ -70,8 +70,13 @@ leagues the same way baseball leagues resolve the built-in leaders dataset.
 
 ## PAR
 
-Same semantics as baseball: allocate the best players to all starting slots
-league-wide (greedy bipartite matching, best points first), then a slot's
-replacement level is the best player remaining in the pool. A player's PAR is
-their points above the lowest replacement level among slots they can fill
-(position slot, FLEX, SUPERFLEX).
+Same semantics as baseball: allocate the best players to all roster slots
+league-wide, including bench slots. Starting slots use greedy bipartite
+matching so position, FLEX, and SUPERFLEX constraints are respected. Bench
+slots use a football-specific positional demand heuristic: QB bench depth is
+capped in 1-QB leagues, Superflex increases QB demand, K/DST receive no default
+bench demand, and most flexible bench demand flows to RB/WR with a smaller TE
+share. A slot's replacement level is the best eligible player remaining after
+that full starter-plus-anticipated-bench allocation. A player's PAR is their
+points above the lowest replacement level among slots they can fill (position
+slot, FLEX, SUPERFLEX).

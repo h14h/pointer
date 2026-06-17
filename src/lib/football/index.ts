@@ -21,6 +21,7 @@ export {
 export {
   FOOTBALL_ROSTER_SLOTS,
   getEligibleFootballSlots,
+  calculateFootballPositionalRosterDemand,
   calculateFootballReplacementLevels,
   calculateFootballPAR,
 } from "./par";

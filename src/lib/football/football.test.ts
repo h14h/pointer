@@ -1,12 +1,13 @@
 import { describe, test, expect } from "bun:test";
-import type { FootballPlayer, FootballPosition } from "@/types";
+import fc from "fast-check";
+import type { FootballPlayer, FootballPosition, FootballRosterSettings } from "@/types";
 import {
   buildFootballPlayerId,
   buildFootballRankedPlayers,
   calculateFootballPAR,
+  calculateFootballPositionalRosterDemand,
   calculateFootballPoints,
   calculateFootballReplacementLevels,
-  defaultFootballRosterSettings,
   filterFootballRankedPlayers,
   footballScoringPresets,
   getEligibleFootballSlots,
@@ -59,6 +60,42 @@ function makePlayer(overrides: Partial<FootballPlayer> = {}): FootballPlayer {
     ADP: null,
     ...overrides,
   };
+}
+
+function makePointCurvePlayers(
+  counts: Record<FootballPosition, number>,
+  start: number | Record<FootballPosition, number> = 300
+): { player: FootballPlayer; projectedPoints: number }[] {
+  return (Object.entries(counts) as [FootballPosition, number][]).flatMap(([position, count]) =>
+    Array.from({ length: count }, (_, i) => ({
+      player: makePlayer({ Name: `${position}${i + 1}`, Position: position }),
+      projectedPoints: (typeof start === "number" ? start : start[position]) - i,
+    }))
+  );
+}
+
+const realisticFootballPointCurveStart: Record<FootballPosition, number> = {
+  QB: 330,
+  RB: 260,
+  WR: 255,
+  TE: 185,
+  K: 145,
+  DST: 140,
+};
+
+function positiveParCountsByPosition(
+  players: { player: FootballPlayer; projectedPoints: number }[],
+  parById: Map<string, number>
+): Record<FootballPosition, number> {
+  return players.reduce<Record<FootballPosition, number>>(
+    (counts, scored) => {
+      if ((parById.get(scored.player._id) ?? 0) > 0) {
+        counts[scored.player.Position] += 1;
+      }
+      return counts;
+    },
+    { QB: 0, RB: 0, WR: 0, TE: 0, K: 0, DST: 0 }
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -311,6 +348,148 @@ describe("football PAR", () => {
     const parById = calculateFootballPAR(players, roster, 2);
     expect(parById.get(players[0].player._id)).toBe(50);
     expect(parById.get(players[2].player._id)).toBe(0);
+  });
+
+  test("replacement level accounts for bench slots", () => {
+    // 2-team league, 1 RB starter and 1 bench each → top 4 RBs are rostered,
+    // replacement level = RB5's points.
+    const players = [200, 180, 150, 120, 90].map((points, i) => ({
+      player: makePlayer({ Name: `Bench RB${i + 1}`, Position: "RB" as FootballPosition }),
+      projectedPoints: points,
+    }));
+    const roster = {
+      positions: { QB: 0, RB: 1, WR: 0, TE: 0, FLEX: 0, SUPERFLEX: 0, K: 0, DST: 0 },
+      bench: 1,
+    };
+
+    const levels = calculateFootballReplacementLevels(players, roster, 2);
+    expect(levels.RB).toBe(90);
+
+    const parById = calculateFootballPAR(players, roster, 2);
+    expect(parById.get(players[3].player._id)).toBe(30);
+    expect(parById.get(players[4].player._id)).toBe(0);
+  });
+
+  test("positive PAR count follows realistic positional bench demand in a balanced 1-QB league", () => {
+    const roster: FootballRosterSettings = {
+      positions: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 2, SUPERFLEX: 0, K: 1, DST: 1 },
+      bench: 5,
+    };
+    const players = makePointCurvePlayers(
+      { QB: 40, RB: 70, WR: 70, TE: 40, K: 30, DST: 30 },
+      realisticFootballPointCurveStart
+    );
+
+    const parById = calculateFootballPAR(players, roster, 10);
+    const positiveParCount = positiveParCountsByPosition(players, parById);
+    const demand = calculateFootballPositionalRosterDemand(roster, 10);
+
+    expect(demand.QB).toBeGreaterThanOrEqual(18);
+    expect(demand.QB).toBeLessThanOrEqual(20);
+    expect(demand.RB).toBeGreaterThanOrEqual(45);
+    expect(demand.WR).toBeGreaterThanOrEqual(42);
+    expect(demand.K).toBe(10);
+    expect(demand.DST).toBe(10);
+    expect(positiveParCount.QB).toBe(demand.QB);
+    expect(positiveParCount.K).toBe(demand.K);
+    expect(positiveParCount.DST).toBe(demand.DST);
+    expect(Math.abs(positiveParCount.RB - demand.RB)).toBeLessThanOrEqual(5);
+    expect(Math.abs(positiveParCount.WR - demand.WR)).toBeLessThanOrEqual(5);
+    expect(Math.abs(positiveParCount.TE - demand.TE)).toBeLessThanOrEqual(5);
+  });
+
+  test("superflex leagues increase QB roster demand without adding K/DST bench demand", () => {
+    const oneQbRoster: FootballRosterSettings = {
+      positions: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SUPERFLEX: 0, K: 1, DST: 1 },
+      bench: 5,
+    };
+    const superflexRoster: FootballRosterSettings = {
+      positions: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SUPERFLEX: 1, K: 1, DST: 1 },
+      bench: 5,
+    };
+
+    const oneQbDemand = calculateFootballPositionalRosterDemand(oneQbRoster, 10);
+    const superflexDemand = calculateFootballPositionalRosterDemand(superflexRoster, 10);
+
+    expect(superflexDemand.QB).toBeGreaterThan(oneQbDemand.QB);
+    expect(superflexDemand.QB).toBeGreaterThanOrEqual(30);
+    expect(superflexDemand.K).toBe(10);
+    expect(superflexDemand.DST).toBe(10);
+  });
+
+  test("fuzzes positional roster shares and replacement thresholds for common league shapes", () => {
+    const rosterArb = fc.record({
+      qb: fc.integer({ min: 1, max: 2 }),
+      rb: fc.integer({ min: 1, max: 3 }),
+      wr: fc.integer({ min: 2, max: 4 }),
+      te: fc.integer({ min: 1, max: 2 }),
+      flex: fc.integer({ min: 0, max: 3 }),
+      superflex: fc.integer({ min: 0, max: 1 }),
+      bench: fc.integer({ min: 3, max: 8 }),
+      leagueSize: fc.integer({ min: 8, max: 14 }),
+    });
+
+    fc.assert(
+      fc.property(rosterArb, ({ qb, rb, wr, te, flex, superflex, bench, leagueSize }) => {
+        const roster: FootballRosterSettings = {
+          positions: {
+            QB: qb,
+            RB: rb,
+            WR: wr,
+            TE: te,
+            FLEX: flex,
+            SUPERFLEX: superflex,
+            K: 1,
+            DST: 1,
+          },
+          bench,
+        };
+        const demand = calculateFootballPositionalRosterDemand(roster, leagueSize);
+        const players = makePointCurvePlayers({
+          QB: 80,
+          RB: 100,
+          WR: 100,
+          TE: 80,
+          K: 40,
+          DST: 40,
+        }, realisticFootballPointCurveStart);
+        const parById = calculateFootballPAR(players, roster, leagueSize);
+        const positiveParCount = positiveParCountsByPosition(players, parById);
+        const totalRosterSlots =
+          (qb + rb + wr + te + flex + superflex + 2 + bench) * leagueSize;
+        const totalPositive = Object.values(positiveParCount).reduce((sum, count) => sum + count, 0);
+
+        const flexibleStarterCount = (flex + superflex) * leagueSize;
+
+        expect(totalPositive).toBe(totalRosterSlots);
+        expect(demand.K).toBe(leagueSize);
+        expect(demand.DST).toBe(leagueSize);
+        expect(positiveParCount.K).toBe(demand.K);
+        expect(positiveParCount.DST).toBe(demand.DST);
+        expect(Math.abs(positiveParCount.QB - demand.QB)).toBeLessThanOrEqual(
+          superflex > 0 ? leagueSize : 2
+        );
+        expect(Math.abs(positiveParCount.RB - demand.RB)).toBeLessThanOrEqual(
+          flexibleStarterCount
+        );
+        expect(Math.abs(positiveParCount.WR - demand.WR)).toBeLessThanOrEqual(
+          flexibleStarterCount
+        );
+        expect(Math.abs(positiveParCount.TE - demand.TE)).toBeLessThanOrEqual(
+          flexibleStarterCount
+        );
+
+        const qbBench = demand.QB - (qb * leagueSize + Math.round(superflex * leagueSize * 0.75));
+        const qbBenchCap = Math.round((superflex > 0 ? 1.6 : 1) * leagueSize);
+        expect(qbBench).toBeGreaterThanOrEqual(0);
+        expect(qbBench).toBeLessThanOrEqual(qbBenchCap);
+
+        const rbWrShare = (demand.RB + demand.WR) / totalRosterSlots;
+        expect(rbWrShare).toBeGreaterThanOrEqual(0.35);
+        expect(rbWrShare).toBeLessThanOrEqual(0.78);
+      }),
+      { numRuns: 100 }
+    );
   });
 
   test("FLEX slots absorb the best remaining RB/WR/TE", () => {
