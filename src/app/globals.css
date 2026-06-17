@@ -9,8 +9,8 @@
    - DAY (default): prep surfaces. Bone paper, ink, racing green, clay.
      Printed-document feel — users live here for hours while configuring
      leagues and working out strategy.
-   - NIGHT ([data-mode="night"]): draft mode only. Deep night, phosphor mint,
-     amber. Applied to <html> while a draft room is open (see useNightMode).
+   - NIGHT ([data-mode="night"]): live draft mode only. Deep night, phosphor
+     mint, amber. Applied to <html> while the tracker is open (see useNightMode).
 
    All components reference the same var(--color-*) names; themes only swap
    values. To add a theme, add another [data-mode="..."] block — components
@@ -51,7 +51,7 @@
   --color-danger-fg: #faf8f3;
   --color-danger-soft: #f6e9e4;
 
-  /* Inverse — the "ink-filled" brand CTA (Begin draft night etc.) */
+  /* Inverse — the ink-filled brand CTA used for live draft entry */
   --color-inverse-bg: #1c1e1d;
   --color-inverse-fg: #f2efe8;
 
@@ -87,7 +87,7 @@
   /* Texture — the day grid-paper pattern (referenced by body) */
   --texture-grid-line: rgba(28, 30, 29, 0.04);
 
-  /* The dusk veil — matches the night sky regardless of current theme */
+  /* Transition veil — matches the night theme regardless of current theme */
   --color-dusk-veil: #0d1117;
 
   /* -------------------------------------------------------------------------
@@ -130,8 +130,8 @@
 }
 
 /* ---------------------------------------------------------------------------
-   NIGHT — draft mode. Phosphor instruments after dusk.
-   Set <html data-mode="night"> (only the draft room does this).
+   NIGHT — live draft mode.
+   Set <html data-mode="night"> (only the draft tracker does this).
    --------------------------------------------------------------------------- */
 
 [data-mode="night"] {
@@ -236,7 +236,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Body — paper by day, instruments by night.
+   Body — paper workspace by default, night theme during live drafts.
    The 8px engineering-grid texture is shared; only its ink changes.
    --------------------------------------------------------------------------- */
 
@@ -261,7 +261,7 @@ body {
   font-family: var(--font-body);
 }
 
-/* Dusk/dawn — the day↔night inversion is a designed moment, not a flash.
+/* Theme transition — the workspace/live-draft inversion is a designed moment.
    A single full-screen veil (see src/lib/nightTransition.tsx) falls over the
    page, the theme swaps instantly underneath, and the veil lifts when the
    destination mounts. One cheap opacity animation — never per-element

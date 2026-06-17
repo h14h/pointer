@@ -119,7 +119,7 @@ Not-yet-installed components available via `bunx shadcn@latest add <name>`:
 
 1. `bunx shadcn@latest add <component-name>`
 2. Component lands in `src/components/ui/<name>.tsx`
-3. Review styling — adjust to use Pointer's token variables if the component introduces new color/spacing values
+3. Review styling — adjust to use DraftSpa's token variables if the component introduces new color/spacing values
 4. Update `docs/ui-system.md` Source Files and move the component from the catalog to the installed table above
 5. Run `bun run test:ui && bun run build`
 

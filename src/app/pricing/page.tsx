@@ -26,8 +26,9 @@ export default function PricingPage() {
             DraftSpa Pro
           </h1>
           <p className="mt-2 max-w-xl text-sm text-[var(--color-fg-muted)]">
-            The draft desk is free, forever, right in your browser. Pro adds the
-            features that need a server: cloud storage and live sync across devices.
+            The core draft workspace is free, forever, right in your browser.
+            Pro adds the features that need a server: cloud storage and live
+            sync across devices.
           </p>
 
           <ul className="mt-6 grid max-w-xl gap-2 text-sm text-[var(--color-fg-default)]">
@@ -53,7 +54,7 @@ export default function PricingPage() {
 
           <p className="mt-8 text-xs text-[var(--color-fg-subtle)]">
             <Link href="/" className="underline hover:text-[var(--color-fg-muted)]">
-              ← Back to the fleet
+              ← Back to leagues
             </Link>
           </p>
         </PageContainer>

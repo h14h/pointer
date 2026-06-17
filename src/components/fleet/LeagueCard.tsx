@@ -19,7 +19,7 @@ const sportLabels: Record<League["sport"], string> = {
   football: "Football",
 };
 
-/** Amber "draft in progress · pick N" chip when picks have been logged. */
+/** Amber "live draft · pick N" chip when picks have been logged. */
 function DraftProgressChip({ league }: { league: League }) {
   if (!hasManualDraftActivity(league.draftState)) return null;
   const leagueSize = league.leagueSettings.leagueSize;
@@ -36,14 +36,14 @@ function DraftProgressChip({ league }: { league: League }) {
   );
   return (
     <Chip tone="warning">
-      draft in progress · pick {context.overallPick}
+      live draft · pick {context.overallPick}
     </Chip>
   );
 }
 
 /**
- * One league's mission card on the fleet — printed chip row, name, vitals,
- * readiness bar, and the two ways in (workspace by day, draft by night).
+ * One league's card on the home grid: chip row, name, vitals, readiness bar,
+ * and entry points for planning or live draft tracking.
  */
 export function LeagueCard({
   league,
@@ -116,7 +116,7 @@ export function LeagueCard({
             router.push(`/league/${league.id}/draft`);
           }}
         >
-          ☾ Draft night
+          Live draft
         </Button>
       </div>
     </article>

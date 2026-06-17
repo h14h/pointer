@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  mapNflversePlayerToPointerRow,
+  mapNflversePlayerToDraftSpaRow,
   mapNflverseTeamToDstRow,
   parseNflverseFootballCsvOptions,
 } from "../../scripts/generate-nflverse-football-csv";
@@ -14,8 +14,8 @@ describe("generate nflverse football csv script", () => {
     expect(options.includeDst).toBe(true);
   });
 
-  it("maps nflverse offensive player stats into Pointer football columns", () => {
-    const row = mapNflversePlayerToPointerRow({
+  it("maps nflverse offensive player stats into DraftSpa football columns", () => {
+    const row = mapNflversePlayerToDraftSpaRow({
       player_id: "00-0034796",
       player_display_name: "Lamar Jackson",
       position: "QB",

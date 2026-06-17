@@ -21,7 +21,7 @@ vi.mock("@/store", () => ({
 }));
 
 // /settings is a legacy URL: it now redirects section queries onto the
-// active league's workspace tabs (config/intel) or the fleet.
+// active league's workspace tabs (config/intel) or the home league list.
 describe("settings route legacy redirects", () => {
   afterEach(() => {
     cleanup();
@@ -56,7 +56,7 @@ describe("settings route legacy redirects", () => {
     );
   });
 
-  it("sends the leagues section to the fleet", async () => {
+  it("sends the leagues section home", async () => {
     getSearchParamMock.mockReturnValue("leagues");
     render(<SettingsPage />);
 

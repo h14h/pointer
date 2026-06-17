@@ -42,8 +42,8 @@ const variantClassNames: Record<ButtonVariant, string> = {
     "border border-[color:color-mix(in_srgb,var(--color-danger)_22%,transparent)] text-[var(--color-danger)] hover:bg-[color:color-mix(in_srgb,var(--color-danger)_6%,transparent)]",
   iconSubtle:
     "border border-[var(--color-border-soft)] bg-[var(--color-surface-muted)] text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg-default)]",
-  // The ink-filled brand CTA (Begin draft night etc.) — inverse tokens flip
-  // with the theme (ink-on-bone by day, light-on-night after dark)
+  // The ink-filled brand CTA used for live draft entry. Inverse tokens flip
+  // with the active theme.
   inverse:
     "bg-[var(--color-inverse-bg)] text-[var(--color-inverse-fg)] hover:opacity-90",
 };

@@ -22,7 +22,7 @@ import {
 
 /**
  * The Plan tab: the strategy worksheet — pick timeline, targets, tier supply.
- * Worked out by daylight, carried into the draft room at night.
+ * Built before the live draft, then carried into the tracker.
  */
 export function PlanTab() {
   const league = useRouteLeague();

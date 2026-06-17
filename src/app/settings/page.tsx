@@ -5,7 +5,7 @@ import { Suspense, useEffect } from "react";
 import { useStore } from "@/store";
 
 // Legacy URL support: /settings?section=… predates the league workspace.
-// Sections map onto the active league's Config/Intel tabs (leagues → fleet).
+// Sections map onto the active league's Config/Intel tabs (leagues → home).
 function SettingsRedirect() {
   const router = useRouter();
   const searchParams = useSearchParams();

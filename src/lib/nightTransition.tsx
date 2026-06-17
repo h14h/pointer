@@ -1,6 +1,6 @@
 "use client";
 
-// The dusk/dawn moment, done cheaply. Instead of CSS-transitioning every
+// The workspace/live-draft theme transition, done cheaply. Instead of CSS-transitioning every
 // element's colors (which repaints thousands of table cells and janks), a
 // single full-screen veil falls over the page, the theme attribute swaps
 // instantly underneath it, and the veil lifts once the destination route has
@@ -86,7 +86,7 @@ export function settleNightTransition() {
   liftTimer = setTimeout(() => setPhase("hidden"), LIFT_MS);
 }
 
-/** Mount-time settle for destination shells (workspace, fleet, draft room). */
+/** Mount-time settle for destination shells (workspace, home, live draft). */
 export function useSettleNightTransition() {
   useEffect(() => {
     settleNightTransition();

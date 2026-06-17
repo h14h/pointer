@@ -50,7 +50,7 @@ export const FOOTBALL_CSV_COLUMNS = [
   "ADP",
 ] as const;
 
-export type PointerFootballCsvRow = Record<(typeof FOOTBALL_CSV_COLUMNS)[number], string | number>;
+export type DraftSpaFootballCsvRow = Record<(typeof FOOTBALL_CSV_COLUMNS)[number], string | number>;
 
 const SUPPORTED_POSITIONS = new Set<SupportedPosition>(["QB", "RB", "WR", "TE", "K"]);
 const NFLVERSE_BASE_URL = "https://github.com/nflverse/nflverse-data/releases/download";
@@ -135,7 +135,7 @@ function stringValue(row: Record<string, unknown>, key: string): string {
 }
 
 function blankOutputRow(): Pick<
-  PointerFootballCsvRow,
+  DraftSpaFootballCsvRow,
   | "BYE"
   | "PASS_ATT"
   | "PASS_CMP"
@@ -199,7 +199,7 @@ function blankOutputRow(): Pick<
   };
 }
 
-export function mapNflversePlayerToPointerRow(row: NflversePlayerRow): PointerFootballCsvRow | null {
+export function mapNflversePlayerToDraftSpaRow(row: NflversePlayerRow): DraftSpaFootballCsvRow | null {
   const position = stringValue(row, "position");
   if (!SUPPORTED_POSITIONS.has(position as SupportedPosition)) return null;
 
@@ -240,7 +240,7 @@ export function mapNflversePlayerToPointerRow(row: NflversePlayerRow): PointerFo
   };
 }
 
-export function mapNflverseTeamToDstRow(row: NflverseTeamRow): PointerFootballCsvRow | null {
+export function mapNflverseTeamToDstRow(row: NflverseTeamRow): DraftSpaFootballCsvRow | null {
   const team = stringValue(row, "team");
   if (!team) return null;
 
@@ -263,7 +263,7 @@ export function mapNflverseTeamToDstRow(row: NflverseTeamRow): PointerFootballCs
   };
 }
 
-function sortRows(left: PointerFootballCsvRow, right: PointerFootballCsvRow): number {
+function sortRows(left: DraftSpaFootballCsvRow, right: DraftSpaFootballCsvRow): number {
   const positionOrder = ["QB", "RB", "WR", "TE", "K", "DST"];
   const leftPosition = positionOrder.indexOf(String(left.Position));
   const rightPosition = positionOrder.indexOf(String(right.Position));
@@ -273,20 +273,20 @@ function sortRows(left: PointerFootballCsvRow, right: PointerFootballCsvRow): nu
 
 export async function buildNflverseFootballCsv(
   options: NflverseFootballCsvOptions
-): Promise<{ csv: string; rows: PointerFootballCsvRow[] }> {
+): Promise<{ csv: string; rows: DraftSpaFootballCsvRow[] }> {
   const [playerCsv, teamCsv] = await Promise.all([
     fetchText(seasonPlayerStatsUrl(options.season)),
     options.includeDst ? fetchText(seasonTeamStatsUrl(options.season)) : Promise.resolve(""),
   ]);
 
   const playerRows = parseCsvRows<NflversePlayerRow>(playerCsv, "nflverse player stats")
-    .map(mapNflversePlayerToPointerRow)
-    .filter((row): row is PointerFootballCsvRow => row !== null);
+    .map(mapNflversePlayerToDraftSpaRow)
+    .filter((row): row is DraftSpaFootballCsvRow => row !== null);
 
   const dstRows = options.includeDst
     ? parseCsvRows<NflverseTeamRow>(teamCsv, "nflverse team stats")
         .map(mapNflverseTeamToDstRow)
-        .filter((row): row is PointerFootballCsvRow => row !== null)
+        .filter((row): row is DraftSpaFootballCsvRow => row !== null)
     : [];
 
   const rows = [...playerRows, ...dstRows].sort(sortRows);

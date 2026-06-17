@@ -45,7 +45,7 @@ describe("generate public dataset script", () => {
   });
 
   it("generates a normalized dataset payload from batter and pitcher CSV files", async () => {
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), "pointer-public-dataset-"));
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "draftspa-public-dataset-"));
     const batterPath = path.join(tempDir, "batters.csv");
     const pitcherPath = path.join(tempDir, "pitchers.csv");
 
@@ -90,7 +90,7 @@ describe("generate public dataset script", () => {
   });
 
   it("generates a normalized football dataset payload from a football CSV file", async () => {
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), "pointer-football-dataset-"));
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "draftspa-football-dataset-"));
     const footballPath = path.join(tempDir, "football.csv");
 
     await writeFile(

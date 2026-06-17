@@ -1,9 +1,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The DraftSpa horizon mark: a half-disc on a horizon line — sun above it by
- * day, moon-dot below it by night. Both glyphs render and CSS picks one from
- * the document's `[data-mode]`, so every surface gets the right mark without
+ * The DraftSpa horizon mark. Both glyphs render and CSS picks one from the
+ * document's `[data-mode]`, so every surface gets the right mark without
  * opting in. Pure currentColor so it inherits the surrounding text color.
  */
 export function HorizonMark({ className }: { className?: string }) {
@@ -43,8 +42,8 @@ export function HorizonMark({ className }: { className?: string }) {
 }
 
 /**
- * Brand lockup: horizon mark + lowercase `draftspa` in the data face,
- * optionally with the tagline underneath.
+ * Brand lockup: horizon mark + DraftSpa in the data face, optionally with the
+ * tagline underneath.
  */
 export function Wordmark({
   tagline = false,
@@ -57,11 +56,11 @@ export function Wordmark({
       <HorizonMark className="size-6 text-[var(--color-accent)]" />
       <span className="flex flex-col leading-none">
         <span className="font-data text-lg font-semibold tracking-tight text-[var(--color-fg-default)]">
-          draftspa
+          DraftSpa
         </span>
         {tagline ? (
           <span className="stamp mt-1 normal-case tracking-[0.08em]">
-            the calm draft desk
+            league-specific draft boards
           </span>
         ) : null}
       </span>

@@ -19,9 +19,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DraftSpa — the calm draft desk",
+  title: "DraftSpa — fantasy draft workspace",
   description:
-    "Prep your leagues by daylight, run your draft by night. League-specific rankings, strategy, and a second-screen draft room.",
+    "Build league-specific rankings, plan targets by round, and track every pick from one focused workspace.",
 };
 
 export default function RootLayout({

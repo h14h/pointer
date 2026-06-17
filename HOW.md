@@ -1,4 +1,4 @@
-# How Pointer Works
+# How DraftSpa Works
 
 This document maps the codebase into domains, each with a dedicated spec in `docs/`. See [WHY.md](WHY.md) for project purpose and values, and [README.md](README.md) for quick start.
 

@@ -14,7 +14,7 @@ const SPORTS: { value: Sport; label: string }[] = [
 ];
 
 /**
- * The dashed "add a league" card at the end of the fleet grid. Opens a small
+ * The dashed "add a league" card at the end of the league grid. Opens a small
  * printed dialog: optional name, sport choice, create. The store activates the
  * new league, so the fresh card appears in the grid on create.
  */
@@ -56,7 +56,7 @@ export function AddLeagueCard() {
         open={open}
         onOpenChange={handleOpenChange}
         title="Add a league"
-        description="Name it now or later — every league gets its own roster, projections, and draft desk."
+        description="Name it now or later. Each league keeps its own settings, projections, targets, and draft board."
         footer={
           <Button variant="primary" onClick={handleCreate}>
             Create league

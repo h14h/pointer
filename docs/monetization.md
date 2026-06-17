@@ -1,10 +1,10 @@
-# Monetization (Pointer Pro)
+# Monetization (DraftSpa Pro)
 
-Pointer's free tier is the full client-side experience: projections, scoring,
+DraftSpa's free tier is the full client-side experience: projections, scoring,
 draft tracking, multiple local leagues — everything that runs in the browser
 costs nothing to serve and stays free. **Pro** covers the features that cost
-real money to operate: cloud league storage and live multi-device sync (e.g.
-tracking a draft on a laptop while the leaderboard follows along on a phone).
+real money to operate: cloud league storage and live multi-device sync, such as
+logging a draft on a laptop while the board follows along on a phone.
 
 - **Auth + billing:** [Clerk](https://clerk.com) (subscriptions via Clerk
   Billing, no separate Stripe integration to maintain)

@@ -67,7 +67,7 @@ In draft mode:
 
 Keepers are no longer created from a row interaction. They are assigned in Settings, can reserve a specific draft round for their team's natural snake slot, and appear here as unavailable keeper-tagged rows.
 
-Row styling reflects status: in normal leaderboard mode, drafted rows keep normal text treatment and show a compact neutral `D` badge, while keeper rows keep a distinct red-tinted highlight plus a minimal `K` badge. Both ownership badges expose the team name through the shared Pointer tooltip pattern on hover or keyboard focus. In live draft mode, drafted rows still use stronger unavailable styling.
+Row styling reflects status: in normal leaderboard mode, drafted rows keep normal text treatment and show a compact neutral `D` badge, while keeper rows keep a distinct red-tinted highlight plus a minimal `K` badge. Both ownership badges expose the team name through the shared DraftSpa tooltip pattern on hover or keyboard focus. In live draft mode, drafted rows still use stronger unavailable styling.
 
 ## Draft Context Band
 

@@ -1,6 +1,6 @@
 # Multi-Sport Evolution
 
-This document captures the architectural intent for adding football (or other sports) to Pointer. The deep-modules refactoring was designed so that adding a sport means **adding files and extending union types**, not rewriting modules.
+This document captures the architectural intent for adding football (or other sports) to DraftSpa. The deep-modules refactoring was designed so that adding a sport means **adding files and extending union types**, not rewriting modules.
 
 ## Core Pattern: Sport-Agnostic Shell, Sport-Specific Internals
 

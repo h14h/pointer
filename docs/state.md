@@ -16,7 +16,7 @@ All UI components: [Leaderboard](leaderboard.md), [CSV Upload Workflow](csv-uplo
 
 ## Persistence
 
-- **Storage keys:** `"pointer-leagues"`, `"pointer-projections"`, `"pointer-preferences"` (split storage)
+- **Storage keys:** `"pointer-leagues"`, `"pointer-projections"`, `"pointer-preferences"` (split storage). These legacy key names are retained for existing local data compatibility.
 - **Version:** 8
 - **Middleware:** Zustand `persist` with a custom `StateStorage` adapter that splits state across three `localStorage` keys so users can manually delete projection data without losing league config
 - **Hydration strategy:** `skipHydration: true` with a client-only `StoreHydrator` mounted from the root layout. The store uses deterministic SSR defaults so server HTML matches the client's pre-rehydration render before persisted league state is applied.

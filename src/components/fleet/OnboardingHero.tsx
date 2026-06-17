@@ -14,7 +14,7 @@ const SPORTS: { value: Sport; label: string }[] = [
 /**
  * First-run hero — shown once, before any league exists in earnest.
  * Picking a sport replaces the pristine placeholder league and flips the
- * onboarding flag; the normal fleet renders from then on.
+ * onboarding flag; the normal league grid renders from then on.
  */
 export function OnboardingHero() {
   const { completeOnboarding } = useStore();
@@ -24,16 +24,16 @@ export function OnboardingHero() {
       <span className="inline-flex items-center gap-3">
         <HorizonMark className="size-10 text-[var(--color-accent)]" />
         <span className="font-data text-4xl font-semibold tracking-tight">
-          draftspa
+          DraftSpa
         </span>
       </span>
       <p className="stamp mt-3 normal-case tracking-[0.08em]">
-        the calm draft desk
+        league-specific draft boards
       </p>
 
       <p className="mt-8 max-w-md text-sm leading-relaxed text-[var(--color-fg-muted)]">
-        Every league on one desk — prep by daylight, draft when night falls.
-        Pick a sport to open your first league.
+        Create your first league. DraftSpa builds the board around your
+        scoring, roster, projections, and draft order.
       </p>
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">

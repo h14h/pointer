@@ -12,12 +12,12 @@ import { LeagueCard } from "./LeagueCard";
 import { OnboardingHero } from "./OnboardingHero";
 
 /**
- * The fleet — DraftSpa's home surface. One mission card per league across
- * sports; each opens its workspace or begins draft night directly.
+ * DraftSpa's home surface. One card per league across sports; each opens its
+ * workspace or live draft tracker.
  */
 export function FleetPage() {
   const { leagues, hasHydrated, hasOnboarded, projectionGroups } = useStore();
-  // Safe landing spot if a dawn transition ends here (no-op otherwise)
+  // Safe landing spot if a live-draft transition ends here.
   useSettleNightTransition();
 
   const sportCount = new Set(leagues.map((league) => league.sport)).size;
@@ -47,11 +47,10 @@ export function FleetPage() {
         <PageContainer as="main" className="py-8">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <h1 className="font-data text-3xl font-semibold tracking-tight">
-              the fleet
+              Leagues
             </h1>
             <span className="stamp">
-              every league on one desk — prep by daylight, draft when night
-              falls.
+              settings, projections, draft boards, and live tracking by league.
             </span>
           </div>
 

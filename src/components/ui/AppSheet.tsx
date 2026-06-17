@@ -39,7 +39,7 @@ export function AppSheet({
         )}
       >
         <SheetHeader className="border-b border-[var(--color-border-soft)] px-5 pb-4 pt-5">
-          <div className="stamp">draftspa</div>
+          <div className="stamp">DraftSpa</div>
           <SheetTitle className="mt-2 text-lg font-bold text-[var(--color-fg-default)]" style={{ fontFamily: "var(--font-title)" }}>
             {title}
           </SheetTitle>

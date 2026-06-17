@@ -1,27 +1,26 @@
-# Solstice — DraftSpa's design system
+# Solstice — DraftSpa's Visual System
 
-DraftSpa (formerly Pointer) helps you feel relaxed during your fantasy draft.
-**Solstice** is the design language chosen for it (June 2026) after a
-three-round prototype exploration (`/redesigns`, since deleted): four opposed
-brand theses → "calm through total information" (Ops Deck) won → three
-renditions → the final mashup of *Mission Planner's layout* with *Nightfall's
-vibe*.
+DraftSpa is a fantasy draft workspace for league-specific boards, target
+planning, projection management, and live pick tracking. **Solstice** is the
+visual language chosen for it (June 2026) after a three-round prototype
+exploration (`/redesigns`, since deleted).
 
 ## The thesis
 
-Most DraftSpa time is **prep** — configuring leagues, weighing projections,
-working out strategy — done at a desk, at lunch, over weeks. The draft itself
-is one night. Solstice expresses that split literally:
+DraftSpa has two working contexts: planning a league before the draft and
+tracking picks while the draft is live. Solstice gives those contexts distinct
+visual states without forcing metaphor-heavy copy into the interface:
 
-- **DAY** (default): all prep surfaces. Bone paper, ink, racing green accent,
-  clay warnings, an 8px engineering-grid texture. Reads like a beautifully
-  printed flight plan: comfortable for hours.
-- **NIGHT** (`[data-mode="night"]` on `<html>`): the draft room only. Deep
-  navy, phosphor mint accent, amber urgency. **Never red after dark** — red is
-  panic; amber carries warnings.
+- **Workspace** (default): league setup, projections, board review, targets,
+  and round planning. Bone paper, ink, racing green accent, clay warnings, and
+  an 8px grid texture. Comfortable for repeated work and dense information.
+- **Live draft** (`[data-mode="night"]` on `<html>`): the full-screen draft
+  tracker. Deep navy, phosphor mint accent, and amber urgency. **Never red in
+  live draft mode** — amber carries warnings.
 
-Entering the draft room dims the lights (a ~450ms dusk crossfade); leaving it
-brings the dawn back. The mode boundary *is* the brand moment.
+The transition between workspace and live draft is visual, not explanatory.
+Copy should name the workflow plainly: "workspace", "board", "targets",
+"live draft", "track picks", and "log picks".
 
 ## Tokens & themes
 
@@ -37,10 +36,9 @@ One semantic token set, defined in [`src/app/globals.css`](../../src/app/globals
 - Themes only swap values: `:root` holds DAY, `[data-mode="night"]` holds
   NIGHT. **To add a theme** (e.g. a dark prep mode), add another
   `[data-mode="…"]` block — no component changes.
-- The night flip is owned by [`src/lib/useNightMode.ts`](../../src/lib/useNightMode.ts):
-  mount the hook in any full-screen surface to put the document into night
-  while it's mounted. It adds a temporary `.theme-transition` class so the
-  crossfade animates only at the flip (hover states stay instant).
+- The live-draft theme flip is owned by [`src/lib/useNightMode.ts`](../../src/lib/useNightMode.ts):
+  mount the hook in any full-screen draft tracking surface to put the document
+  into night mode while it's mounted. Hover states stay instant.
 
 Typography: IBM Plex Sans (UI) + IBM Plex Mono (all data, numerals, labels),
 loaded via `next/font` in the root layout. Utilities:
@@ -63,7 +61,7 @@ surfaces must use them so "tweak once" stays true everywhere:
 - `PanelHeader` (exported from `Panel.tsx`) — stamp title + right slot over a
   hairline rule, inside `<Panel padding="none">`.
 - `LedgerRow` — the hairline-separated row (rosters, wires, targets, sources).
-- `Button variant="inverse"` — the ink-filled brand CTA (Begin draft night).
+- `Button variant="inverse"` — the ink-filled brand CTA (Start live draft).
 - `Input tone="underline"` — the pencil-line worksheet input.
 - `BrandBar` (`src/components/brand/`) — the h-14 wordmark header bar; pair
   with `PageContainer` for page width.
@@ -71,41 +69,41 @@ surfaces must use them so "tweak once" stays true everywhere:
   other dialog shell. Class merging: always `cn` from `@/lib/utils`.
 
 Brand lockup: [`src/components/brand/Wordmark.tsx`](../../src/components/brand/Wordmark.tsx)
-(`draftspa` lowercase + the horizon mark — sun by day, moon by night).
-Tagline: **"the calm draft desk."** Voice: calm, lowercase-leaning, printed;
-flat instrument callouts at night.
+(`DraftSpa` + the horizon mark). Tagline: **"league-specific draft boards."**
+Voice: direct, compact, and operational. The product can look atmospheric; the
+copy should stay plain and useful.
 
 ## Information architecture
 
-Prep is the primary interface; the draft board is a temporary **mode**:
+Planning is the primary interface; live draft tracking is a temporary **mode**:
 
 | URL | Surface |
 | --- | --- |
-| `/` | **The fleet** — one card per league (all sports), readiness bars, add-league, first-run onboarding |
+| `/` | **Leagues** — one card per league (all sports), readiness bars, add-league, first-run onboarding |
 | `/league/<id>/plan` | **Plan** — pick timeline (snake slots), targets, tier supply, per-round notes |
 | `/league/<id>/board` | **Board** — the full ranked leaderboard (league-scored) |
 | `/league/<id>/intel` | **Intel** — the sport-scoped projection library |
 | `/league/<id>/config` | **Config** — identity, scoring, roster, draft order/keepers, danger zone |
-| `/league/<id>/draft` | **Draft night** — full-screen night cockpit (tape, quick-log, board, rail) |
-| `/settings` | legacy URL; redirects into config/intel/fleet |
+| `/league/<id>/draft` | **Live draft** — full-screen tracker (tape, quick-log, board, rail) |
+| `/settings` | legacy URL; redirects into config/intel/leagues |
 
 League URLs are NOT filesystem routes: a rewrite in next.config.ts maps
 `/league/:path*` onto the ONE prerendered
 [`league-shell`](../../src/app/league-shell/page.tsx) page, which derives the
 id/tab from the browser URL ([`src/lib/leaguePath.ts`](../../src/lib/leaguePath.ts)).
-In-league navigation (tabs, begin/end draft night) is `history.pushState` via
+In-league navigation (tabs, live draft entry/exit) is `history.pushState` via
 [`LeagueTabLink`](../../src/components/workspace/LeagueTabLink.tsx)/`pushLeaguePath`
 — the Next router observes native history, so usePathname-driven components
 re-render with **zero server traffic**. The shell mounts
 [`LeagueScope`](../../src/components/workspace/LeagueScope.tsx) (syncs the
 store's `activeLeagueId`; bounces unknown ids) and switches between
 [`WorkspaceShell`](../../src/components/workspace/WorkspaceShell.tsx) chrome
-and the draft-night takeover. **Don't add `/league/...` filesystem routes** —
+and the live-draft takeover. **Don't add `/league/...` filesystem routes** —
 add tabs to the shell + `LEAGUE_TABS` instead.
 
 ## Product decisions encoded in the data model
 
-1. **Second-screen draft aid.** Picks never auto-advance; the user logs every
+1. **Second-screen draft tracker.** Picks never auto-advance; the user logs every
    pick. `draftPlayer(playerId)` always logs to the on-clock team (from
    `getNextOpenPickIndex`). The current pick №/team must stay unmissable so
    users can confirm sync with their real draft platform.

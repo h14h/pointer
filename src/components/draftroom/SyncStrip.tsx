@@ -38,9 +38,9 @@ export function SyncStrip({
       {/* brand / league */}
       <div className="hidden flex-col justify-center gap-0.5 border-r border-[var(--color-border-soft)] px-4 py-2 lg:flex">
         <span className="font-data text-sm font-medium text-[var(--color-fg-default)]">
-          draftspa
+          DraftSpa
         </span>
-        <span className="stamp">draft night · {leagueName}</span>
+        <span className="stamp">live draft · {leagueName}</span>
       </div>
 
       {/* pick number */}
@@ -84,7 +84,7 @@ export function SyncStrip({
       {/* spacer + exit */}
       <div className="flex min-w-0 flex-1 items-center justify-end gap-4 px-4 py-2">
         <span className="stamp hidden text-right sm:block">
-          confirm pick № matches your draft platform
+          keep pick number aligned with your draft platform
         </span>
         <EndDraftNightButton
           leagueId={leagueId}

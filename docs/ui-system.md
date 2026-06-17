@@ -29,38 +29,38 @@
 
 ## Visual Intent
 
-Pointer keeps its current editorial utility feel: restrained serif headings, clean sans body copy, red as the single strong accent, and a light/dark scheme that feels like the same product rather than two different themes.
+DraftSpa keeps its editorial utility feel: clean sans body copy, data-forward mono labels, ruled surfaces, and a day/night scheme that feels like one product across planning and live draft tracking.
 
 This system is deliberately low-drift. It standardizes implementation and naming first, then uses that foundation to make later UI changes consistent.
 
 ## shadcn/ui Integration
 
-shadcn/ui is the project's first-class component system. It provides accessible, composable primitives built on Radix and Base UI, styled with Tailwind. Pointer's existing custom components predate shadcn and should be migrated incrementally.
+shadcn/ui is the project's first-class component system. It provides accessible, composable primitives built on Radix and Base UI, styled with Tailwind. DraftSpa's existing custom components predate shadcn and should be migrated incrementally.
 
 ### Configuration
 
 - **`components.json`** — shadcn config at project root. Points to `src/components/ui/` and `src/lib/utils.ts`.
 - **`cn()`** — shadcn's classname utility in `src/lib/utils.ts` (clsx + tailwind-merge). All shared UI components should use `cn()`. The legacy `cx()` in `ui/cx.ts` remains available but is deprecated; prefer `cn()` in new and migrated code.
-- **Token bridge** — shadcn variables (`--background`, `--foreground`, `--primary`, `--border`, etc.) are mapped to Pointer's tokens in `globals.css`, so shadcn components automatically use Pointer's design language.
+- **Token bridge** — shadcn variables (`--background`, `--foreground`, `--primary`, `--border`, etc.) are mapped to DraftSpa's tokens in `globals.css`, so shadcn components automatically use DraftSpa's design language.
 
 ### Installing a Component
 
 1. `bunx shadcn@latest add <component-name>`
 2. Component lands in `src/components/ui/<name>.tsx`
-3. Review styling against Pointer's design language (see Styling Customization below)
+3. Review styling against DraftSpa's design language (see Styling Customization below)
 4. Add the file to this spec's Source Files list
 5. Update the installed components table in `AGENTS.md`
 6. Run `bun run test:ui && bun run build`
 
 ### Styling Customization
 
-After installing a shadcn component, verify it matches Pointer's visual identity:
+After installing a shadcn component, verify it matches DraftSpa's visual identity:
 
 - **Colors** should come from the token mapping in `globals.css`. If a component introduces new color values, add semantic tokens rather than hardcoding.
-- **Radius** — Pointer uses `rounded-sm` (2px) for buttons and compact controls, not the larger `rounded-md`/`rounded-lg` that shadcn defaults to.
-- **Button copy** — Pointer buttons use `text-xs font-bold uppercase tracking-widest`. If a shadcn component renders button-like text, match this weight.
-- **Typography** — Headings use `--font-title` (Georgia serif). Body copy uses `--font-body` (Geist Sans).
-- **Accent color** — Pointer's single strong accent is red (`--color-accent`), mapped to shadcn's `--primary`.
+- **Radius** — DraftSpa uses `rounded-sm` (2px) for buttons and compact controls, not the larger `rounded-md`/`rounded-lg` that shadcn defaults to.
+- **Button copy** — DraftSpa buttons use `text-xs font-bold uppercase tracking-widest`. If a shadcn component renders button-like text, match this weight.
+- **Typography** — Headings and body copy use `--font-body` (IBM Plex Sans). Data, numerals, and meta labels use `--font-data` (IBM Plex Mono).
+- **Accent color** — DraftSpa's planning accent is green and live-draft accent is phosphor mint, mapped through `--color-accent` and shadcn's `--primary`.
 
 ### Custom → shadcn Migration Map
 
@@ -91,7 +91,7 @@ Global styles own semantic tokens only. The important distinction is role, not h
 - **Focus, backdrop, and shadow tokens** centralize interaction polish that was previously repeated in feature components.
 - **Typography tokens** preserve the current serif-title and sans-body split without repeated inline font stacks.
 - **Radius, page width, and page gutter tokens** standardize shell geometry while still allowing utility classes for local layout.
-- **shadcn bridge tokens** (`--background`, `--foreground`, `--primary`, `--border`, etc.) reference Pointer's tokens so shadcn components inherit the design language automatically. Both token sets update together in the `prefers-color-scheme: dark` media query.
+- **shadcn bridge tokens** (`--background`, `--foreground`, `--primary`, `--border`, etc.) reference DraftSpa's tokens so shadcn components inherit the design language automatically. Both token sets update together in the theme blocks.
 
 ## Shared Patterns
 
@@ -111,7 +111,7 @@ The initial primitive set is intentionally small:
 - **`AppSheet`** is the shared mobile drawer shell for navigational overlays.
 - **`DialogShell`** centralizes destructive-confirmation modal structure and close affordances.
 - **`Toaster`** mounts the shared Sonner toast surface used for lightweight confirmation and undo flows, and follows the app's system light/dark mode behavior.
-- **`Tooltip`** is the shared hover/focus helper surface for compact status badges and inline help affordances, built on Radix Tooltip and styled to match Pointer's warm paper utility feel.
+- **`Tooltip`** is the shared hover/focus helper surface for compact status badges and inline help affordances, built on Radix Tooltip and styled to match DraftSpa's paper utility feel.
 These primitives are meant to carry the repeated visual recipes. Feature components still own structure and behavior.
 
 ## Component Inventory
@@ -186,7 +186,7 @@ Tailwind utilities remain the main composition tool. The system does not try to 
 - Do not add inline `title` attributes for hover help — use `Tooltip`.
 - Do not hardcode `font-family`, hex colors, border-opacity, or radius values in feature components — use tokens from `globals.css`.
 - Do not build a component that shadcn already offers — install and style it instead.
-- Do not install a shadcn component without adjusting it to match Pointer's design language.
+- Do not install a shadcn component without adjusting it to match DraftSpa's design language.
 
 ## Alignment Rule For Variable-Length Text
 

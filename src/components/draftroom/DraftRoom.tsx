@@ -35,13 +35,12 @@ import { SyncStrip } from "./SyncStrip";
 import { Tape } from "./Tape";
 
 /**
- * The draft room — NIGHT mode. A second-screen cockpit for manually logging
- * every pick of a live draft: the tape, the quick-log bar, the board, and the
- * sync rail. Nothing ever auto-advances.
+ * The live draft tracker. Users manually log every pick against the tape,
+ * quick-log bar, board, and sync rail. Nothing ever auto-advances.
  */
 export function DraftRoom() {
   useNightMode();
-  // Arriving under the dusk veil — lift it now that the room is mounted
+  // Arriving under the transition veil — lift it now that the tracker is mounted.
   useSettleNightTransition();
   const league = useRouteLeague();
   const group = useLeagueProjectionGroup(league);

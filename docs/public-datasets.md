@@ -103,8 +103,8 @@ That script downloads:
 - `stats_player_reg_{season}.csv` from the `stats_player` nflverse release
 - `stats_team_reg_{season}.csv` from the `stats_team` nflverse release for DST rows
 
-It writes Pointer-compatible offensive, kicker, and DST component columns. The
-DST `PTS_ALLOWED` column is set to `0` because Pointer currently parses it but
+It writes DraftSpa-compatible offensive, kicker, and DST component columns. The
+DST `PTS_ALLOWED` column is set to `0` because DraftSpa currently parses it but
 does not score points-allowed tiers.
 
 Then pass the normalized football CSV into the public dataset generator:

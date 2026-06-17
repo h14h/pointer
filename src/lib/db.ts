@@ -7,7 +7,7 @@ interface StoreRecord {
   updatedAt: number;
 }
 
-class PointerDatabase extends Dexie {
+class DraftSpaDatabase extends Dexie {
   store!: Dexie.Table<StoreRecord, number>;
 
   constructor() {
@@ -18,5 +18,5 @@ class PointerDatabase extends Dexie {
   }
 }
 
-export const db = new PointerDatabase();
+export const db = new DraftSpaDatabase();
 export type { StoreRecord };

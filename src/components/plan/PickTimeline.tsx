@@ -60,7 +60,7 @@ function SlotBody({ slot }: { slot: RoundSlot }) {
   if (slot.status === "ondeck") {
     return (
       <p className="font-data mt-1.5 text-[10.5px] leading-relaxed tracking-[0.02em] text-[var(--color-fg-muted)]">
-        begin draft night to log this slot. top of board:{" "}
+        start the live draft to log this slot. top of board:{" "}
         {slot.topOfBoard.length > 0
           ? slot.topOfBoard.map((player) => player.name).join(" · ")
           : "—"}

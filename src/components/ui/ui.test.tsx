@@ -251,6 +251,6 @@ describe("shared ui primitives", () => {
 
     expect(screen.getByText("Dialog body")).toBeInTheDocument();
     expect(screen.getByText("Sheet body")).toBeInTheDocument();
-    expect(screen.getAllByText("draftspa").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("DraftSpa").length).toBeGreaterThan(0);
   });
 });

@@ -1,6 +1,6 @@
 # QA BDD Scenarios
 
-This directory contains behavior-driven development (BDD) scenarios for Pointer.
+This directory contains behavior-driven development (BDD) scenarios for DraftSpa.
 These are **manual QA instructions** designed to be executed by a QA agent
 (or a human) that interacts with the running app and verifies functionality.
 
@@ -157,7 +157,7 @@ When I select the file "/tmp/bdd-batters.csv" in the file input inside the "Brow
 
 When a scenario requires an uploaded projection group (or other user-created entity) to already exist, the agent should not attempt a UI file upload if the upload mechanism is not reliably automatable with its current toolset. Instead, the agent may seed the data programmatically via a dev-only hook and then verify the UI mutation.
 
-In this app, the Zustand store is exposed on `window.__pointerStore` in development builds. The agent can navigate to the app, wait for hydration, and then evaluate JavaScript in the browser console to seed a projection group:
+In this app, the Zustand store is exposed on the legacy dev hook `window.__pointerStore` in development builds. The agent can navigate to the app, wait for hydration, and then evaluate JavaScript in the browser console to seed a projection group:
 
 ```js
 window.__pointerStore.getState().seedProjectionGroup({

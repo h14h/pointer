@@ -13,7 +13,7 @@
 
 ## Why This Exists
 
-Many projection feeds omit one or more of `QS`, `CG`, and `ShO`. Pointer keeps missing outcomes at zero by default, but offers per-stat estimation in the upload preview so users can decide when inferred outcomes should be included.
+Many projection feeds omit one or more of `QS`, `CG`, and `ShO`. DraftSpa keeps missing outcomes at zero by default, but offers per-stat estimation in the upload preview so users can decide when inferred outcomes should be included.
 
 ## Import-Time Decision Model
 

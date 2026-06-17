@@ -10,8 +10,8 @@ Feature: Leaderboard (Main Page)
 
   Scenario: Page loads with correct title and header elements
     When the page finishes loading
-    Then the page title should be "Pointer - Fantasy Baseball Draft Aid"
-    And the header should display "Pointer" and "Leaderboard"
+    Then the page title should be "DraftSpa — fantasy draft workspace"
+    And the header should display "DraftSpa" and "Leaderboard"
     And the projection group dropdown should be visible
     And the league dropdown should be visible
     And the Draft mode toggle should be visible

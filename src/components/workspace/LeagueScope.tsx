@@ -9,7 +9,7 @@ import { useStore } from "@/store";
 /**
  * Mounted by the league shell page. Keeps the store's activeLeagueId in
  * sync with the route (so all existing active-league store actions target
- * the league being viewed) and bounces back to the fleet when the id is
+ * the league being viewed) and bounces back to the home league list when the id is
  * unknown (deleted league, stale link).
  */
 export function LeagueScope({ children }: { children: React.ReactNode }) {

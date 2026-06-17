@@ -15,7 +15,7 @@ import { parseLeaguePath } from "@/lib/leaguePath";
 // page: the id/tab come from the browser URL, tab switches are
 // history.pushState, and a prep session costs the server zero requests after
 // load. Anyone hitting /league-shell directly has no league id and gets
-// bounced to the fleet by LeagueScope.
+// bounced to the home league list by LeagueScope.
 export default function LeagueShellPage() {
   return (
     <LeagueScope>
@@ -28,7 +28,7 @@ function ShellBody() {
   const pathname = usePathname();
   const { tab } = parseLeaguePath(pathname);
 
-  // NIGHT takeover — no workspace chrome
+  // Live draft takeover — no workspace chrome.
   if (tab === "draft") {
     return <DraftRoom />;
   }

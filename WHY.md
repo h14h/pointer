@@ -1,8 +1,8 @@
-# Why Pointer Exists
+# Why DraftSpa Exists
 
 ## The Short Version
 
-Pointer helps fantasy baseball players confidently identify the best players for their specific league. It exists because no free tool combines projections with league-specific settings into a customized ranking without friction. I built it because I love baseball, I love coding, and I love the math of optimizing draft decisions.
+DraftSpa helps fantasy players identify the best players for each specific league. It exists because no free tool combines projections, league-specific settings, target planning, and live pick tracking without friction. I built it because I love sports, I love coding, and I love the math of optimizing draft decisions.
 
 ## The Problem
 
@@ -18,7 +18,7 @@ The free alternatives tend to be spreadsheet-based: no scoring customization, la
 
 Each pick has a hard time limit. During that window, you need to mark the player just drafted, re-evaluate the board, and decide your pick. Every second spent fighting a tool is a second stolen from making a decision. A draft tool that can't keep up with a live draft is worse than no tool at all.
 
-## What Pointer Values
+## What DraftSpa Values
 
 These are listed in priority order. When two values conflict, the higher-priority value wins.
 
@@ -36,7 +36,7 @@ These are listed in priority order. When two values conflict, the higher-priorit
 
 ## Who This Is For
 
-Competitive fantasy baseball players who want more control over draft preparation than what hosting platforms provide. They understand projection data and scoring weights. They care about marginal advantages in player valuation. They want a tool that keeps up with them, not one that slows them down.
+Competitive fantasy players who want more control over draft preparation than what hosting platforms provide. They understand projection data and scoring weights. They care about marginal advantages in player valuation. They want a tool that keeps up with them, not one that slows them down.
 
 ## What Success Looks Like
 
@@ -50,4 +50,4 @@ Competitive fantasy baseball players who want more control over draft preparatio
 
 ## The Bigger Picture
 
-Pointer aims to be the most useful draft preparation tool available, sitting at the intersection of baseball and math. The specific features and technical choices will evolve, but the purpose — helping users make confident, informed draft decisions for their league — does not.
+DraftSpa aims to be the most useful draft preparation and live tracking tool available, sitting at the intersection of sports, data, and fast interface design. The specific features and technical choices will evolve, but the purpose — helping users make confident, informed draft decisions for their league — does not.

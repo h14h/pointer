@@ -24,17 +24,17 @@ const TAB_LABELS: Record<(typeof LEAGUE_TABS)[number], string> = {
 };
 
 /**
- * The day-side chrome for a league workspace: brand bar, league masthead
- * (breadcrumb, name, vitals chips, BEGIN DRAFT NIGHT) and the tab rail.
- * All in-league navigation is history.pushState (zero server traffic) —
- * the whole workspace is one static shell page.
+ * The chrome for a league workspace: brand bar, league masthead, vitals chips,
+ * live draft entry, and the tab rail. All in-league navigation is
+ * history.pushState (zero server traffic) — the whole workspace is one static
+ * shell page.
  */
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const league = useRouteLeague();
   const group = useLeagueProjectionGroup(league);
 
-  // Returning from draft night lands here — lift the dawn veil (no-op otherwise)
+  // Returning from live draft mode lands here — lift the transition veil.
   useSettleNightTransition();
 
   if (!league) {
@@ -54,7 +54,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
           href="/"
           className="font-data text-xs text-[var(--color-fg-muted)] underline decoration-[var(--color-border-default)] underline-offset-4 hover:text-[var(--color-fg-default)]"
         >
-          fleet /
+          leagues /
         </Link>
 
         <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
@@ -80,10 +80,10 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
                 pushLeaguePath(league.id, "draft");
               }}
             >
-              <span aria-hidden>☾</span> Begin draft night
+              Start live draft
             </Button>
             <span className="stamp hidden sm:block">
-              the desk dims and the instruments take over
+              track every pick against this league&apos;s board.
             </span>
           </div>
         </div>
