@@ -25,6 +25,20 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
   - When variants exist (frameworks, providers, domains), pick only the relevant reference file(s) and note that choice.
 - Safety and fallback: If a skill can't be applied cleanly (missing files, unclear instructions), state the issue, pick the next-best approach, and continue.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the default mattpocock/skills label vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This repo uses a single-context domain-doc layout. See `docs/agents/domain.md`.
+
 ## UI System
 
 Before creating any new visual element, check `src/components/ui/` for an existing component. If none fits, check the **shadcn catalog** below — install and style a shadcn component before building from scratch. For token definitions, composition rules, and extraction thresholds, see [docs/ui-system.md](docs/ui-system.md).
