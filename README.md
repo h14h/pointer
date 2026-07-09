@@ -20,7 +20,7 @@ Open `http://localhost:3000`.
 - Optional **Pro** tier (Clerk + Convex): cloud league backup and live multi-device sync — see [docs/monetization.md](docs/monetization.md). Without configuration the app is fully local and free.
 
 ## Project Structure
-- `src/app`: Next.js app shell
+- `src/routes`: TanStack Start file-based routes (app shell)
 - `src/components`: UI and workflow components
 - `src/lib`: deep modules (scoring, draft, league, eligibility, projections, football, leaderboard, persistence, pro)
 - `src/store`: thin Zustand coordination layer

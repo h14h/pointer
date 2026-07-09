@@ -15,10 +15,14 @@
 /test-results/
 /playwright-report/
 
-# next.js
+# tanstack start (vite)
+/dist/
+/.tanstack/
+/.nitro/
+
+# stale Next.js build artifacts (pre-cutover dev servers)
 /.next/
 /.next-e2e/
-/out/
 
 # production
 /build
@@ -45,7 +49,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # public dataset payloads (stored in Tigris; generate locally with scripts/generate-public-dataset.ts)
 data/public-datasets/*.json

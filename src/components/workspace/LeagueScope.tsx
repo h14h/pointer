@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useRouter } from "@/lib/routing/adapter";
 import { PublicDatasetBootstrap } from "@/components/PublicDatasetBootstrap";
 import { useRouteLeague } from "@/store/selectors";
 import { useStore } from "@/store";

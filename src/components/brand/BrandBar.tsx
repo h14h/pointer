@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { Link } from "@/lib/routing/adapter";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Wordmark } from "./Wordmark";
 

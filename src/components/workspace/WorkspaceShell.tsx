@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLeagueParams } from "@/lib/routing/adapter";
 import { BrandBar } from "@/components/brand/BrandBar";
 import { AccountControls } from "@/components/pro/AccountControls";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { PageContainer } from "@/components/ui/PageContainer";
-import { parseLeaguePath, pushLeaguePath, LEAGUE_TABS } from "@/lib/leaguePath";
+import { pushLeaguePath, LEAGUE_TABS } from "@/lib/leaguePath";
 import {
   beginNightTransition,
   useSettleNightTransition,
@@ -30,7 +29,7 @@ const TAB_LABELS: Record<(typeof LEAGUE_TABS)[number], string> = {
  * shell page.
  */
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const { tab: activeTab } = useLeagueParams();
   const league = useRouteLeague();
   const group = useLeagueProjectionGroup(league);
 
@@ -43,7 +42,6 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   }
 
   const sportLabel = league.sport === "football" ? "NFL" : "MLB";
-  const { tab: activeTab } = parseLeaguePath(pathname);
 
   return (
     <div className="min-h-screen">

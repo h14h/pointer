@@ -23,8 +23,7 @@ keeps local development, self-hosting, and the free product untouched.
 - `src/components/providers/AppProviders.tsx` — conditional `ClerkProvider` + `ConvexProviderWithClerk` wrapper
 - `src/components/pro/AccountControls.tsx` — header sign-in / account / Go Pro controls
 - `src/components/pro/CloudSync.tsx` — React/Convex adapter that runs Cloud League sync for Pro users
-- `src/app/pricing/page.tsx` — pricing page (`<PricingTable />`)
-- `src/proxy.ts` — Clerk middleware (no-op when unconfigured)
+- `src/routes/pricing.tsx` — pricing page (`<PricingTable />`)
 - `convex/schema.ts`, `convex/leagues.ts`, `convex/auth.config.ts` — Convex backend
 - Store support: `applyCloudLeagues`, `clearDeletedLeagueIds`, `deletedLeagueIds` tombstones in `src/store/index.ts`
 
@@ -33,11 +32,13 @@ keeps local development, self-hosting, and the free product untouched.
 ### 1. Clerk
 
 1. Create an application at <https://dashboard.clerk.com>.
-2. Copy the keys into `.env.local`:
+2. Copy the publishable key into `.env.local` (see `.env.example`):
    ```
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
-   CLERK_SECRET_KEY=sk_...
+   VITE_CLERK_PUBLISHABLE_KEY=pk_...
    ```
+   The app is a client-side SPA — there is no server-side Clerk middleware,
+   so no `CLERK_SECRET_KEY` is needed by the web server (Convex validates
+   Clerk JWTs at the deployment).
 3. **Billing:** enable Billing in the Clerk dashboard (Billing → Settings),
    connect Stripe, and create a subscription plan with slug **`pro`** (the
    slug must match `PRO_PLAN_SLUG` in `src/lib/pro/config.ts`). The pricing
@@ -50,34 +51,31 @@ keeps local development, self-hosting, and the free product untouched.
 ### 2. Convex
 
 1. Run `bunx convex dev` once locally — it creates the project, writes
-   `CONVEX_DEPLOYMENT`/`NEXT_PUBLIC_CONVEX_URL` to `.env.local`, pushes
+   `CONVEX_DEPLOYMENT` (and a deployment URL — mirror it as
+   `VITE_CONVEX_URL`) to `.env.local`, pushes
    `convex/` functions, and regenerates `convex/_generated/` (checked-in
    copies exist so the app type-checks without a deployment).
 2. In the Convex dashboard → Settings → Environment Variables, set
    `CLERK_JWT_ISSUER_DOMAIN` to the Clerk issuer domain from step 1.4
    (consumed by `convex/auth.config.ts`).
-3. For production: `bunx convex deploy` and set `NEXT_PUBLIC_CONVEX_URL` to
+3. For production: `bunx convex deploy` and set `VITE_CONVEX_URL` to
    the production deployment URL (see Deploy below — it's a build arg, not a
    Fly secret).
 
 ### 3. Deploy (Fly.io)
 
-The two `NEXT_PUBLIC_*` values are inlined into the client bundles at image
+The two `VITE_*` values are inlined into the client bundle at image
 build, so they go in `fly.toml` under `[build.args]` (they're publishable,
 safe to commit — placeholders are already there, commented):
 
 ```toml
 [build.args]
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_live_..."
-  NEXT_PUBLIC_CONVEX_URL = "https://<deployment>.convex.cloud"
+  VITE_CLERK_PUBLISHABLE_KEY = "pk_live_..."
+  VITE_CONVEX_URL = "https://<deployment>.convex.cloud"
 ```
 
-Server-side secrets go through the Fly CLI as usual:
-
-```
-fly secrets set CLERK_SECRET_KEY=sk_...
-# CONVEX_DEPLOY_KEY is only needed in CI for `convex deploy`
-```
+The web server itself holds no secrets (`CONVEX_DEPLOY_KEY` is only needed
+in CI for `convex deploy`).
 
 Then `fly deploy` — changing a `[build.args]` value requires a redeploy
 (rebuild), not just a secrets update.

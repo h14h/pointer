@@ -169,7 +169,7 @@ bun run test && bun run test:ui && bun run test:visual && bun run lint && bun ru
 - `bun run test:ui` — component/UI tests (Vitest)
 - `bun run test:visual` — Playwright screenshot regression tests (see below)
 - `bun run lint` — ESLint; zero errors required (warnings are acceptable when React Compiler handles the case)
-- `bun run build` — Next.js build with TypeScript validation
+- `bun run build` — TanStack Start (Vite) production build
 See [HOW.md](HOW.md) for full QA documentation.
 
 ### Visual Regression Tests (Playwright)

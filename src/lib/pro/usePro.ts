@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/lib/pro/clerk";
 import { PRO_PLAN_SLUG } from "./config";
 
 export type ProStatus = {

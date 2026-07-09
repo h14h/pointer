@@ -2,18 +2,16 @@
 //
 // These cases lock the OBSERVABLE routing behavior of every /league/* URL:
 // which screen renders and which tab is active for a given browser URL.
-// They deliberately say nothing about HOW the URL is resolved (today it's a
-// Next.js rewrite of /league/:path* onto the static /league-shell page plus
-// client-side parsing in src/lib/leaguePath.ts).
+// They deliberately say nothing about HOW the URL is resolved (originally a
+// Next.js rewrite onto one static shell page with client-side pathname
+// parsing; since the TanStack Start migration, typed router routes —
+// src/routes/league.* — feeding useLeagueParams in
+// src/lib/routing/adapter.tsx). The fixture list survived that migration
+// UNCHANGED, and must survive any future one: bookmarks must not break.
 //
-// PHASE 2 INTENT (TanStack Start migration): after the rewrite-based routing
-// is replaced by real TanStack Router routes, this exact fixture list and the
-// spec that consumes it (e2e/league-url-contract.spec.ts) must pass UNCHANGED
-// — only the dev server behind them changes. Bookmarks must survive.
-//
-// Derived from current behavior of src/lib/leaguePath.ts (parseLeaguePath),
-// src/app/league-shell/page.tsx, src/components/workspace/WorkspaceShell.tsx
-// and src/components/workspace/LeagueScope.tsx:
+// The locked behavior (today implemented by src/routes/league.*,
+// src/lib/routing/adapter.tsx, src/components/workspace/WorkspaceShell.tsx
+// and src/components/workspace/LeagueScope.tsx):
 //   - segments are split on "/" with empty segments dropped
 //   - segment[1] is the league id; segment[2] is the tab
 //   - tab must be exactly one of plan|board|intel|config|draft (case

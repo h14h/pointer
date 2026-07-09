@@ -1,6 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = process.env.CI ? 3099 : 3000;
+// E2E + visual suites against the TanStack Start dev server.
+// - leaderboard.spec.ts         — visual goldens (5 screenshots, zero-diff)
+// - league-url-contract.spec.ts — the locked /league/* URL contract (17 cases)
+// - persistence-smoke.spec.ts   — state survives refresh
+// Runs on its own port so it never touches a live dev server (e.g. the
+// Tidewave-managed one on :3000).
+const PORT = process.env.CI ? 3099 : 3200;
 
 export default defineConfig({
 	testDir: "./e2e",
@@ -27,6 +33,8 @@ export default defineConfig({
 
 	projects: [
 		{
+			// Keep the project named "chromium" so snapshot filenames
+			// (…-chromium-linux.png) match the existing goldens.
 			name: "chromium",
 			use: {
 				...devices["Desktop Chrome"],
@@ -36,9 +44,9 @@ export default defineConfig({
 	],
 
 	webServer: {
-		command: `PORT=${PORT} NEXT_DIST_DIR=.next-e2e bun run dev`,
+		command: `bun run dev -- --port ${PORT}`,
 		url: `http://localhost:${PORT}`,
 		reuseExistingServer: !process.env.CI,
-		timeout: 30_000,
+		timeout: 60_000,
 	},
 });

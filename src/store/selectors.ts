@@ -1,7 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { parseLeaguePath } from "@/lib/leaguePath";
+import { useLeagueParams } from "@/lib/routing/adapter";
 import { resolveProjectionGroupForLeague } from "@/lib/projections";
 import { useStore } from "@/store";
 import type { League, ProjectionGroup } from "@/types";
@@ -17,15 +16,16 @@ export function useActiveLeague(): League | undefined {
 
 /**
  * The league named by the /league/<id>/... URL (undefined off-route or when
- * the id doesn't exist). Parsed from the browser pathname — league URLs are
- * served by the static shell, so there is no route param to read. Updates on
- * history.pushState tab switches. Prefer this inside the workspace — it
- * can't race the activeLeagueId sync on navigation.
+ * the id doesn't exist). Read through the routing seam: under Next.js the id
+ * is parsed from the browser pathname (league URLs are served by the static
+ * shell — no route param exists); under TanStack Start it's the typed
+ * $leagueId route param. Updates on history.pushState tab switches. Prefer
+ * this inside the workspace — it can't race the activeLeagueId sync on
+ * navigation.
  */
 export function useRouteLeague(): League | undefined {
-  const pathname = usePathname();
+  const { leagueId } = useLeagueParams();
   const { leagues } = useStore();
-  const { leagueId } = parseLeaguePath(pathname);
   return leagueId ? leagues.find((l) => l.id === leagueId) : undefined;
 }
 

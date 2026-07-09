@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { DraftSection } from "@/components/settings/DraftSection";
+import { useRouter } from "@/lib/routing/adapter";
 import { FootballRosterSection } from "@/components/settings/FootballRosterSection";
 import { FootballScoringSection } from "@/components/settings/FootballScoringSection";
 import { RosterSection } from "@/components/settings/RosterSection";
