@@ -14,8 +14,10 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LeaderboardVisualRouteImport } from './routes/leaderboard-visual'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LeagueIndexRouteImport } from './routes/league.index'
+import { Route as ApiPublicDatasetsRouteImport } from './routes/api.public-datasets'
 import { Route as LeagueLeagueIdIndexRouteImport } from './routes/league.$leagueId.index'
 import { Route as LeagueLeagueIdSplatRouteImport } from './routes/league.$leagueId.$'
+import { Route as ApiPublicDatasetsSlugRouteImport } from './routes/api.public-datasets.$slug'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -42,6 +44,11 @@ const LeagueIndexRoute = LeagueIndexRouteImport.update({
   path: '/league/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDatasetsRoute = ApiPublicDatasetsRouteImport.update({
+  id: '/api/public-datasets',
+  path: '/api/public-datasets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeagueLeagueIdIndexRoute = LeagueLeagueIdIndexRouteImport.update({
   id: '/league/$leagueId/',
   path: '/league/$leagueId/',
@@ -52,13 +59,20 @@ const LeagueLeagueIdSplatRoute = LeagueLeagueIdSplatRouteImport.update({
   path: '/league/$leagueId/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDatasetsSlugRoute = ApiPublicDatasetsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ApiPublicDatasetsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/leaderboard-visual': typeof LeaderboardVisualRoute
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
+  '/api/public-datasets': typeof ApiPublicDatasetsRouteWithChildren
   '/league/': typeof LeagueIndexRoute
+  '/api/public-datasets/$slug': typeof ApiPublicDatasetsSlugRoute
   '/league/$leagueId/$': typeof LeagueLeagueIdSplatRoute
   '/league/$leagueId/': typeof LeagueLeagueIdIndexRoute
 }
@@ -67,7 +81,9 @@ export interface FileRoutesByTo {
   '/leaderboard-visual': typeof LeaderboardVisualRoute
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
+  '/api/public-datasets': typeof ApiPublicDatasetsRouteWithChildren
   '/league': typeof LeagueIndexRoute
+  '/api/public-datasets/$slug': typeof ApiPublicDatasetsSlugRoute
   '/league/$leagueId/$': typeof LeagueLeagueIdSplatRoute
   '/league/$leagueId': typeof LeagueLeagueIdIndexRoute
 }
@@ -77,7 +93,9 @@ export interface FileRoutesById {
   '/leaderboard-visual': typeof LeaderboardVisualRoute
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
+  '/api/public-datasets': typeof ApiPublicDatasetsRouteWithChildren
   '/league/': typeof LeagueIndexRoute
+  '/api/public-datasets/$slug': typeof ApiPublicDatasetsSlugRoute
   '/league/$leagueId/$': typeof LeagueLeagueIdSplatRoute
   '/league/$leagueId/': typeof LeagueLeagueIdIndexRoute
 }
@@ -88,7 +106,9 @@ export interface FileRouteTypes {
     | '/leaderboard-visual'
     | '/pricing'
     | '/settings'
+    | '/api/public-datasets'
     | '/league/'
+    | '/api/public-datasets/$slug'
     | '/league/$leagueId/$'
     | '/league/$leagueId/'
   fileRoutesByTo: FileRoutesByTo
@@ -97,7 +117,9 @@ export interface FileRouteTypes {
     | '/leaderboard-visual'
     | '/pricing'
     | '/settings'
+    | '/api/public-datasets'
     | '/league'
+    | '/api/public-datasets/$slug'
     | '/league/$leagueId/$'
     | '/league/$leagueId'
   id:
@@ -106,7 +128,9 @@ export interface FileRouteTypes {
     | '/leaderboard-visual'
     | '/pricing'
     | '/settings'
+    | '/api/public-datasets'
     | '/league/'
+    | '/api/public-datasets/$slug'
     | '/league/$leagueId/$'
     | '/league/$leagueId/'
   fileRoutesById: FileRoutesById
@@ -116,6 +140,7 @@ export interface RootRouteChildren {
   LeaderboardVisualRoute: typeof LeaderboardVisualRoute
   PricingRoute: typeof PricingRoute
   SettingsRoute: typeof SettingsRoute
+  ApiPublicDatasetsRoute: typeof ApiPublicDatasetsRouteWithChildren
   LeagueIndexRoute: typeof LeagueIndexRoute
   LeagueLeagueIdSplatRoute: typeof LeagueLeagueIdSplatRoute
   LeagueLeagueIdIndexRoute: typeof LeagueLeagueIdIndexRoute
@@ -158,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeagueIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public-datasets': {
+      id: '/api/public-datasets'
+      path: '/api/public-datasets'
+      fullPath: '/api/public-datasets'
+      preLoaderRoute: typeof ApiPublicDatasetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/league/$leagueId/': {
       id: '/league/$leagueId/'
       path: '/league/$leagueId'
@@ -172,14 +204,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeagueLeagueIdSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public-datasets/$slug': {
+      id: '/api/public-datasets/$slug'
+      path: '/$slug'
+      fullPath: '/api/public-datasets/$slug'
+      preLoaderRoute: typeof ApiPublicDatasetsSlugRouteImport
+      parentRoute: typeof ApiPublicDatasetsRoute
+    }
   }
 }
+
+interface ApiPublicDatasetsRouteChildren {
+  ApiPublicDatasetsSlugRoute: typeof ApiPublicDatasetsSlugRoute
+}
+
+const ApiPublicDatasetsRouteChildren: ApiPublicDatasetsRouteChildren = {
+  ApiPublicDatasetsSlugRoute: ApiPublicDatasetsSlugRoute,
+}
+
+const ApiPublicDatasetsRouteWithChildren =
+  ApiPublicDatasetsRoute._addFileChildren(ApiPublicDatasetsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LeaderboardVisualRoute: LeaderboardVisualRoute,
   PricingRoute: PricingRoute,
   SettingsRoute: SettingsRoute,
+  ApiPublicDatasetsRoute: ApiPublicDatasetsRouteWithChildren,
   LeagueIndexRoute: LeagueIndexRoute,
   LeagueLeagueIdSplatRoute: LeagueLeagueIdSplatRoute,
   LeagueLeagueIdIndexRoute: LeagueLeagueIdIndexRoute,
@@ -189,10 +240,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }
