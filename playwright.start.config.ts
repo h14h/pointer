@@ -1,14 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Visual suite pointed at the TanStack Start dev server (migration parity
-// check). Mirrors playwright.config.ts exactly — same tests, same goldens,
-// same tolerances — only the server behind the URLs changes. League-URL
-// specs stay Next-only until Phase 2 ports league routing.
+// Visual + league-URL-contract suites pointed at the TanStack Start dev
+// server (migration parity check). Mirrors playwright.config.ts exactly —
+// same tests, same goldens, same tolerances, same fixtures — only the server
+// behind the URLs changes (Phase 2 registered real /league/* routes).
 const PORT = 3200;
 
 export default defineConfig({
 	testDir: "./e2e",
-	testMatch: /leaderboard\.spec\.ts/,
+	testMatch: /(?:leaderboard|league-url-contract)\.spec\.ts/,
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,

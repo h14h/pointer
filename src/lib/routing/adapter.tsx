@@ -24,6 +24,7 @@ import {
   useSearchParams as useNextSearchParams,
 } from "next/navigation";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
+import { parseLeaguePath, type LeagueTab } from "@/lib/leaguePath";
 
 /** The subset of link props DraftSpa actually uses (next/link compatible). */
 export type RouterLinkProps = {
@@ -45,6 +46,14 @@ export type SearchParamsAdapter = {
   get: (name: string) => string | null;
 };
 
+/**
+ * The league id + tab named by the current /league/* URL.
+ * `leagueId` is null off-route, when the id segment is missing, or when it is
+ * the reserved "league-shell" segment. `tab` falls back to "plan" for any
+ * unknown/malformed tab segment (stale bookmarks still land somewhere useful).
+ */
+export type LeagueRouteParams = { leagueId: string | null; tab: LeagueTab };
+
 export function Link({ href, prefetch, children, ...rest }: RouterLinkProps) {
   return (
     <NextLink href={href} prefetch={prefetch} {...rest}>
@@ -63,4 +72,15 @@ export function usePathname(): string | null {
 
 export function useSearchParams(): SearchParamsAdapter | null {
   return useNextSearchParams();
+}
+
+/**
+ * League URL params. Under Next.js there is no route param to read — every
+ * /league/* URL rewrites onto the static shell — so this parses the browser
+ * pathname (src/lib/leaguePath.ts), exactly as the app shipped. The TanStack
+ * implementation reads typed route params instead; same observable contract
+ * (see src/test/contracts/leagueRoutes/fixtures.ts).
+ */
+export function useLeagueParams(): LeagueRouteParams {
+  return parseLeaguePath(useNextPathname());
 }

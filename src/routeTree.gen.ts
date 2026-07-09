@@ -13,6 +13,9 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LeaderboardVisualRouteImport } from './routes/leaderboard-visual'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LeagueIndexRouteImport } from './routes/league.index'
+import { Route as LeagueLeagueIdIndexRouteImport } from './routes/league.$leagueId.index'
+import { Route as LeagueLeagueIdSplatRouteImport } from './routes/league.$leagueId.$'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -34,18 +37,39 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeagueIndexRoute = LeagueIndexRouteImport.update({
+  id: '/league/',
+  path: '/league/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeagueLeagueIdIndexRoute = LeagueLeagueIdIndexRouteImport.update({
+  id: '/league/$leagueId/',
+  path: '/league/$leagueId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeagueLeagueIdSplatRoute = LeagueLeagueIdSplatRouteImport.update({
+  id: '/league/$leagueId/$',
+  path: '/league/$leagueId/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/leaderboard-visual': typeof LeaderboardVisualRoute
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
+  '/league/': typeof LeagueIndexRoute
+  '/league/$leagueId/$': typeof LeagueLeagueIdSplatRoute
+  '/league/$leagueId/': typeof LeagueLeagueIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/leaderboard-visual': typeof LeaderboardVisualRoute
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
+  '/league': typeof LeagueIndexRoute
+  '/league/$leagueId/$': typeof LeagueLeagueIdSplatRoute
+  '/league/$leagueId': typeof LeagueLeagueIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +77,38 @@ export interface FileRoutesById {
   '/leaderboard-visual': typeof LeaderboardVisualRoute
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
+  '/league/': typeof LeagueIndexRoute
+  '/league/$leagueId/$': typeof LeagueLeagueIdSplatRoute
+  '/league/$leagueId/': typeof LeagueLeagueIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/leaderboard-visual' | '/pricing' | '/settings'
+  fullPaths:
+    | '/'
+    | '/leaderboard-visual'
+    | '/pricing'
+    | '/settings'
+    | '/league/'
+    | '/league/$leagueId/$'
+    | '/league/$leagueId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/leaderboard-visual' | '/pricing' | '/settings'
-  id: '__root__' | '/' | '/leaderboard-visual' | '/pricing' | '/settings'
+  to:
+    | '/'
+    | '/leaderboard-visual'
+    | '/pricing'
+    | '/settings'
+    | '/league'
+    | '/league/$leagueId/$'
+    | '/league/$leagueId'
+  id:
+    | '__root__'
+    | '/'
+    | '/leaderboard-visual'
+    | '/pricing'
+    | '/settings'
+    | '/league/'
+    | '/league/$leagueId/$'
+    | '/league/$leagueId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +116,9 @@ export interface RootRouteChildren {
   LeaderboardVisualRoute: typeof LeaderboardVisualRoute
   PricingRoute: typeof PricingRoute
   SettingsRoute: typeof SettingsRoute
+  LeagueIndexRoute: typeof LeagueIndexRoute
+  LeagueLeagueIdSplatRoute: typeof LeagueLeagueIdSplatRoute
+  LeagueLeagueIdIndexRoute: typeof LeagueLeagueIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +151,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/league/': {
+      id: '/league/'
+      path: '/league'
+      fullPath: '/league/'
+      preLoaderRoute: typeof LeagueIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/league/$leagueId/': {
+      id: '/league/$leagueId/'
+      path: '/league/$leagueId'
+      fullPath: '/league/$leagueId/'
+      preLoaderRoute: typeof LeagueLeagueIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/league/$leagueId/$': {
+      id: '/league/$leagueId/$'
+      path: '/league/$leagueId/$'
+      fullPath: '/league/$leagueId/$'
+      preLoaderRoute: typeof LeagueLeagueIdSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +180,9 @@ const rootRouteChildren: RootRouteChildren = {
   LeaderboardVisualRoute: LeaderboardVisualRoute,
   PricingRoute: PricingRoute,
   SettingsRoute: SettingsRoute,
+  LeagueIndexRoute: LeagueIndexRoute,
+  LeagueLeagueIdSplatRoute: LeagueLeagueIdSplatRoute,
+  LeagueLeagueIdIndexRoute: LeagueLeagueIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
