@@ -19,9 +19,10 @@ keeps local development, self-hosting, and the free product untouched.
 
 - `src/lib/pro/config.ts` — env-based feature flags (`isAuthConfigured`, `isCloudConfigured`), `PRO_PLAN_SLUG`
 - `src/lib/pro/usePro.ts` — Pro entitlement hook (Clerk `has({ plan: "pro" })`)
+- `src/lib/cloudSync/` — framework-independent Cloud League sync policy, serialization helpers, and tests
 - `src/components/providers/AppProviders.tsx` — conditional `ClerkProvider` + `ConvexProviderWithClerk` wrapper
 - `src/components/pro/AccountControls.tsx` — header sign-in / account / Go Pro controls
-- `src/components/pro/CloudSync.tsx` — two-way league sync for Pro users
+- `src/components/pro/CloudSync.tsx` — React/Convex adapter that runs Cloud League sync for Pro users
 - `src/app/pricing/page.tsx` — pricing page (`<PricingTable />`)
 - `src/proxy.ts` — Clerk middleware (no-op when unconfigured)
 - `convex/schema.ts`, `convex/leagues.ts`, `convex/auth.config.ts` — Convex backend
@@ -83,21 +84,31 @@ Then `fly deploy` — changing a `[build.args]` value requires a redeploy
 
 ## How sync works
 
-`CloudSync` renders nothing and only mounts for signed-in Pro users:
+`CloudSync` renders nothing and only mounts for signed-in Pro users, but the
+reconciliation rules live in `src/lib/cloudSync/` so they are independent of
+Next.js, React, Clerk, and Convex. The UI and backend are adapters around the
+policy module.
 
-- **Pull:** `api.leagues.list` is a reactive Convex query; any remote league
-  newer than the local copy (by `updatedAt`) replaces it, and unknown remote
-  leagues are added. Convex pushes updates over websocket, so a pick made on
-  one device appears on another within a second or two.
+- **Local-first reconciliation:** local leagues remain primary. Newer remote
+  leagues are pulled in, newer local leagues are pushed, and unknown remote
+  leagues are added unless the local workspace carries a tombstone for them.
+- **Pull:** `api.leagues.list` is a reactive Convex query. Convex pushes updates
+  over websocket, so a pick made on one device appears on another within a
+  second or two under the current last-write-wins model.
 - **Push:** local leagues newer than the cloud copy are upserted, debounced
-  1.5s. The server ignores stale writes (`updatedAt` last-write-wins).
+  1.5s. The server currently ignores stale writes (`updatedAt`
+  last-write-wins); live draft conflict handling is a future conflict adapter,
+  not part of the framework adapter.
 - **Delete:** locally deleted league ids are kept as tombstones
   (`deletedLeagueIds`, persisted) so a pull can't resurrect them; the cloud
   copy is removed, then the tombstone is cleared.
 
 Projection groups are *not* synced (they can be tens of MB of player data);
 leagues — settings, rosters, draft state — are, which is what matters on
-draft day.
+draft day. A synced league may keep a soft `projectionGroupId` reference that
+is not available on the current device. Future premium projection sources
+should be modeled as account-gated projection sources, not as Cloud League sync
+payloads.
 
 ## Free vs Pro
 

@@ -9,6 +9,7 @@ import {
   setKeeper as setKeeperFn,
   undoLastPick as undoLastPickFn,
 } from "@/lib/draft";
+import { mergeIncomingCloudLeagues } from "@/lib/cloudSync";
 import {
   createDefaultDraftState,
   createDefaultLeague,
@@ -167,17 +168,13 @@ export const useStore = create<Store>()(
       applyCloudLeagues: (incoming) =>
         set((state) => {
           if (incoming.length === 0) return state;
-          const incomingById = new Map(incoming.map((league) => [league.id, league]));
-          const merged = state.leagues.map((league) => {
-            const remote = incomingById.get(league.id);
-            if (!remote) return league;
-            incomingById.delete(league.id);
-            return remote.updatedAt > (league.updatedAt ?? 0) ? normalizeLeague(remote) : league;
-          });
-          const added = [...incomingById.values()]
-            .filter((league) => !state.deletedLeagueIds.includes(league.id))
-            .map(normalizeLeague);
-          return { leagues: [...merged, ...added] };
+          return {
+            leagues: mergeIncomingCloudLeagues({
+              localLeagues: state.leagues,
+              incomingLeagues: incoming,
+              tombstoneLeagueIds: state.deletedLeagueIds,
+            }),
+          };
         }),
 
       clearDeletedLeagueIds: (ids) =>

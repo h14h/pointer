@@ -10,14 +10,14 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 |--------|-------------|-------------|------|
 | Types & Schemas | Core data structures used across the app | `src/types/` (`player.ts`, `league.ts`, `draft.ts`, `projection.ts`, `football.ts`, `index.ts`) | [docs/types.md](docs/types.md) |
 | Football | Fantasy football domain: scoring presets (Standard/Half PPR/PPR), projections CSV parsing, FLEX/Superflex-aware PAR, and the ranking pipeline | `src/lib/football/` | [docs/football.md](docs/football.md) |
-| Pro / Monetization | Clerk auth + billing and Convex cloud league sync for the Pro tier; app remains fully functional without configuration | `src/lib/pro/`, `src/components/pro/`, `src/components/providers/AppProviders.tsx`, `src/app/pricing/page.tsx`, `src/proxy.ts`, `convex/` | [docs/monetization.md](docs/monetization.md) |
+| Pro / Monetization | Clerk auth + billing and Convex cloud league sync for the Pro tier; app remains fully functional without configuration | `src/lib/pro/`, `src/lib/cloudSync/`, `src/components/pro/`, `src/components/providers/AppProviders.tsx`, `src/app/pricing/page.tsx`, `src/proxy.ts`, `convex/` | [docs/monetization.md](docs/monetization.md) |
 | Scoring | Point calculation, scoring presets, and league-specific weight application | `src/lib/scoring/` | [docs/scoring.md](docs/scoring.md) |
 | Draft | Snake draft math, keeper reservations, pick tracking, and pure state transformers | `src/lib/draft/` | [docs/state.md](docs/state.md) |
 | League | League creation, normalization, validation, defaults, and scoring presets | `src/lib/league/` | [docs/state.md](docs/state.md) |
 | Eligibility | Position eligibility computation, pitcher role classification, MLB Stats API, and import orchestration | `src/lib/eligibility/` | [docs/eligibility.md](docs/eligibility.md) |
 | Projections | CSV parsing, pitching outcome estimation, public datasets, and projection group helpers | `src/lib/projections/` | [docs/csv-parsing.md](docs/csv-parsing.md) |
 | Leaderboard | Ranking pipeline, PAR calculation, filtering, sorting, and search | `src/lib/leaderboard/` | [docs/leaderboard.md](docs/leaderboard.md) |
-| Persistence | Split localStorage adapter and state migrations | `src/lib/persistence/` | [docs/state.md](docs/state.md) |
+| Persistence | Dexie-backed Zustand storage adapter and state migrations | `src/lib/persistence/` | [docs/state.md](docs/state.md) |
 | Replacement Value (PAR) | Points Above Replacement calculation using slot-based replacement levels | `src/lib/leaderboard/par.ts` | [docs/paring-value.md](docs/paring-value.md) |
 | Pitching Outcomes | Regression estimators for QS/CG/ShO used when import-time estimation is explicitly selected | `src/lib/projections/pitchingOutcomes.ts`, `src/lib/projections/pitchingOutcomeImport.ts` | [docs/pitching-outcomes.md](docs/pitching-outcomes.md) |
 | MLB Stats API | Fetching real-time stats from MLB's public API for eligibility enrichment | `src/lib/eligibility/mlbStatsApi.ts` | [docs/mlb-stats-api.md](docs/mlb-stats-api.md) |
@@ -33,7 +33,7 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 
 ## Module Architecture
 
-Business logic lives in 7 deep modules under `src/lib/`. Each module exposes a simple public interface through `index.ts` and hides implementation details in internal files.
+Business logic lives in 8 deep modules under `src/lib/`. Each module exposes a simple public interface through `index.ts` and hides implementation details in internal files.
 
 ### Modules
 
@@ -45,15 +45,16 @@ Business logic lives in 7 deep modules under `src/lib/`. Each module exposes a s
 | `lib/eligibility/` | Position eligibility computation, formatting, MLB API fetch, and import orchestration | `computeHitterEligibility`, `computePitcherEligibility`, `mergeTwoWayEligibility`, `formatEligibilityForLeaderboard`, `fetchSeasonStatsForPlayers`, `runProjectionEligibilityImport` |
 | `lib/projections/` | CSV parsing, pitching outcome estimation, public dataset handling, and projection group helpers | `parsePlayerCSV`, `mergePlayers`, `applyPitchingOutcomeEstimates`, `parsePublicDatasetManifest`, `createProjectionGroupFromPublicDataset`, `isProtectedProjectionGroup` |
 | `lib/leaderboard/` | Stepped ranking pipeline (build, filter, sort) and PAR calculation | `buildBaseRankedPlayers`, `buildFilterMetadata`, `filterRankedPlayers`, `sortLeaderboardRows`, `calculatePAR`, `buildPlayerSearchText` |
-| `lib/persistence/` | Split localStorage adapter and version migration | `splitStorage`, `migrate` |
+| `lib/persistence/` | Dexie-backed Zustand storage adapter and version migration | `dexieStorage`, `migrate` |
+| `lib/cloudSync/` | Framework-independent Cloud League sync policy and cloud-record serialization | `planCloudLeagueSync`, `mergeIncomingCloudLeagues`, `parseRemoteLeagueRecord`, `serializeLeagueForCloud` |
 
 ### Dependency Graph
 
 ```
 scoring  draft  league        (leaf modules — no lib/ dependencies)
-   |              |
-   v              v
-projections    persistence    (projections depends on scoring; persistence depends on league)
+   |              |  |
+   v              v  v
+projections    persistence  cloudSync
    |
    v
 eligibility                   (no lib/ dependencies, but leaderboard depends on it)
@@ -66,6 +67,7 @@ leaderboard                   (depends on scoring + eligibility)
 - **projections** imports from scoring (IP normalization for pitching outcome estimation)
 - **leaderboard** imports from scoring (point calculation) and eligibility (position formatting)
 - **persistence** imports from league (normalization functions for migrations)
+- **cloudSync** imports from league (normalization functions for remote league records)
 - **eligibility** has no lib/ module dependencies
 
 ### Store as Coordination Layer

@@ -1,24 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useShallow } from "zustand/react/shallow";
 import { api } from "../../../convex/_generated/api";
+import {
+  parseRemoteLeagueRecord,
+  planCloudLeagueSync,
+  serializeLeagueForCloud,
+  type RemoteLeagueRecord,
+} from "@/lib/cloudSync";
 import { usePro } from "@/lib/pro/usePro";
 import { useStore } from "@/store";
-import type { League } from "@/types";
 
 const PUSH_DEBOUNCE_MS = 1500;
-
-function parseRemoteLeague(data: string): League | null {
-  try {
-    const parsed = JSON.parse(data) as League;
-    if (!parsed || typeof parsed.id !== "string") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Two-way league sync for Pro users (renders nothing).
@@ -57,53 +52,46 @@ function CloudSyncInner() {
   );
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Pull remote changes into the local store
+  const remoteRecords = useMemo<RemoteLeagueRecord[] | undefined>(
+    () =>
+      remoteLeagues
+        ?.map(parseRemoteLeagueRecord)
+        .filter((record): record is RemoteLeagueRecord => record !== null),
+    [remoteLeagues],
+  );
+  const syncPlan = useMemo(
+    () =>
+      planCloudLeagueSync({
+        syncEnabled: true,
+        hasHydrated,
+        localLeagues: leagues,
+        remoteRecords,
+        tombstoneLeagueIds: deletedLeagueIds,
+      }),
+    [hasHydrated, leagues, remoteRecords, deletedLeagueIds],
+  );
+
   useEffect(() => {
-    if (!hasHydrated || !remoteLeagues) return;
-    const localById = new Map(leagues.map((league) => [league.id, league]));
-    const incoming = remoteLeagues
-      .map((record) => parseRemoteLeague(record.data))
-      .filter((league): league is League => league !== null)
-      .filter((league) => {
-        if (deletedLeagueIds.includes(league.id)) return false;
-        const local = localById.get(league.id);
-        return !local || league.updatedAt > (local.updatedAt ?? 0);
-      });
-    if (incoming.length > 0) {
-      applyCloudLeagues(incoming);
+    if (!syncPlan.isReady) return;
+    if (syncPlan.incomingLeagues.length > 0) {
+      applyCloudLeagues(syncPlan.incomingLeagues);
     }
-  }, [remoteLeagues, hasHydrated, leagues, deletedLeagueIds, applyCloudLeagues]);
+  }, [syncPlan, applyCloudLeagues]);
 
   // Push local changes to the cloud (debounced)
   useEffect(() => {
-    if (!hasHydrated || !remoteLeagues) return;
-
-    const remoteUpdatedAtById = new Map(
-      remoteLeagues.map((record) => [record.leagueId, record.updatedAt]),
-    );
-    const staleLeagues = leagues.filter(
-      (league) => (remoteUpdatedAtById.get(league.id) ?? 0) < (league.updatedAt ?? 0),
-    );
-    const cloudDeletions = deletedLeagueIds.filter((id) => remoteUpdatedAtById.has(id));
-    const resolvedTombstones = deletedLeagueIds.filter((id) => !remoteUpdatedAtById.has(id));
-
-    if (resolvedTombstones.length > 0) {
-      clearDeletedLeagueIds(resolvedTombstones);
+    if (!syncPlan.isReady) return;
+    if (syncPlan.tombstoneIdsToClear.length > 0) {
+      clearDeletedLeagueIds(syncPlan.tombstoneIdsToClear);
     }
-    if (staleLeagues.length === 0 && cloudDeletions.length === 0) return;
+    if (syncPlan.leaguesToUpsert.length === 0 && syncPlan.leagueIdsToRemove.length === 0) return;
 
     if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
     pushTimerRef.current = setTimeout(() => {
-      for (const league of staleLeagues) {
-        void upsertLeague({
-          leagueId: league.id,
-          name: league.name,
-          sport: league.sport ?? "baseball",
-          data: JSON.stringify(league),
-          updatedAt: league.updatedAt ?? Date.now(),
-        });
+      for (const league of syncPlan.leaguesToUpsert) {
+        void upsertLeague(serializeLeagueForCloud(league));
       }
-      for (const id of cloudDeletions) {
+      for (const id of syncPlan.leagueIdsToRemove) {
         void removeLeague({ leagueId: id });
       }
     }, PUSH_DEBOUNCE_MS);
@@ -112,10 +100,7 @@ function CloudSyncInner() {
       if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
     };
   }, [
-    leagues,
-    remoteLeagues,
-    deletedLeagueIds,
-    hasHydrated,
+    syncPlan,
     upsertLeague,
     removeLeague,
     clearDeletedLeagueIds,

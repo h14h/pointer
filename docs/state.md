@@ -2,9 +2,10 @@
 
 ## Source Files
 - `src/store/index.ts`
-- `src/lib/persistence/` (split storage adapter and state migrations)
+- `src/lib/persistence/` (Dexie-backed storage adapter and state migrations)
 - `src/lib/draft/` (pure draft state transformers)
 - `src/lib/league/` (league creation, normalization, defaults, presets)
+- `src/lib/cloudSync/` (Cloud League sync reconciliation used by store sync actions)
 
 ## Dependencies
 - [Types](types.md) — all major types
@@ -16,19 +17,14 @@ All UI components: [Leaderboard](leaderboard.md), [CSV Upload Workflow](csv-uplo
 
 ## Persistence
 
-- **Storage keys:** `"pointer-leagues"`, `"pointer-projections"`, `"pointer-preferences"` (split storage). These legacy key names are retained for existing local data compatibility.
-- **Version:** 8
-- **Middleware:** Zustand `persist` with a custom `StateStorage` adapter that splits state across three `localStorage` keys so users can manually delete projection data without losing league config
+- **Storage key:** `"pointer-storage"` in the Dexie-backed key/value store
+- **Version:** 11
+- **Middleware:** Zustand `persist` with a custom `StateStorage` adapter (`dexieStorage`) backed by IndexedDB via Dexie
 - **Hydration strategy:** `skipHydration: true` with a client-only `StoreHydrator` mounted from the root layout. The store uses deterministic SSR defaults so server HTML matches the client's pre-rehydration render before persisted league state is applied.
 
-**Split localStorage layout:**
-| Key | Contents |
-|-----|----------|
-| `pointer-leagues` | `leagues`, `activeLeagueId` |
-| `pointer-projections` | `projectionGroups`, `activeProjectionGroupId` |
-| `pointer-preferences` | `isDraftMode`, `mergeTwoWayRankings`, `_version` |
-
-The adapter transparently migrates from the legacy single-key format (`"pointer-storage"`): if the old key exists, it is returned as-is for Zustand's `migrate()` to process, then split into the new keys on the next write. The legacy key is removed after a successful split.
+The persisted state is partialized to durable workspace data: leagues, active
+league id, projection groups, active projection group id, draft mode,
+two-way-ranking preference, Cloud League sync tombstones, and onboarding state.
 
 Migrations handle upgrades from earlier versions: adding CG/ShO scoring fields (v3), migrating flat player arrays into projection groups, converting legacy `draftedIds`/`keeperIds` string arrays into the team-based record structure, wrapping single-league data in a `League` object (v4→v5), converting the old `activeTeamIndex` draft cursor into the snake-draft session shape (v5→v6), backfilling projection-group provenance so all legacy groups become `{ kind: "upload" }` (v6→v7), and defaulting every group's editable `eligibilityImportSeason` (v7→v8). All migration paths normalize leagues via `normalizeLeague`, which backfills new scoring fields (e.g., `batting.IBB`) with safe defaults. Legacy drafted and keeper ownership is preserved; `history` starts empty because prior pick chronology is unknowable.
 
@@ -61,6 +57,12 @@ Given a first-round keeper reserved at overall pick 3, when overall picks 1, 2, 
 **Active group fallback.** Removing the active projection group falls back to the first protected public group when one exists, otherwise the first remaining group's ID, or `null`. League-level projection resolution is sport-scoped, so each league falls back to the protected public group for its own sport when available. A stale `activeProjectionGroupId` is never left behind.
 
 **Projection groups now carry next-run eligibility intent.** Each group stores an `eligibilityImportSeason` separately from `eligibilitySeason`, which records the season used by the last successful run. This lets the settings UI expose retroactive import and re-run without overloading the historical metadata.
+
+**Cloud League sync is local-first.** `applyCloudLeagues` merges incoming cloud
+leagues only when they are newer than the local copy and never resurrects a
+locally tombstoned league. Projection groups are not copied by Cloud League
+sync; a league's `projectionGroupId` is a soft reference that can be unavailable
+on the current device.
 
 **Empty team name default.** Setting a team name to empty string (after trim) defaults to `"Team {index+1}"`. Out-of-bounds indices are silently ignored.
 
