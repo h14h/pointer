@@ -38,6 +38,10 @@ keeps local development, self-hosting, and the free product untouched.
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
    CLERK_SECRET_KEY=sk_...
    ```
+   While Next.js and TanStack Start coexist, the Start (Vite) build reads
+   `VITE_`-prefixed twins of the public values — set
+   `VITE_CLERK_PUBLISHABLE_KEY` (and later `VITE_CONVEX_URL`) to the same
+   values (see `.env.example`).
 3. **Billing:** enable Billing in the Clerk dashboard (Billing → Settings),
    connect Stripe, and create a subscription plan with slug **`pro`** (the
    slug must match `PRO_PLAN_SLUG` in `src/lib/pro/config.ts`). The pricing
