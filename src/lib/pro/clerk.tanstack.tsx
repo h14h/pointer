@@ -3,58 +3,37 @@
  *
  * @clerk/nextjs cannot load outside a Next.js runtime (its ESM output has
  * extensionless internal imports and next/* dependencies), so the TanStack
- * Start build swaps in this module. Phase 1 doesn't port the Clerk/Convex
- * providers — auth is only reachable when NEXT_PUBLIC_/VITE_ Clerk env keys
- * are configured, which the Start app doesn't do yet — so these components
- * are unreachable at runtime; the hooks return signed-out state defensively.
+ * Start build swaps in this module. It re-exports the framework-agnostic
+ * React SDK — `@clerk/react` — which is the exact package @clerk/nextjs
+ * itself wraps (pinned to the same version the Next build resolves), so both
+ * builds run identical Clerk code.
  *
- * Phase 3 (providers) replaces this with @clerk/tanstack-react-start (or
- * @clerk/clerk-react) wired into the root route.
+ * Why @clerk/react and not @clerk/tanstack-react-start: the Start SDK
+ * requires clerkMiddleware() in the server handler plus server functions for
+ * auth state — server pieces DraftSpa's SPA-mode build (ssr: false,
+ * prerendered shell, free-tier static hosting) deliberately doesn't have.
+ * The plain React SDK is fully client-side, and it's what Convex's own docs
+ * pair with ConvexProviderWithClerk.
+ *
+ * Module surface: only the names shared components import from
+ * `@clerk/nextjs` (AppProviders, AccountControls, usePro, pricing page).
+ * Add re-exports here if a shared component starts importing more.
+ *
+ * Runtime prop contracts match the Next path:
+ * - ClerkProvider receives an explicit `publishableKey` from AppProviders
+ *   (which only renders it when the key is configured — @clerk/react has no
+ *   env fallback and throws without a key).
+ * - useAuth().getToken({ template: "convex" }) drives ConvexProviderWithClerk.
+ * - Redirect-style navigations (sign-out, checkout return) fall back to
+ *   full-page loads since no router functions are passed; DraftSpa's auth
+ *   flows are modal-based (SignInButton mode="modal", PricingTable), so no
+ *   in-app route handoff is needed.
  */
 
-import type { ReactNode } from "react";
-
-function unreachable(component: string): never {
-  throw new Error(
-    `${component} from @clerk/nextjs is not available in the TanStack Start build yet ` +
-      "(Clerk providers are ported in a later migration phase). " +
-      "Unset VITE_CLERK_PUBLISHABLE_KEY or finish the provider port.",
-  );
-}
-
-export function ClerkProvider(_props: {
-  publishableKey?: string;
-  children?: ReactNode;
-}): ReactNode {
-  return unreachable("ClerkProvider");
-}
-
-export function SignInButton(_props: {
-  mode?: string;
-  children?: ReactNode;
-}): ReactNode {
-  return unreachable("SignInButton");
-}
-
-export function UserButton(): ReactNode {
-  return unreachable("UserButton");
-}
-
-export function PricingTable(): ReactNode {
-  return unreachable("PricingTable");
-}
-
-/** Matches the slice of Clerk's useAuth that DraftSpa consumes. */
-export function useAuth(): {
-  isLoaded: boolean;
-  isSignedIn: boolean | undefined;
-  has: ((params: { plan: string }) => boolean) | undefined;
-  getToken: (options?: { template?: string }) => Promise<string | null>;
-} {
-  return {
-    isLoaded: true,
-    isSignedIn: false,
-    has: undefined,
-    getToken: async () => null,
-  };
-}
+export {
+  ClerkProvider,
+  PricingTable,
+  SignInButton,
+  UserButton,
+  useAuth,
+} from "@clerk/react";

@@ -25,9 +25,10 @@ export default defineConfig({
         find: /^@\/lib\/routing\/adapter$/,
         replacement: path.resolve(rootDir, "src/lib/routing/adapter.tanstack.tsx"),
       },
-      // @clerk/nextjs can't load outside a Next runtime. Until the provider
-      // port (Phase 3), the Start build uses a local stand-in whose components
-      // are unreachable without Clerk env keys. See src/lib/pro/clerk.tanstack.tsx.
+      // @clerk/nextjs can't load outside a Next runtime. The Start build
+      // swaps in a local module that re-exports the same surface from
+      // @clerk/react (the SDK @clerk/nextjs itself wraps).
+      // See src/lib/pro/clerk.tanstack.tsx.
       {
         find: /^@clerk\/nextjs$/,
         replacement: path.resolve(rootDir, "src/lib/pro/clerk.tanstack.tsx"),
