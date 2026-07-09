@@ -1,11 +1,8 @@
 /**
- * THE league surface under TanStack Start — the same client components the
- * Next.js league shell renders (src/app/league-shell/page.tsx), fed by typed
- * route params instead of pathname parsing. Both /league/$leagueId and the
- * /league/$leagueId/$ splat render this; the id/tab arrive via the routing
- * seam's useLeagueParams (adapter.tanstack.tsx reads Route params).
- * Unknown/stale league ids are bounced to the home league list by
- * LeagueScope, exactly as under Next.
+ * THE league surface. Both /league/$leagueId and the /league/$leagueId/$
+ * splat render this; the id/tab arrive via the routing adapter's
+ * useLeagueParams (typed route params). Unknown/stale league ids are bounced
+ * to the home league list by LeagueScope.
  */
 
 import { BoardTab } from "@/components/board/BoardTab";

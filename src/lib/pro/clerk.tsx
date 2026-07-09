@@ -1,12 +1,9 @@
 /**
- * Vite-only stand-in for `@clerk/nextjs` (aliased in vite.config.ts).
+ * Clerk seam: the app's single import point for Clerk UI + hooks.
  *
- * @clerk/nextjs cannot load outside a Next.js runtime (its ESM output has
- * extensionless internal imports and next/* dependencies), so the TanStack
- * Start build swaps in this module. It re-exports the framework-agnostic
- * React SDK — `@clerk/react` — which is the exact package @clerk/nextjs
- * itself wraps (pinned to the same version the Next build resolves), so both
- * builds run identical Clerk code.
+ * Re-exports the framework-agnostic React SDK, `@clerk/react` — the same
+ * package `@clerk/nextjs` wrapped before the TanStack Start cutover, so the
+ * running Clerk code is unchanged from what the app shipped under Next.
  *
  * Why @clerk/react and not @clerk/tanstack-react-start: the Start SDK
  * requires clerkMiddleware() in the server handler plus server functions for
@@ -15,11 +12,11 @@
  * The plain React SDK is fully client-side, and it's what Convex's own docs
  * pair with ConvexProviderWithClerk.
  *
- * Module surface: only the names shared components import from
- * `@clerk/nextjs` (AppProviders, AccountControls, usePro, pricing page).
- * Add re-exports here if a shared component starts importing more.
+ * Module surface: only the names the app actually uses (AppProviders,
+ * AccountControls, usePro, pricing page). Add re-exports here if a component
+ * starts needing more.
  *
- * Runtime prop contracts match the Next path:
+ * Runtime prop contracts:
  * - ClerkProvider receives an explicit `publishableKey` from AppProviders
  *   (which only renders it when the key is configured — @clerk/react has no
  *   env fallback and throws without a key).

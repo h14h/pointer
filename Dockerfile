@@ -4,9 +4,9 @@
 ARG BUN_VERSION=1.3.8
 FROM oven/bun:${BUN_VERSION}-slim AS base
 
-LABEL fly_launch_runtime="Next.js"
+LABEL fly_launch_runtime="TanStack Start"
 
-# Next.js app lives here
+# App lives here
 WORKDIR /app
 
 # Set production environment
@@ -27,21 +27,24 @@ RUN bun install
 # Copy application code
 COPY . .
 
-# Pro-tier client config (PUBLIC, publishable values — not secrets). Next.js
-# inlines NEXT_PUBLIC_* into the client bundles at build time, so these must
-# be supplied here (via fly.toml [build.args]) rather than `fly secrets`.
+# Pro-tier client config (PUBLIC, publishable values — not secrets). Vite
+# inlines VITE_* into the client bundle at build time, so these must be
+# supplied here (via fly.toml [build.args]) rather than `fly secrets`.
 # Left unset, the build produces the fully-featured free tier with Pro off.
-# Server-side secrets (e.g. CLERK_SECRET_KEY) stay runtime `fly secrets`.
-ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-ARG NEXT_PUBLIC_CONVEX_URL
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL
+ARG VITE_CLERK_PUBLISHABLE_KEY
+ARG VITE_CONVEX_URL
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
 
-# Full build (compile + prerender) at image build — containers boot straight
-# into `next start` with no cold-start build work.
-RUN bunx next build
+# Full build (client assets + prerendered SPA shell + server handler) at
+# image build — containers boot straight into the production server
+# (scripts/serve.ts) with no cold-start build work.
+RUN bun run build
 
-# Remove development dependencies
+# Remove development dependencies (the production server needs only
+# `dependencies` — dist/server/server.js externals like @tanstack/react-start
+# live there — plus src/ for the serve script and data/ for the dataset
+# fallback, all copied below).
 RUN rm -rf node_modules && \
     bun install --ci
 

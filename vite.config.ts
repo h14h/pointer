@@ -1,26 +1,27 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import tidewave from "tidewave/vite-plugin";
-import { defineConfig, type Connect, type Plugin } from "vite";
+import { defineConfig, type Connect, type Plugin, type ServerOptions } from "vite";
 import { cacheControlForPath } from "./src/lib/publicDatasetsCachePolicy";
 
-// TanStack Start build (coexists with Next.js until cutover).
-// - `bun run dev:start`   → dev server on :3200 (3000/3099 belong to Next)
-// - `bun run build:start` → production build
-// Next.js never reads this file; vitest uses vitest.config.ts.
+// - `bun run dev`   → dev server on :3200 by default (scripts/dev.ts wrapper;
+//                     Tidewave overrides host/port/https via flags or env)
+// - `bun run build` → production build (dist/client + dist/server)
+// - `bun run start` → production server (scripts/serve.ts)
+// vitest uses vitest.config.ts.
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
-// Serving-layer cache headers mirroring the Next.js posture (see
-// src/lib/publicDatasetsCachePolicy.ts for values + rationale):
-// - /datasets/*            ← next.config.ts headers()
-// - /api/public-datasets*  ← Next force-static output (`s-maxage=31536000`)
+// Serving-layer cache headers (see src/lib/publicDatasetsCachePolicy.ts for
+// values + rationale):
+// - /datasets/*            ← static dataset mirrors
+// - /api/public-datasets*  ← API routes (`s-maxage=31536000`)
 // Applied in dev AND preview so curl/Playwright observe production headers.
-// The phase-5 production host (Nitro routeRules / CDN) must apply the same
-// values; this build has no Nitro layer (Start 1.168 ships a plain server
-// entry — Nitro is opt-in and not installed).
+// The production server (scripts/serve.ts → src/server/productionServer.ts)
+// applies the same values from the same module.
 function publicDatasetsCacheHeaders(): Plugin {
   const middleware: Connect.NextHandleFunction = (req, res, next) => {
     const pathname = (req.url ?? "").split("?")[0];
@@ -42,53 +43,61 @@ function publicDatasetsCacheHeaders(): Plugin {
   };
 }
 
-export default defineConfig({
-  server: {
-    port: 3200,
-  },
-  resolve: {
-    alias: [
-      // Framework routing seam: shared components import
-      // `@/lib/routing/adapter` (the Next.js implementation). Under Vite,
-      // swap in the TanStack Router implementation. Must precede the
-      // catch-all `@` alias.
-      {
-        find: /^@\/lib\/routing\/adapter$/,
-        replacement: path.resolve(rootDir, "src/lib/routing/adapter.tanstack.tsx"),
-      },
-      // @clerk/nextjs can't load outside a Next runtime. The Start build
-      // swaps in a local module that re-exports the same surface from
-      // @clerk/react (the SDK @clerk/nextjs itself wraps).
-      // See src/lib/pro/clerk.tanstack.tsx.
-      {
-        find: /^@clerk\/nextjs$/,
-        replacement: path.resolve(rootDir, "src/lib/pro/clerk.tanstack.tsx"),
-      },
-      // "server-only" throws outside a react-server bundler condition; the
-      // Start server bundle is real server code, so stub the marker.
-      // See src/server/serverOnly.tanstack.ts.
-      {
-        find: /^server-only$/,
-        replacement: path.resolve(rootDir, "src/server/serverOnly.tanstack.ts"),
-      },
-      { find: "@", replacement: path.resolve(rootDir, "src") },
+/**
+ * Dev-server HTTPS from TIDEWAVE_HTTPS_KEY/TIDEWAVE_HTTPS_CERT (file paths).
+ * scripts/dev.ts sets these when it sees the old Next-style
+ * `--experimental-https-key/-cert` flags; they can also be exported directly.
+ */
+function tidewaveHttps(): ServerOptions["https"] | undefined {
+  const keyPath = process.env.TIDEWAVE_HTTPS_KEY;
+  const certPath = process.env.TIDEWAVE_HTTPS_CERT;
+  if (!keyPath || !certPath) return undefined;
+  return {
+    key: readFileSync(keyPath),
+    cert: readFileSync(certPath),
+  };
+}
+
+/**
+ * Extra Host headers the dev server should answer (e.g. Tidewave over a
+ * tailnet). Comma-separated in ALLOWED_DEV_ORIGINS (see .env.example);
+ * `*.domain` wildcards are translated to Vite's `.domain` form.
+ */
+function allowedDevHosts(): string[] {
+  return (process.env.ALLOWED_DEV_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .map((origin) => (origin.startsWith("*.") ? origin.slice(1) : origin));
+}
+
+export default defineConfig(() => {
+  const extraHosts = allowedDevHosts();
+  return {
+    server: {
+      port: 3200,
+      https: tidewaveHttps(),
+      ...(extraHosts.length > 0 ? { allowedHosts: extraHosts } : {}),
+    },
+    resolve: {
+      alias: [{ find: "@", replacement: path.resolve(rootDir, "src") }],
+    },
+    plugins: [
+      // DraftSpa deliberately avoids server rendering (free-tier hosting):
+      // SPA mode prerenders only the root shell; everything renders client-side.
+      tanstackStart({
+        spa: {
+          enabled: true,
+        },
+      }),
+      viteReact(),
+      tailwindcss(),
+      publicDatasetsCacheHeaders(),
+      // Tidewave dev tooling (MCP endpoint on the dev server). The plugin only
+      // registers a configureServer hook, so it is inert in production builds.
+      // Server-side log capture is wired in src/start.ts (dev-only import of
+      // tidewave/tanstack).
+      tidewave(),
     ],
-  },
-  plugins: [
-    // DraftSpa deliberately avoids server rendering (free-tier hosting):
-    // SPA mode prerenders only the root shell; everything renders client-side.
-    tanstackStart({
-      spa: {
-        enabled: true,
-      },
-    }),
-    viteReact(),
-    tailwindcss(),
-    publicDatasetsCacheHeaders(),
-    // Tidewave dev tooling (MCP endpoint on the dev server). The plugin only
-    // registers a configureServer hook, so it is inert in production builds.
-    // Server-side log capture is wired in src/start.ts (dev-only import of
-    // tidewave/tanstack).
-    tidewave(),
-  ],
+  };
 });

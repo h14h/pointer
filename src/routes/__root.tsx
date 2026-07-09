@@ -1,8 +1,7 @@
 /**
- * TanStack Start root route — mirrors src/app/layout.tsx (the Next.js root
- * layout) 1:1: same html/body structure, same globals.css (one shared file,
- * Fontsource imports included), same providers/overlay components, and the
- * same head metadata sourced from the framework-agnostic siteMetadata.
+ * Root route: html/body shell, global stylesheet (Fontsource imports
+ * included), app-wide providers/overlays, and head metadata sourced from
+ * the framework-agnostic siteMetadata.
  */
 
 import {
@@ -17,7 +16,7 @@ import { StoreHydrator } from "@/components/StoreHydrator";
 import { Toaster } from "@/components/ui/sonner";
 import { DuskVeil } from "@/lib/nightTransition";
 import { siteMetadata } from "@/lib/siteMetadata";
-import appCss from "@/app/globals.css?url";
+import appCss from "@/styles/globals.css?url";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -27,7 +26,10 @@ export const Route = createRootRoute({
       { title: siteMetadata.title },
       { name: "description", content: siteMetadata.description },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", href: "/favicon.ico" },
+    ],
   }),
   component: RootComponent,
 });

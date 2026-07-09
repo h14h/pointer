@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
-import SettingsPage from "@/app/settings/page";
+import { SettingsPage } from "@/routes/-settings/SettingsPage";
 
 const replaceMock = vi.fn();
 const getSearchParamMock = vi.fn();

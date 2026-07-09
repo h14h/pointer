@@ -1,9 +1,13 @@
-// Minimal Vite asset typings for files shared between the Next.js and
-// TanStack Start builds. Deliberately NOT `/// <reference types="vite/client" />`
-// — pulling vite/client's global module declarations into the one shared TS
-// program could fight Next's own asset typings.
+/// <reference types="vite/client" />
 
+// vite/client's asset modules don't cover query-suffixed imports.
 declare module "*.css?url" {
   const href: string;
   export default href;
+}
+
+// Public build-time env (inlined by Vite; see src/lib/pro/config.ts).
+interface ImportMetaEnv {
+  readonly VITE_CLERK_PUBLISHABLE_KEY?: string;
+  readonly VITE_CONVEX_URL?: string;
 }

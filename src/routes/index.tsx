@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import Home from "@/app/page";
+import { FleetPage } from "@/components/fleet/FleetPage";
 
-// DraftSpa home — same component the Next.js route (src/app/page.tsx) renders.
+// DraftSpa home: each league card opens its workspace or live draft tracker.
 export const Route = createFileRoute("/")({
   ssr: false,
-  component: Home,
+  component: FleetPage,
 });

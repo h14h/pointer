@@ -1,5 +1,9 @@
 // @vitest-environment node
 
+// Unit tests for the shared HTTP handler core (mocked storage). The full
+// byte-exact behavior — real storage fallback, headers, error shapes — is
+// locked by src/test/contracts/publicDatasets/start-contract.test.tsx.
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const getPublicDatasetManifestMock = vi.fn();
@@ -17,12 +21,12 @@ vi.mock("@/server/publicDatasets/storage", async () => {
   };
 });
 
-describe("public dataset API routes", () => {
+describe("public dataset API handlers", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it("returns the manifest payload from the catalog route", async () => {
+  it("returns the manifest payload from the manifest handler", async () => {
     getPublicDatasetManifestMock.mockResolvedValue({
       datasets: [
         {
@@ -35,8 +39,10 @@ describe("public dataset API routes", () => {
       ],
     });
 
-    const { GET } = await import("@/app/api/public-datasets/route");
-    const response = await GET();
+    const { handleGetPublicDatasetManifest } = await import(
+      "@/server/publicDatasets/handlers"
+    );
+    const response = await handleGetPublicDatasetManifest();
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -52,7 +58,7 @@ describe("public dataset API routes", () => {
     });
   });
 
-  it("returns the dataset payload from the slug route", async () => {
+  it("returns the dataset payload from the slug handler", async () => {
     getPublicDatasetBySlugMock.mockResolvedValue({
       slug: "historical-2025",
       name: "2025 Prior-Year Baseline",
@@ -70,10 +76,10 @@ describe("public dataset API routes", () => {
       },
     });
 
-    const { GET } = await import("@/app/api/public-datasets/[slug]/route");
-    const response = await GET(new Request("http://localhost"), {
-      params: Promise.resolve({ slug: "historical-2025" }),
-    });
+    const { handleGetPublicDataset } = await import(
+      "@/server/publicDatasets/handlers"
+    );
+    const response = await handleGetPublicDataset("historical-2025");
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
@@ -84,4 +90,3 @@ describe("public dataset API routes", () => {
     });
   });
 });
-

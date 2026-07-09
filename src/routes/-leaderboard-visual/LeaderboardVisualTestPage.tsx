@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Test fixture page for visual regression testing.
  *
@@ -253,7 +251,7 @@ function LeaderboardVisualTestPageInner() {
 	);
 }
 
-export default function LeaderboardVisualTestPage() {
+export function LeaderboardVisualTestPage() {
 	return (
 		<Suspense>
 			<LeaderboardVisualTestPageInner />

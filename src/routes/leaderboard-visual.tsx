@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import LeaderboardVisualTestPage from "@/app/(test)/leaderboard-visual/page";
+import { LeaderboardVisualTestPage } from "@/routes/-leaderboard-visual/LeaderboardVisualTestPage";
 
-// Visual-regression fixture — same URL and component as the Next.js route
-// (src/app/(test)/leaderboard-visual/page.tsx; the (test) group segment does
-// not appear in the URL there either).
+// Visual-regression fixture — renders the Leaderboard with deterministic data
+// for the Playwright screenshot suite. Not linked in the production UI.
 export const Route = createFileRoute("/leaderboard-visual")({
   ssr: false,
   component: LeaderboardVisualTestPage,

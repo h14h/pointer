@@ -1,5 +1,3 @@
-"use client";
-
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "@/lib/routing/adapter";
 import { useStore } from "@/store";
@@ -31,7 +29,7 @@ function SettingsRedirect() {
   return <div className="min-h-screen" />;
 }
 
-export default function SettingsPage() {
+export function SettingsPage() {
   return (
     <Suspense fallback={<div className="min-h-screen" />}>
       <SettingsRedirect />

@@ -2,36 +2,19 @@
 // of these env vars — cloud features only light up when Clerk + Convex are
 // configured. See docs/monetization.md for setup.
 //
-// Read through BOTH frameworks' public-env conventions while Next.js and
-// TanStack Start coexist: NEXT_PUBLIC_* (inlined by Next) and VITE_* (inlined
-// by Vite via import.meta.env). Keep the literal `process.env.NEXT_PUBLIC_…`
-// and `import.meta.env.VITE_…` member expressions intact — both bundlers
-// replace them statically.
+// The VITE_* values are PUBLIC (publishable key / deployment URL, safe to
+// commit) and are inlined into the client bundle by Vite at build time. Keep
+// the literal `import.meta.env.VITE_…` member expressions intact — Vite
+// replaces them statically.
 
 export const PRO_PLAN_SLUG = "pro";
 
-type ViteEnv = Record<string, string | undefined> | undefined;
-
-function viteEnv(): ViteEnv {
-  // `import.meta.env` only exists under Vite (plus vitest/bun shims); guard
-  // the property access so Next browser bundles don't crash.
-  return (import.meta as unknown as { env?: ViteEnv }).env;
-}
-
 export function getClerkPublishableKey(): string | undefined {
-  return (
-    (typeof process !== "undefined"
-      ? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-      : undefined) ?? viteEnv()?.VITE_CLERK_PUBLISHABLE_KEY
-  );
+  return import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 }
 
 export function getConvexUrl(): string | undefined {
-  return (
-    (typeof process !== "undefined"
-      ? process.env.NEXT_PUBLIC_CONVEX_URL
-      : undefined) ?? viteEnv()?.VITE_CONVEX_URL
-  );
+  return import.meta.env.VITE_CONVEX_URL;
 }
 
 /** Auth (sign-in, billing) is available. */

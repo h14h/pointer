@@ -1,6 +1,6 @@
 "use client";
 
-import { SignInButton, UserButton } from "@clerk/nextjs";
+import { SignInButton, UserButton } from "@/lib/pro/clerk";
 import { Link } from "@/lib/routing/adapter";
 import { Button } from "@/components/ui/Button";
 import { isAuthConfigured } from "@/lib/pro/config";

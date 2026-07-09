@@ -41,3 +41,14 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: bun run test:ui
+
+  build:
+    name: Build (TanStack Start)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run build

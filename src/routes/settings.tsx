@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import SettingsPage from "@/app/settings/page";
+import { SettingsPage } from "@/routes/-settings/SettingsPage";
 
-// Legacy /settings?section=… redirect — same component as the Next.js route
-// (src/app/settings/page.tsx), Suspense boundary and all.
+// Legacy /settings?section=… redirect onto the active league's workspace tabs.
 export const Route = createFileRoute("/settings")({
   ssr: false,
   component: SettingsPage,
