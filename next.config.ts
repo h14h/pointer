@@ -10,6 +10,10 @@ const allowedDevOrigins =
 
 const nextConfig: NextConfig = {
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
+  // Playwright's webServer sets this to keep its build output out of the
+  // .next dir a live dev server owns — two Next instances sharing one
+  // .next contend for the dev build lock and hang the older instance.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   experimental: {
     // The league routes are dynamic ([id]) but render pure client shells —
     // let the client router reuse their RSC payloads for 5 minutes so tab

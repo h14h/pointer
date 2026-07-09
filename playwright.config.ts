@@ -36,7 +36,7 @@ export default defineConfig({
 	],
 
 	webServer: {
-		command: `PORT=${PORT} bun run dev`,
+		command: `PORT=${PORT} NEXT_DIST_DIR=.next-e2e bun run dev`,
 		url: `http://localhost:${PORT}`,
 		reuseExistingServer: !process.env.CI,
 		timeout: 30_000,
