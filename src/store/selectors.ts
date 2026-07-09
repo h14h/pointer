@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { parseLeaguePath } from "@/lib/leaguePath";
+import { usePathname } from "@/lib/routing/adapter";
 import { resolveProjectionGroupForLeague } from "@/lib/projections";
 import { useStore } from "@/store";
 import type { League, ProjectionGroup } from "@/types";

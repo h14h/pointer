@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/lib/routing/adapter";
 import { BrandBar } from "@/components/brand/BrandBar";
 import { AccountControls } from "@/components/pro/AccountControls";
 import { Button } from "@/components/ui/Button";

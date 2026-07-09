@@ -13,7 +13,7 @@
  */
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams } from "@/lib/routing/adapter";
 import { Leaderboard } from "@/components/Leaderboard";
 import { useStore } from "@/store";
 import type {

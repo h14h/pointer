@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/lib/routing/adapter";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import {

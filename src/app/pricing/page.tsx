@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { PricingTable } from "@clerk/nextjs";
+import { Link } from "@/lib/routing/adapter";
 import { BrandBar } from "@/components/brand/BrandBar";
 import { AccountControls } from "@/components/pro/AccountControls";
 import { PageContainer } from "@/components/ui/PageContainer";

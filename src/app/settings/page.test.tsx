@@ -5,7 +5,9 @@ import SettingsPage from "@/app/settings/page";
 const replaceMock = vi.fn();
 const getSearchParamMock = vi.fn();
 
-vi.mock("next/navigation", () => ({
+// The page imports navigation through the framework seam (which the Next
+// build resolves to next/navigation) — mock the seam itself.
+vi.mock("@/lib/routing/adapter", () => ({
   useRouter: () => ({ replace: replaceMock }),
   useSearchParams: () => ({
     get: getSearchParamMock,

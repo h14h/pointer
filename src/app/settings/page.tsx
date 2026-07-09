@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "@/lib/routing/adapter";
 import { useStore } from "@/store";
 
 // Legacy URL support: /settings?section=… predates the league workspace.
