@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
+// Comma-separated hostnames allowed to load /_next/* from this dev server
+// (e.g. Tidewave on a tailnet host). See .env.example. Dev-only; never
+// put machine-specific hostnames/IPs in committed config.
+const allowedDevOrigins =
+  process.env.ALLOWED_DEV_ORIGINS?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean) ?? [];
+
 const nextConfig: NextConfig = {
+  ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
   experimental: {
     // The league routes are dynamic ([id]) but render pure client shells —
     // let the client router reuse their RSC payloads for 5 minutes so tab
