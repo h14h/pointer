@@ -7,6 +7,13 @@ const BASE = "/leaderboard-visual";
  */
 async function waitForTable(page: Page) {
 	await page.waitForSelector("table tbody tr", { timeout: 15_000 });
+	// Force every declared web font to finish loading. Without this the
+	// screenshot races `font-display: swap` on a cold dev server and captures
+	// the metric-adjusted fallback face instead of the real typeface.
+	await page.evaluate(async () => {
+		await Promise.all([...document.fonts].map((font) => font.load().catch(() => {})));
+		await document.fonts.ready;
+	});
 	// Let any CSS transitions / deferred renders settle
 	await page.waitForTimeout(300);
 }

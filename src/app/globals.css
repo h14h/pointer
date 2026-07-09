@@ -2,6 +2,17 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Self-hosted IBM Plex (Fontsource) — framework-agnostic replacement for
+   next/font. Mirrors exactly what next/font served: sans as the variable
+   font (Google Fonts ships IBM Plex Sans as a variable font; wght 100–700
+   covers the 400/500/600/700 in use), mono as static 400/500/600 weights.
+   Statics for sans render subtly differently from the variable instances,
+   so the variable package is load-bearing for visual parity. */
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+
 /* ---------------------------------------------------------------------------
    DraftSpa design tokens — "Solstice"
    Two themes, one semantic token set:
@@ -19,6 +30,11 @@
 
 :root {
   color-scheme: light;
+
+  /* Font handles — formerly injected by next/font; now plain CSS so any
+     framework (or none) gets the same faces. */
+  --font-plex-sans: "IBM Plex Sans Variable", "IBM Plex Sans";
+  --font-plex-mono: "IBM Plex Mono";
 
   /* Backgrounds */
   --color-bg-app: #f2efe8;

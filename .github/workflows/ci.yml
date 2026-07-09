@@ -34,7 +34,6 @@ jobs:
   test-ui:
     name: Test (UI / Vitest)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

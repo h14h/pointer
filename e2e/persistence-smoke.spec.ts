@@ -1,7 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const BASE = "http://localhost:3000";
-
 function countLeagueCards(page: Page) {
   // One "Open workspace" link per league card on the home grid.
   return page.getByRole("link", { name: /open workspace/i }).count();
@@ -13,7 +11,7 @@ function countLeagueCards(page: Page) {
 // ---------------------------------------------------------------------------
 test("persistence smoke — leagues and scoring survive refresh", async ({ page }) => {
   // --- Step 0: First run — onboard into baseball ---
-  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: /baseball/i }).first().click();
   await expect(page.getByRole("link", { name: /open workspace/i }).first()).toBeVisible({
     timeout: 10_000,
@@ -54,7 +52,7 @@ test("persistence smoke — leagues and scoring survive refresh", async ({ page 
   await expect(page.locator("body")).toContainText("Smoke Test League");
 
   // --- Step 4: Back to leagues — league count survived too ---
-  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.getByText("Smoke Test League")).toBeVisible({ timeout: 10_000 });
   const afterRefreshCount = await countLeagueCards(page);
   expect(afterRefreshCount).toBe(afterCreateCount);
