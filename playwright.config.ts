@@ -6,7 +6,9 @@ import { defineConfig, devices } from "@playwright/test";
 // - persistence-smoke.spec.ts   — state survives refresh
 // Runs on its own port so it never touches a live dev server (e.g. the
 // Tidewave-managed one on :3000).
-const PORT = process.env.CI ? 3099 : 3200;
+// PW_PORT lets parallel checkouts/worktrees run the suite concurrently
+// without colliding on one port.
+const PORT = Number(process.env.PW_PORT) || (process.env.CI ? 3099 : 3200);
 
 export default defineConfig({
 	testDir: "./e2e",
