@@ -23,6 +23,13 @@ export default defineConfig({
 		},
 	},
 
+	// Goldens are chromium-linux only — the canonical rendering environment is
+	// Linux (dev box + CI), and cross-OS renders differ at the pixel level. On
+	// other platforms the flows still run but screenshot assertions are skipped
+	// rather than failing against goldens that don't exist. Regenerate goldens
+	// on Linux with: bunx playwright test --update-snapshots
+	ignoreSnapshots: process.platform !== "linux",
+
 	use: {
 		baseURL: `http://localhost:${PORT}`,
 		// Disable animations so screenshots are deterministic
@@ -44,7 +51,10 @@ export default defineConfig({
 	],
 
 	webServer: {
-		command: `bun run dev -- --port ${PORT}`,
+		// The Tidewave service leaks TIDEWAVE_HTTPS_* into local shells; the
+		// test server must stay plain http or the health-check URL never
+		// resolves. (No-op in CI, where those vars don't exist.)
+		command: `env -u TIDEWAVE_HTTPS_KEY -u TIDEWAVE_HTTPS_CERT bun run dev -- --port ${PORT}`,
 		url: `http://localhost:${PORT}`,
 		reuseExistingServer: !process.env.CI,
 		timeout: 60_000,
