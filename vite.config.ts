@@ -5,7 +5,13 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import tidewave from "tidewave/vite-plugin";
-import { defineConfig, type Connect, type Plugin, type ServerOptions } from "vite";
+import {
+  defineConfig,
+  loadEnv,
+  type Connect,
+  type Plugin,
+  type ServerOptions,
+} from "vite";
 import { cacheControlForPath } from "./src/lib/publicDatasetsCachePolicy";
 
 // - `bun run dev`   → dev server on :3200 by default (scripts/dev.ts wrapper;
@@ -48,9 +54,9 @@ function publicDatasetsCacheHeaders(): Plugin {
  * scripts/dev.ts sets these when it sees the old Next-style
  * `--experimental-https-key/-cert` flags; they can also be exported directly.
  */
-function tidewaveHttps(): ServerOptions["https"] | undefined {
-  const keyPath = process.env.TIDEWAVE_HTTPS_KEY;
-  const certPath = process.env.TIDEWAVE_HTTPS_CERT;
+function tidewaveHttps(env: NodeJS.ProcessEnv): ServerOptions["https"] | undefined {
+  const keyPath = env.TIDEWAVE_HTTPS_KEY;
+  const certPath = env.TIDEWAVE_HTTPS_CERT;
   if (!keyPath || !certPath) return undefined;
   return {
     key: readFileSync(keyPath),
@@ -63,20 +69,31 @@ function tidewaveHttps(): ServerOptions["https"] | undefined {
  * tailnet). Comma-separated in ALLOWED_DEV_ORIGINS (see .env.example);
  * `*.domain` wildcards are translated to Vite's `.domain` form.
  */
-function allowedDevHosts(): string[] {
-  return (process.env.ALLOWED_DEV_ORIGINS ?? "")
+function allowedDevHosts(value: string | undefined): string[] {
+  return (value ?? "")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean)
     .map((origin) => (origin.startsWith("*.") ? origin.slice(1) : origin));
 }
 
-export default defineConfig(() => {
-  const extraHosts = allowedDevHosts();
+function tidewaveAllowedOrigins(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+export default defineConfig(({ mode }) => {
+  const env = { ...loadEnv(mode, rootDir, ""), ...process.env };
+  const extraHosts = allowedDevHosts(env.ALLOWED_DEV_ORIGINS);
+  const allowedTidewaveOrigins = tidewaveAllowedOrigins(
+    env.TIDEWAVE_ALLOWED_ORIGINS,
+  );
   return {
     server: {
       port: 3200,
-      https: tidewaveHttps(),
+      https: tidewaveHttps(env),
       ...(extraHosts.length > 0 ? { allowedHosts: extraHosts } : {}),
     },
     resolve: {
@@ -97,7 +114,12 @@ export default defineConfig(() => {
       // registers a configureServer hook, so it is inert in production builds.
       // Server-side log capture is wired in src/start.ts (dev-only import of
       // tidewave/tanstack).
-      tidewave(),
+      tidewave({
+        allowRemoteAccess: env.TIDEWAVE_ALLOW_REMOTE === "true",
+        ...(allowedTidewaveOrigins.length > 0
+          ? { allowedOrigins: allowedTidewaveOrigins }
+          : {}),
+      }),
     ],
   };
 });
