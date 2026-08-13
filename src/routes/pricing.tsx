@@ -3,6 +3,7 @@ import { PricingTable } from "@/lib/pro/clerk";
 import { Link } from "@/lib/routing/adapter";
 import { BrandBar } from "@/components/brand/BrandBar";
 import { AccountControls } from "@/components/pro/AccountControls";
+import { SiteFooter } from "@/components/legal/SiteFooter";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Panel } from "@/components/ui/Panel";
 import { isAuthConfigured, isCloudConfigured } from "@/lib/pro/config";
@@ -16,23 +17,24 @@ const proFeatures = [
   "Cloud backup for all of your leagues",
   "Multi-device sync — track your draft on a laptop, watch it update on your phone",
   "Unlimited baseball and football leagues, available everywhere you sign in",
-  "Priority access to upcoming Pro features (premium projections, player overrides)",
 ];
 
 function PricingPage() {
+  const checkoutLive = isAuthConfigured() && isCloudConfigured();
+
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <BrandBar right={<AccountControls />} />
       <main className="py-6 sm:py-8">
         <PageContainer>
-          <span className="stamp">go pro</span>
+          <span className="stamp">founding pro</span>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--color-fg-default)]">
             DraftSpa Pro
           </h1>
           <p className="mt-2 max-w-xl text-sm text-[var(--color-fg-muted)]">
             The core draft workspace is free, forever, right in your browser.
-            Pro adds the features that need a server: cloud storage and live
-            sync across devices.
+            Founding Pro is $10 this season for cloud backup and live sync.
+            That is this season&apos;s rate — not a countdown sale.
           </p>
 
           <ul className="mt-6 grid max-w-xl gap-2 text-sm text-[var(--color-fg-default)]">
@@ -45,13 +47,13 @@ function PricingPage() {
           </ul>
 
           <div className="mt-8 max-w-2xl">
-            {isAuthConfigured() && isCloudConfigured() ? (
+            {checkoutLive ? (
               <PricingTable />
             ) : (
               <Panel tone="muted" padding="md" className="rounded-lg text-sm text-[var(--color-fg-muted)]">
-                Pro subscriptions aren&apos;t configured on this deployment yet. See{" "}
-                <code className="font-mono text-xs">docs/monetization.md</code> for the
-                Clerk + Convex setup guide.
+                Checkout is not live on this build yet — we are not taking
+                cards here. Founding Pro will be $10 this season once cloud
+                backup is on. The draft workspace stays free in your browser.
               </Panel>
             )}
           </div>
@@ -63,6 +65,7 @@ function PricingPage() {
           </p>
         </PageContainer>
       </main>
+      <SiteFooter />
     </div>
   );
 }

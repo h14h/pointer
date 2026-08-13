@@ -33,18 +33,22 @@ export function OnboardingHero() {
 
       <p className="mt-8 max-w-md text-sm leading-relaxed text-[var(--color-fg-muted)]">
         Create your first league. DraftSpa builds the board around your
-        scoring, roster, projections, and draft order.
+        scoring, roster, projections, and draft order. Football is ready
+        for this NFL season; baseball is here if you need it.
       </p>
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         {SPORTS.map((option) => (
           <Button
             key={option.value}
-            variant="secondary"
+            variant={option.value === "football" ? "primary" : "secondary"}
             size="md"
             onClick={() => completeOnboarding(option.value)}
-            // Hero-weight ink border + roomier hit area on the kit button
-            className="border-[var(--color-fg-default)] px-6 py-2.5 text-[var(--color-fg-default)]"
+            className={
+              option.value === "football"
+                ? "px-6 py-2.5"
+                : "border-[var(--color-fg-default)] px-6 py-2.5 text-[var(--color-fg-default)]"
+            }
           >
             {option.label}
           </Button>

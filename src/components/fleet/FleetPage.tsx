@@ -10,6 +10,9 @@ import { useStore } from "@/store";
 import { AddLeagueCard } from "./AddLeagueCard";
 import { LeagueCard } from "./LeagueCard";
 import { OnboardingHero } from "./OnboardingHero";
+import { SiteFooter } from "@/components/legal/SiteFooter";
+import { Button } from "@/components/ui/Button";
+import { buildBackupPayload, downloadBackup } from "@/lib/exportBackup";
 
 /**
  * DraftSpa's home surface. One card per league across sports; each opens its
@@ -24,7 +27,7 @@ export function FleetPage() {
   const showFleet = hasHydrated && hasOnboarded;
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <PublicDatasetBootstrap />
 
       <BrandBar
@@ -54,6 +57,25 @@ export function FleetPage() {
             </span>
           </div>
 
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="max-w-xl text-sm text-[var(--color-fg-muted)]">
+              Your leagues are saved in this browser only. Clearing site data
+              wipes them. Export a backup, or use DraftSpa Pro for cloud
+              backup when it is live.
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                downloadBackup(
+                  buildBackupPayload({ leagues, projectionGroups }),
+                )
+              }
+            >
+              Export backup
+            </Button>
+          </div>
+
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {leagues.map((league) => (
               <LeagueCard
@@ -66,6 +88,7 @@ export function FleetPage() {
           </div>
         </PageContainer>
       )}
+      {showFleet ? <SiteFooter /> : null}
     </div>
   );
 }

@@ -9,24 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as LeaderboardVisualRouteImport } from './routes/leaderboard-visual'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as LeagueIndexRouteImport } from './routes/league.index'
+import { Route as LeaderboardVisualRouteImport } from './routes/leaderboard-visual'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiPublicDatasetsRouteImport } from './routes/api.public-datasets'
+import { Route as LeagueIndexRouteImport } from './routes/league.index'
+import { Route as ApiPublicDatasetsSlugRouteImport } from './routes/api.public-datasets.$slug'
 import { Route as LeagueLeagueIdIndexRouteImport } from './routes/league.$leagueId.index'
 import { Route as LeagueLeagueIdSplatRouteImport } from './routes/league.$leagueId.$'
-import { Route as ApiPublicDatasetsSlugRouteImport } from './routes/api.public-datasets.$slug'
 
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardVisualRoute = LeaderboardVisualRouteImport.update({
@@ -34,9 +32,34 @@ const LeaderboardVisualRoute = LeaderboardVisualRouteImport.update({
   path: '/leaderboard-visual',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDatasetsRoute = ApiPublicDatasetsRouteImport.update({
+  id: '/api/public-datasets',
+  path: '/api/public-datasets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeagueIndexRoute = LeagueIndexRouteImport.update({
@@ -44,10 +67,10 @@ const LeagueIndexRoute = LeagueIndexRouteImport.update({
   path: '/league/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicDatasetsRoute = ApiPublicDatasetsRouteImport.update({
-  id: '/api/public-datasets',
-  path: '/api/public-datasets',
-  getParentRoute: () => rootRouteImport,
+const ApiPublicDatasetsSlugRoute = ApiPublicDatasetsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ApiPublicDatasetsRoute,
 } as any)
 const LeagueLeagueIdIndexRoute = LeagueLeagueIdIndexRouteImport.update({
   id: '/league/$leagueId/',
@@ -59,17 +82,15 @@ const LeagueLeagueIdSplatRoute = LeagueLeagueIdSplatRouteImport.update({
   path: '/league/$leagueId/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicDatasetsSlugRoute = ApiPublicDatasetsSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => ApiPublicDatasetsRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/leaderboard-visual': typeof LeaderboardVisualRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/api/public-datasets': typeof ApiPublicDatasetsRouteWithChildren
   '/league/': typeof LeagueIndexRoute
   '/api/public-datasets/$slug': typeof ApiPublicDatasetsSlugRoute
@@ -80,7 +101,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/leaderboard-visual': typeof LeaderboardVisualRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/api/public-datasets': typeof ApiPublicDatasetsRouteWithChildren
   '/league': typeof LeagueIndexRoute
   '/api/public-datasets/$slug': typeof ApiPublicDatasetsSlugRoute
@@ -92,7 +116,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/leaderboard-visual': typeof LeaderboardVisualRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/api/public-datasets': typeof ApiPublicDatasetsRouteWithChildren
   '/league/': typeof LeagueIndexRoute
   '/api/public-datasets/$slug': typeof ApiPublicDatasetsSlugRoute
@@ -105,7 +132,10 @@ export interface FileRouteTypes {
     | '/'
     | '/leaderboard-visual'
     | '/pricing'
+    | '/privacy'
     | '/settings'
+    | '/support'
+    | '/terms'
     | '/api/public-datasets'
     | '/league/'
     | '/api/public-datasets/$slug'
@@ -116,7 +146,10 @@ export interface FileRouteTypes {
     | '/'
     | '/leaderboard-visual'
     | '/pricing'
+    | '/privacy'
     | '/settings'
+    | '/support'
+    | '/terms'
     | '/api/public-datasets'
     | '/league'
     | '/api/public-datasets/$slug'
@@ -127,7 +160,10 @@ export interface FileRouteTypes {
     | '/'
     | '/leaderboard-visual'
     | '/pricing'
+    | '/privacy'
     | '/settings'
+    | '/support'
+    | '/terms'
     | '/api/public-datasets'
     | '/league/'
     | '/api/public-datasets/$slug'
@@ -139,7 +175,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LeaderboardVisualRoute: typeof LeaderboardVisualRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   SettingsRoute: typeof SettingsRoute
+  SupportRoute: typeof SupportRoute
+  TermsRoute: typeof TermsRoute
   ApiPublicDatasetsRoute: typeof ApiPublicDatasetsRouteWithChildren
   LeagueIndexRoute: typeof LeagueIndexRoute
   LeagueLeagueIdSplatRoute: typeof LeagueLeagueIdSplatRoute
@@ -148,18 +187,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboard-visual': {
@@ -169,11 +201,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardVisualRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public-datasets': {
+      id: '/api/public-datasets'
+      path: '/api/public-datasets'
+      fullPath: '/api/public-datasets'
+      preLoaderRoute: typeof ApiPublicDatasetsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/league/': {
@@ -183,12 +250,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeagueIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public-datasets': {
-      id: '/api/public-datasets'
-      path: '/api/public-datasets'
-      fullPath: '/api/public-datasets'
-      preLoaderRoute: typeof ApiPublicDatasetsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/api/public-datasets/$slug': {
+      id: '/api/public-datasets/$slug'
+      path: '/$slug'
+      fullPath: '/api/public-datasets/$slug'
+      preLoaderRoute: typeof ApiPublicDatasetsSlugRouteImport
+      parentRoute: typeof ApiPublicDatasetsRoute
     }
     '/league/$leagueId/': {
       id: '/league/$leagueId/'
@@ -203,13 +270,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/league/$leagueId/$'
       preLoaderRoute: typeof LeagueLeagueIdSplatRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/api/public-datasets/$slug': {
-      id: '/api/public-datasets/$slug'
-      path: '/$slug'
-      fullPath: '/api/public-datasets/$slug'
-      preLoaderRoute: typeof ApiPublicDatasetsSlugRouteImport
-      parentRoute: typeof ApiPublicDatasetsRoute
     }
   }
 }
@@ -229,7 +289,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LeaderboardVisualRoute: LeaderboardVisualRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   SettingsRoute: SettingsRoute,
+  SupportRoute: SupportRoute,
+  TermsRoute: TermsRoute,
   ApiPublicDatasetsRoute: ApiPublicDatasetsRouteWithChildren,
   LeagueIndexRoute: LeagueIndexRoute,
   LeagueLeagueIdSplatRoute: LeagueLeagueIdSplatRoute,
@@ -238,13 +301,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
