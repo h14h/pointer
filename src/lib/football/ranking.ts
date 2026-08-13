@@ -3,11 +3,13 @@ import type {
   FootballLeagueConfig,
   FootballPlayer,
   FootballPosition,
+  LeaguePlayerOverrides,
   ProjectionGroup,
 } from "@/types";
 import { calculateFootballPoints } from "./scoring";
 import { calculateFootballPAR } from "./par";
 import { normalizePlayerSearchText } from "@/lib/leaderboard/search";
+import { applyFootballStatOverrides } from "@/lib/overrides";
 
 export type FootballPositionFilter = "ALL" | FootballPosition | "FLEX";
 export type FootballDraftFilter = "all" | "available" | "drafted" | "keepers";
@@ -22,6 +24,7 @@ export interface FootballRankedPlayer {
   keeperTeamIndex?: number;
   keeperSlotIndex?: number | null;
   searchText: string;
+  hasOverrides: boolean;
 }
 
 export type FootballSortKey = "points" | "par" | "adp" | "name";
@@ -31,6 +34,7 @@ type BuildFootballRankedPlayersArgs = {
   config: FootballLeagueConfig;
   leagueSize: number;
   draftState: DraftState;
+  playerStatOverrides?: LeaguePlayerOverrides;
 };
 
 const normalizeSearchText = normalizePlayerSearchText;
@@ -40,18 +44,24 @@ export function buildFootballRankedPlayers({
   config,
   leagueSize,
   draftState,
+  playerStatOverrides,
 }: BuildFootballRankedPlayersArgs): FootballRankedPlayer[] {
   const players = activeGroup?.footballPlayers ?? [];
   if (players.length === 0) return [];
 
-  const scored = players.map((player) => ({
-    player,
-    projectedPoints: calculateFootballPoints(player, config.scoring),
-  }));
+  const scored = players.map((uploaded) => {
+    const override = playerStatOverrides?.[uploaded._id];
+    const player = applyFootballStatOverrides(uploaded, override);
+    return {
+      player,
+      projectedPoints: calculateFootballPoints(player, config.scoring),
+      hasOverrides: Boolean(override && Object.keys(override).length > 0),
+    };
+  });
 
   const parById = calculateFootballPAR(scored, config.roster, leagueSize);
 
-  return scored.map(({ player, projectedPoints }) => ({
+  return scored.map(({ player, projectedPoints, hasOverrides }) => ({
     player,
     projectedPoints,
     par: parById.get(player._id) ?? 0,
@@ -67,6 +77,7 @@ export function buildFootballRankedPlayers({
         : undefined,
     keeperSlotIndex: draftState.keeperSlotByPlayer?.[player._id] ?? null,
     searchText: normalizeSearchText(`${player.Name} ${player.Team} ${player.Position}`),
+    hasOverrides,
   }));
 }
 

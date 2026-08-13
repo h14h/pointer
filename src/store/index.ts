@@ -26,11 +26,13 @@ import {
 } from "@/lib/projections";
 import type {
   Eligibility,
+  FootballOverrideStat,
   League,
   Player,
   ProjectionGroup,
   Sport,
 } from "@/types";
+import { setPlayerStatOverride as setOverrideOnMap } from "@/lib/overrides";
 import { randomUUID } from "@/lib/uuid";
 
 // ---------------------------------------------------------------------------
@@ -98,6 +100,11 @@ interface Store {
   setMyTeamIndex: (index: number) => void;
   // Per-league projection source (sport-scoped library)
   setLeagueProjectionGroup: (leagueId: string, groupId: string | null) => void;
+  setPlayerStatOverride: (
+    playerId: string,
+    stat: FootballOverrideStat,
+    value: number | null,
+  ) => void;
 
   // Projection actions
   addProjectionGroup: (group: ProjectionGroup) => void;
@@ -319,6 +326,18 @@ export const useStore = create<Store>()(
               : [...strategy.targetIds, playerId];
             return { strategy: { ...strategy, targetIds } };
           }),
+        ),
+
+      setPlayerStatOverride: (playerId, stat, value) =>
+        set((state) =>
+          updateActiveLeague(state, (league) => ({
+            playerStatOverrides: setOverrideOnMap(
+              league.playerStatOverrides ?? {},
+              playerId,
+              stat,
+              value,
+            ),
+          })),
         ),
 
       setRoundNote: (round, note) =>

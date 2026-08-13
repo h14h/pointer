@@ -81,6 +81,21 @@ export interface LeagueStrategy {
   noteByRound: Record<string, string>;
 }
 
+/** Sparse per-player projected-stat replacements. Football short-list only. */
+export type FootballOverrideStat =
+  | "PASS_YDS"
+  | "PASS_TD"
+  | "PASS_INT"
+  | "RUSH_YDS"
+  | "RUSH_TD"
+  | "REC"
+  | "REC_YDS"
+  | "REC_TD";
+
+export type PlayerStatOverride = Partial<Record<FootballOverrideStat, number>>;
+
+export type LeaguePlayerOverrides = Record<string, PlayerStatOverride>;
+
 export interface League {
   id: string;
   name: string;
@@ -98,5 +113,7 @@ export interface League {
   /** Projection source for this league — an id into the sport-scoped library */
   projectionGroupId?: string | null;
   strategy?: LeagueStrategy;
+  /** Per-player stat overlays on the league's projection source. Cloud-synced. */
+  playerStatOverrides?: LeaguePlayerOverrides;
   updatedAt: number;
 }
