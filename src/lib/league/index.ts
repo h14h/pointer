@@ -9,6 +9,7 @@ import type {
   Sport,
 } from "@/types";
 import { createDefaultFootballConfig, normalizeFootballConfig } from "@/lib/football/defaults";
+import { normalizePlayerStatOverrides } from "@/lib/overrides";
 import { randomUUID } from "@/lib/uuid";
 
 // ---------------------------------------------------------------------------
@@ -126,6 +127,7 @@ export const createDefaultLeague = (
     myTeamIndex: 0,
     projectionGroupId: null,
     strategy: createDefaultStrategy(),
+    playerStatOverrides: {},
     updatedAt: options?.deterministic ? 0 : Date.now(),
   };
 };
@@ -198,6 +200,7 @@ export const normalizeLeague = (league: League): League => {
     myTeamIndex,
     projectionGroupId: league.projectionGroupId ?? null,
     strategy: normalizeStrategy(league.strategy),
+    playerStatOverrides: normalizePlayerStatOverrides(league.playerStatOverrides),
     updatedAt: league.updatedAt ?? Date.now(),
   };
 };

@@ -148,6 +148,7 @@ export function buildRoomPlayers(
       config,
       leagueSize: league.leagueSettings.leagueSize,
       draftState: league.draftState,
+      playerStatOverrides: league.playerStatOverrides,
     });
     return sortFootballRankedPlayers(rows, "points", "desc").map((row) => ({
       id: row.player._id,

@@ -679,6 +679,29 @@ describe("football ranking pipeline", () => {
     expect(filterFootballRankedPlayers(rows, "ALL", "all", "lamb")).toHaveLength(1);
   });
 
+  test("applies per-player stat overlays before scoring", () => {
+    const ceedee = group.footballPlayers[2];
+    const baseline = buildFootballRankedPlayers({
+      activeGroup: group,
+      config,
+      leagueSize: 12,
+      draftState: createDefaultDraftState(),
+    });
+    const overlaid = buildFootballRankedPlayers({
+      activeGroup: group,
+      config,
+      leagueSize: 12,
+      draftState: createDefaultDraftState(),
+      playerStatOverrides: { [ceedee._id]: { REC_TD: 20 } },
+    });
+    const before = baseline.find((row) => row.player._id === ceedee._id);
+    const after = overlaid.find((row) => row.player._id === ceedee._id);
+    expect(after?.hasOverrides).toBe(true);
+    expect(before?.hasOverrides).toBe(false);
+    expect(after?.projectedPoints ?? 0).toBeGreaterThan(before?.projectedPoints ?? 0);
+    expect(ceedee.REC_TD).toBe(10);
+  });
+
   test("sorts by ADP with nulls last", () => {
     const rows = buildFootballRankedPlayers({
       activeGroup: group,

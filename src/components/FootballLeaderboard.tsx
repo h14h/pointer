@@ -33,8 +33,10 @@ import {
 	type FootballSortKey,
 } from "@/lib/football";
 import { resolveProjectionGroupForLeague } from "@/lib/projections";
-import type { FootballStats } from "@/types";
+import type { FootballPlayer, FootballStats } from "@/types";
 import { useShallow } from "zustand/react/shallow";
+import { isFootballOverrideStat } from "@/lib/overrides";
+import { OverrideEditor, OverrideTrigger } from "@/components/overrides/OverrideEditor";
 
 /* ---------------------------------------------------------------------------
    Constants & helpers
@@ -199,6 +201,7 @@ export function FootballLeaderboard() {
 		undoLastPick,
 		activeLeague,
 		hasHydrated,
+		setPlayerStatOverride,
 	} = useStore(
 		useShallow((state) => ({
 			projectionGroups: state.projectionGroups,
@@ -209,6 +212,7 @@ export function FootballLeaderboard() {
 				state.leagues.find((l) => l.id === state.activeLeagueId) ??
 				state.leagues[0],
 			hasHydrated: state.hasHydrated,
+			setPlayerStatOverride: state.setPlayerStatOverride,
 		})),
 	);
 
@@ -257,6 +261,7 @@ export function FootballLeaderboard() {
 	const [draftFilter, setDraftFilter] = useState<FootballDraftFilter>("available");
 	const [sort, setSort] = useState<SortState>({ key: "points", desc: true });
 	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
+	const [editingPlayer, setEditingPlayer] = useState<FootballPlayer | null>(null);
 
 	const resetPagination = useCallback(() => {
 		setPagination((current) =>
@@ -277,8 +282,9 @@ export function FootballLeaderboard() {
 			config: footballConfig,
 			leagueSize: leagueSettings.leagueSize,
 			draftState,
+			playerStatOverrides: activeLeague.playerStatOverrides,
 		});
-	}, [activeGroup, footballConfig, leagueSettings, draftState]);
+	}, [activeGroup, footballConfig, leagueSettings, draftState, activeLeague]);
 
 	const filteredPlayers = useMemo(
 		() =>
@@ -362,20 +368,38 @@ export function FootballLeaderboard() {
 				sortKey: "name",
 				cell: (row) => (
 					<div className="flex min-w-0 items-center gap-2">
-						<span
+						<button
+							type="button"
 							className={
 								isDraftMode && row.isDrafted
-									? "truncate text-[13px] font-semibold text-[var(--color-fg-subtle)] line-through"
-									: "truncate text-[13px] font-semibold"
+									? "truncate text-left text-[13px] font-semibold text-[var(--color-fg-subtle)] line-through"
+									: "truncate text-left text-[13px] font-semibold hover:text-[var(--color-accent)]"
 							}
-							title={row.player.Name}
+							title={`${row.player.Name} — edit overlays`}
+							onClick={(event) => {
+								event.stopPropagation();
+								const uploaded = activeGroup?.footballPlayers?.find(
+									(player) => player._id === row.player._id,
+								);
+								setEditingPlayer(uploaded ?? row.player);
+							}}
 						>
 							{abbreviateName(row.player.Name)}
-						</span>
+						</button>
 						<span className="font-data shrink-0 text-[10px] uppercase tracking-[0.08em] text-[var(--color-fg-muted)]">
 							{row.player.Team}
 						</span>
 						<div className="ml-auto flex shrink-0 items-center gap-1">
+							<OverrideTrigger
+								hasOverrides={row.hasOverrides}
+								onClick={(event) => {
+									event.stopPropagation();
+									const uploaded = activeGroup?.footballPlayers?.find(
+										(player) => player._id === row.player._id,
+									);
+									setEditingPlayer(uploaded ?? row.player);
+								}}
+							/>
 							{row.isDrafted && (
 								<TooltipProvider delayDuration={140}>
 									<Tooltip>
@@ -482,12 +506,22 @@ export function FootballLeaderboard() {
 				id: stat.id,
 				header: stat.header,
 				size: 70,
-				cell: (row) => formatCountingStat(row.player[stat.id]),
+				cell: (row) => {
+					const overridden =
+						isFootballOverrideStat(stat.id) &&
+						activeLeague?.playerStatOverrides?.[row.player._id]?.[stat.id] !==
+							undefined;
+					return (
+						<span className={overridden ? "text-[var(--color-accent)]" : undefined}>
+							{formatCountingStat(row.player[stat.id])}
+						</span>
+					);
+				},
 			}),
 		);
 
 		return [...baseColumns, ...statColumns];
-	}, [isDraftMode, leagueSettings, positionFilter]);
+	}, [isDraftMode, leagueSettings, positionFilter, activeGroup, activeLeague]);
 
 	const currentPageRows = useMemo(() => {
 		const effectivePage = Math.min(
@@ -765,6 +799,22 @@ export function FootballLeaderboard() {
 					</div>
 				</div>
 			</div>
+			<OverrideEditor
+				player={editingPlayer}
+				override={
+					editingPlayer
+						? activeLeague?.playerStatOverrides?.[editingPlayer._id]
+						: undefined
+				}
+				open={editingPlayer !== null}
+				onOpenChange={(open) => {
+					if (!open) setEditingPlayer(null);
+				}}
+				onChangeStat={(stat, value) => {
+					if (!editingPlayer) return;
+					setPlayerStatOverride(editingPlayer._id, stat, value);
+				}}
+			/>
 		</div>
 	);
 }

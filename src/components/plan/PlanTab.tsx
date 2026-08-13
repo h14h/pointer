@@ -45,6 +45,7 @@ function PlanWorksheet({ league }: { league: League }) {
           config: normalizeFootballConfig(league.football),
           leagueSize: league.leagueSettings.leagueSize,
           draftState: league.draftState,
+          playerStatOverrides: league.playerStatOverrides,
         })
       );
     }
