@@ -9,11 +9,28 @@ async function requireUserId(ctx: QueryCtx | MutationCtx) {
   return identity.subject;
 }
 
+async function requireProUserId(ctx: QueryCtx | MutationCtx) {
+  const userId = await requireUserId(ctx);
+  const entitlement = await ctx.db
+    .query("entitlements")
+    .withIndex("by_clerk_user", (q) => q.eq("clerkUserId", userId))
+    .unique();
+  if (entitlement?.status !== "active") {
+    throw new Error("Not Pro");
+  }
+  return userId;
+}
+
 export const list = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
+    const entitlement = await ctx.db
+      .query("entitlements")
+      .withIndex("by_clerk_user", (q) => q.eq("clerkUserId", identity.subject))
+      .unique();
+    if (entitlement?.status !== "active") return [];
     return await ctx.db
       .query("leagues")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
@@ -30,7 +47,7 @@ export const upsert = mutation({
     updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const userId = await requireProUserId(ctx);
     const existing = await ctx.db
       .query("leagues")
       .withIndex("by_user_league", (q) =>
@@ -39,7 +56,6 @@ export const upsert = mutation({
       .unique();
 
     if (existing) {
-      // Last write wins; ignore stale pushes from devices that are behind.
       if (existing.updatedAt >= args.updatedAt) return existing._id;
       await ctx.db.patch(existing._id, {
         name: args.name,
@@ -57,7 +73,7 @@ export const upsert = mutation({
 export const remove = mutation({
   args: { leagueId: v.string() },
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const userId = await requireProUserId(ctx);
     const existing = await ctx.db
       .query("leagues")
       .withIndex("by_user_league", (q) =>

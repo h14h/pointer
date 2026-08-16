@@ -1,120 +1,59 @@
 # Monetization (DraftSpa Pro)
 
 DraftSpa's free tier is the full client-side experience: projections, scoring,
-draft tracking, multiple local leagues — everything that runs in the browser
-costs nothing to serve and stays free. **Pro** covers the features that cost
-real money to operate: cloud league storage and live multi-device sync, such as
-logging a draft on a laptop while the board follows along on a phone.
+draft tracking, multiple local leagues. Everything that runs in the browser
+costs nothing to serve and stays free. **Pro** covers cloud league storage and
+live multi-device sync.
 
-- **Auth + billing:** [Clerk](https://clerk.com) (subscriptions via Clerk
-  Billing, no separate Stripe integration to maintain)
-- **Database + realtime sync:** [Convex](https://convex.dev) (per-user league
-  documents, broadcast to all of a user's devices)
+- **Auth:** [Clerk](https://clerk.com) (sign-in only, not billing)
+- **Payments:** [Polar](https://polar.sh) (one-time Founding Pro, merchant of record)
+- **Database + realtime sync:** [Convex](https://convex.dev) (entitlements + per-user league documents)
 
 The integration is **opt-in by configuration**. With no env vars set, the app
-builds and runs exactly as before — no sign-in UI, no network calls. This
-keeps local development, self-hosting, and the free product untouched.
+builds and runs exactly as before. Missing Polar keys show "payments not live on this build"
+instead of a fake checkout.
 
 ## Source Files
 
-- `src/lib/pro/config.ts` — env-based feature flags (`isAuthConfigured`, `isCloudConfigured`), `PRO_PLAN_SLUG`
-- `src/lib/pro/usePro.ts` — Pro entitlement hook (Clerk `has({ plan: "pro" })`)
-- `src/lib/cloudSync/` — framework-independent Cloud League sync policy, serialization helpers, and tests
-- `src/components/providers/AppProviders.tsx` — conditional `ClerkProvider` + `ConvexProviderWithClerk` wrapper
-- `src/components/pro/AccountControls.tsx` — header sign-in / account / Go Pro controls
-- `src/components/pro/CloudSync.tsx` — React/Convex adapter that runs Cloud League sync for Pro users
-- `src/routes/pricing.tsx` — pricing page (`<PricingTable />`)
-- `convex/schema.ts`, `convex/leagues.ts`, `convex/auth.config.ts` — Convex backend
-- Store support: `applyCloudLeagues`, `clearDeletedLeagueIds`, `deletedLeagueIds` tombstones in `src/store/index.ts`
+- `src/lib/pro/config.ts`
+- `src/lib/pro/lastKnownPro.ts`
+- `src/lib/pro/usePro.ts`
+- `src/components/providers/AppProviders.tsx`
+- `src/components/pro/ConfirmPro.tsx`
+- `src/components/pro/CheckoutButton.tsx`
+- `src/components/pro/CloudSync.tsx`
+- `src/routes/pricing.tsx`
+- `convex/schema.ts`, `convex/leagues.ts`, `convex/entitlements.ts`, `convex/polar.ts`, `convex/http.ts`
 
 ## Setup
 
-### 1. Clerk
+### 1. Clerk (auth only)
 
-1. Create an application at <https://dashboard.clerk.com>.
-2. Copy the publishable key into `.env.local` (see `.env.example`):
-   ```
-   VITE_CLERK_PUBLISHABLE_KEY=pk_...
-   ```
-   The app is a client-side SPA — there is no server-side Clerk middleware,
-   so no `CLERK_SECRET_KEY` is needed by the web server (Convex validates
-   Clerk JWTs at the deployment).
-3. **Billing:** enable Billing in the Clerk dashboard (Billing → Settings),
-   connect Stripe, and create a subscription plan with slug **`pro`** (the
-   slug must match `PRO_PLAN_SLUG` in `src/lib/pro/config.ts`). The pricing
-   page renders Clerk's `<PricingTable />`, so plans/prices are managed
-   entirely in the Clerk dashboard.
-4. **JWT template for Convex:** in Clerk dashboard → JWT Templates, create a
-   template named **`convex`** (Clerk has a Convex preset). Note the Issuer
-   domain (e.g. `https://your-app.clerk.accounts.dev`).
+1. Create an application at https://dashboard.clerk.com.
+2. Copy the publishable key into `.env.local` as `VITE_CLERK_PUBLISHABLE_KEY`.
+3. Do not enable Clerk Billing. Checkout is Polar.
+4. JWT template named `convex` (aud = convex). Issuer goes to Convex as `CLERK_FRONTEND_API_URL`.
 
-### 2. Convex
+### 2. Polar
 
-1. Run `bunx convex dev` once locally — it creates the project, writes
-   `CONVEX_DEPLOYMENT` (and a deployment URL — mirror it as
-   `VITE_CONVEX_URL`) to `.env.local`, pushes
-   `convex/` functions, and regenerates `convex/_generated/` (checked-in
-   copies exist so the app type-checks without a deployment).
-2. In the Convex dashboard → Settings → Environment Variables, set
-   `CLERK_JWT_ISSUER_DOMAIN` to the Clerk issuer domain from step 1.4
-   (consumed by `convex/auth.config.ts`).
-3. For production: `bunx convex deploy` and set `VITE_CONVEX_URL` to
-   the production deployment URL (see Deploy below — it's a build arg, not a
-   Fly secret).
+1. Create a one-time product Founding Pro at $10.
+2. Product id -> `VITE_POLAR_PRODUCT_ID` and Convex `POLAR_PRODUCT_ID`.
+3. Access token -> Convex `POLAR_ACCESS_TOKEN`.
+4. Webhook -> `https://<deployment>.convex.site/polar/webhook` for order.paid and order.refunded.
+5. Optional `POLAR_SERVER=sandbox`.
+6. Checkout sends the Clerk user id as `customer_external_id`.
 
-### 3. Deploy (Fly.io)
+### 3. Convex
 
-The two `VITE_*` values are inlined into the client bundle at image
-build, so they go in `fly.toml` under `[build.args]` (they're publishable,
-safe to commit — placeholders are already there, commented):
+1. Create a DraftSpa project. Set `CLERK_FRONTEND_API_URL`.
+2. Set Polar env vars. Missing keys = honest stub.
+3. Deploy convex functions from this repo.
+4. Mirror the deployment URL as `VITE_CONVEX_URL`.
 
-```toml
-[build.args]
-  VITE_CLERK_PUBLISHABLE_KEY = "pk_live_..."
-  VITE_CONVEX_URL = "https://<deployment>.convex.cloud"
-```
+## How entitlement works
 
-The web server itself holds no secrets (`CONVEX_DEPLOY_KEY` is only needed
-in CI for `convex deploy`).
-
-Then `fly deploy` — changing a `[build.args]` value requires a redeploy
-(rebuild), not just a secrets update.
-
-## How sync works
-
-`CloudSync` renders nothing and only mounts for signed-in Pro users, but the
-reconciliation rules live in `src/lib/cloudSync/` so they are independent of
-Next.js, React, Clerk, and Convex. The UI and backend are adapters around the
-policy module.
-
-- **Local-first reconciliation:** local leagues remain primary. Newer remote
-  leagues are pulled in, newer local leagues are pushed, and unknown remote
-  leagues are added unless the local workspace carries a tombstone for them.
-- **Pull:** `api.leagues.list` is a reactive Convex query. Convex pushes updates
-  over websocket, so a pick made on one device appears on another within a
-  second or two under the current last-write-wins model.
-- **Push:** local leagues newer than the cloud copy are upserted, debounced
-  1.5s. The server currently ignores stale writes (`updatedAt`
-  last-write-wins); live draft conflict handling is a future conflict adapter,
-  not part of the framework adapter.
-- **Delete:** locally deleted league ids are kept as tombstones
-  (`deletedLeagueIds`, persisted) so a pull can't resurrect them; the cloud
-  copy is removed, then the tombstone is cleared.
-
-Projection groups are *not* synced (they can be tens of MB of player data);
-leagues — settings, rosters, draft state — are, which is what matters on
-draft day. A synced league may keep a soft `projectionGroupId` reference that
-is not available on the current device. Future premium projection sources
-should be modeled as account-gated projection sources, not as Cloud League sync
-payloads.
-
-## Free vs Pro
-
-| Capability | Free | Pro |
-|---|---|---|
-| Baseball + football draft boards, projections upload, scoring, PAR | ✓ | ✓ |
-| Draft mode, keepers, unlimited local leagues | ✓ | ✓ |
-| Cloud backup of leagues | — | ✓ |
-| Live multi-device sync on draft day | — | ✓ |
-| Account that follows you across browsers/devices | — | ✓ |
-| Future: premium projections, player overrides | — | planned |
+1. Anonymous / free: local persist only. Convex is never initialized.
+2. Signed in, not Pro: Clerk session, still local, no CloudSync.
+3. Checkout: Polar. After return, ConfirmPro writes lastKnownPro.
+4. Polar webhook writes clerkUserId, status, period on order.paid.
+5. League upsert/remove require an active entitlement.

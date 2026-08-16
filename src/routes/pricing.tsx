@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PricingTable } from "@/lib/pro/clerk";
 import { Link } from "@/lib/routing/adapter";
 import { BrandBar } from "@/components/brand/BrandBar";
 import { AccountControls } from "@/components/pro/AccountControls";
+import { CheckoutButton } from "@/components/pro/CheckoutButton";
 import { SiteFooter } from "@/components/legal/SiteFooter";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Panel } from "@/components/ui/Panel";
-import { isAuthConfigured, isCloudConfigured } from "@/lib/pro/config";
+import { isAuthConfigured, isPaymentsConfigured } from "@/lib/pro/config";
+import { usePro } from "@/lib/pro/usePro";
 
 export const Route = createFileRoute("/pricing")({
   ssr: false,
@@ -19,9 +20,43 @@ const proFeatures = [
   "Unlimited baseball and football leagues, available everywhere you sign in",
 ];
 
-function PricingPage() {
-  const checkoutLive = isAuthConfigured() && isCloudConfigured();
+function PaymentsStub() {
+  return (
+    <Panel tone="muted" padding="md" className="rounded-lg text-sm text-[var(--color-fg-muted)]">
+      payments not live on this build
+    </Panel>
+  );
+}
 
+function PricingInner() {
+  const paymentsLive = isPaymentsConfigured();
+  const { isLoaded, isSignedIn, isPro } = usePro();
+
+  if (!paymentsLive) return <PaymentsStub />;
+  if (!isLoaded) return null;
+
+  if (isPro) {
+    return (
+      <Panel tone="muted" padding="md" className="rounded-lg text-sm text-[var(--color-fg-default)]">
+        You&apos;re on Founding Pro. Cloud backup and live sync are on for this
+        account.
+      </Panel>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <Panel tone="muted" padding="md" className="rounded-lg text-sm text-[var(--color-fg-muted)]">
+        Sign in to buy Founding Pro — $10 this season for cloud backup and live
+        sync. The draft workspace stays free in this browser.
+      </Panel>
+    );
+  }
+
+  return <CheckoutButton />;
+}
+
+function PricingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <BrandBar right={<AccountControls />} />
@@ -47,15 +82,7 @@ function PricingPage() {
           </ul>
 
           <div className="mt-8 max-w-2xl">
-            {checkoutLive ? (
-              <PricingTable />
-            ) : (
-              <Panel tone="muted" padding="md" className="rounded-lg text-sm text-[var(--color-fg-muted)]">
-                Checkout is not live on this build yet — we are not taking
-                cards here. Founding Pro will be $10 this season once cloud
-                backup is on. The draft workspace stays free in your browser.
-              </Panel>
-            )}
+            {isAuthConfigured() ? <PricingInner /> : <PaymentsStub />}
           </div>
 
           <p className="mt-8 text-xs text-[var(--color-fg-subtle)]">

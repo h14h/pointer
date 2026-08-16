@@ -10,6 +10,7 @@ import {
   isCloudConfigured,
 } from "@/lib/pro/config";
 import { CloudSync } from "@/components/pro/CloudSync";
+import { ConfirmPro } from "@/components/pro/ConfirmPro";
 
 function ConvexWithClerk({ children }: { children: ReactNode }) {
   const convexUrl = getConvexUrl();
@@ -17,20 +18,22 @@ function ConvexWithClerk({ children }: { children: ReactNode }) {
 
   return (
     <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+      <ConfirmPro />
       <CloudSync />
       {children}
     </ConvexProviderWithClerk>
   );
 }
 
-/**
- * Wraps the app in Clerk (auth + billing) and Convex (cloud sync) providers
- * when they are configured. Without env keys the app renders bare — fully
- * functional, local-only, free.
- */
+function ConvexWhenSignedIn({ children }: { children: ReactNode }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded || !isSignedIn || !isCloudConfigured()) {
+    return <>{children}</>;
+  }
+  return <ConvexWithClerk>{children}</ConvexWithClerk>;
+}
+
 export function AppProviders({ children }: { children: ReactNode }) {
-  // Same check as isAuthConfigured(), narrowed so the key is a string —
-  // @clerk/react has no env fallback and requires an explicit key.
   const publishableKey = getClerkPublishableKey();
   if (!publishableKey) {
     return <>{children}</>;
@@ -38,7 +41,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   return (
     <ClerkProvider publishableKey={publishableKey}>
-      {isCloudConfigured() ? <ConvexWithClerk>{children}</ConvexWithClerk> : children}
+      <ConvexWhenSignedIn>{children}</ConvexWhenSignedIn>
     </ClerkProvider>
   );
 }

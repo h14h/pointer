@@ -8,7 +8,10 @@
  * @module
  */
 
+import type * as entitlements from "../entitlements.js";
+import type * as http from "../http.js";
 import type * as leagues from "../leagues.js";
+import type * as polar from "../polar.js";
 
 import type {
   ApiFromModules,
@@ -17,7 +20,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  entitlements: typeof entitlements;
+  http: typeof http;
   leagues: typeof leagues;
+  polar: typeof polar;
 }>;
 
 /**

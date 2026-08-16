@@ -1,10 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-// Cloud-synced league storage for Pro users. The full League object (scoring,
-// roster, draft state) is stored as a JSON string so the client-side domain
-// model stays the source of truth for its shape; Convex handles per-user
-// storage and realtime broadcast across devices.
 export default defineSchema({
   leagues: defineTable({
     userId: v.string(),
@@ -16,4 +12,12 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_league", ["userId", "leagueId"]),
+
+  entitlements: defineTable({
+    clerkUserId: v.string(),
+    status: v.string(),
+    period: v.string(),
+    polarOrderId: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_clerk_user", ["clerkUserId"]),
 });

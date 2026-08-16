@@ -7,13 +7,14 @@ app = 'pointer'
 primary_region = 'ord'
 
 [build]
-  # When enabling Pro (Clerk + Convex), uncomment with your values. These are
+  # When enabling Pro (Clerk + Convex + Polar), uncomment with your values. These are
   # PUBLIC publishable values (safe to commit), and they must be build args —
   # Vite inlines VITE_* into the client bundle at image build, so
   # `fly secrets` (runtime-only) can't supply them.
   # [build.args]
   #   VITE_CLERK_PUBLISHABLE_KEY = "pk_live_..."
   #   VITE_CONVEX_URL = "https://<deployment>.convex.cloud"
+  #   VITE_POLAR_PRODUCT_ID = "prod_..."
 
 [env]
   HOSTNAME = "0.0.0.0"
