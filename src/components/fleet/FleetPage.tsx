@@ -20,7 +20,6 @@ import { buildBackupPayload, downloadBackup } from "@/lib/exportBackup";
  */
 export function FleetPage() {
   const { leagues, hasHydrated, hasOnboarded, projectionGroups } = useStore();
-  // Safe landing spot if a live-draft transition ends here.
   useSettleNightTransition();
 
   const sportCount = new Set(leagues.map((league) => league.sport)).size;
@@ -60,8 +59,8 @@ export function FleetPage() {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-xl text-sm text-[var(--color-fg-muted)]">
               Your leagues are saved in this browser only. Clearing site data
-              wipes them. Export a backup, or use DraftSpa Pro for cloud
-              backup when it is live.
+              wipes them. Export a backup. Founding Pro ($10 this season)
+              adds cloud backup when payments are live.
             </p>
             <Button
               variant="secondary"

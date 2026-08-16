@@ -27,7 +27,7 @@ export function CheckoutButton() {
   if (stub) {
     return (
       <p className="text-sm text-[var(--color-fg-muted)]">
-        payments not live on this build
+        Payments are not live on this build. We are not taking cards here.
       </p>
     );
   }

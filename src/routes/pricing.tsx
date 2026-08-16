@@ -20,10 +20,21 @@ const proFeatures = [
   "Unlimited baseball and football leagues, available everywhere you sign in",
 ];
 
-function PaymentsStub() {
+function PaymentsStub({ signedIn }: { signedIn?: boolean }) {
   return (
     <Panel tone="muted" padding="md" className="rounded-lg text-sm text-[var(--color-fg-muted)]">
-      payments not live on this build
+      <p>
+        Payments are not live on this build. We are not taking cards here.
+        Founding Pro will be $10 this season for cloud backup and live sync.
+      </p>
+      {signedIn ? (
+        <p className="mt-2">
+          You&apos;re signed in. Your leagues still live only in this browser
+          until Pro checkout is on.
+        </p>
+      ) : (
+        <p className="mt-2">The draft workspace stays free in this browser.</p>
+      )}
     </Panel>
   );
 }
@@ -32,8 +43,8 @@ function PricingInner() {
   const paymentsLive = isPaymentsConfigured();
   const { isLoaded, isSignedIn, isPro } = usePro();
 
-  if (!paymentsLive) return <PaymentsStub />;
   if (!isLoaded) return null;
+  if (!paymentsLive) return <PaymentsStub signedIn={isSignedIn} />;
 
   if (isPro) {
     return (
@@ -48,12 +59,21 @@ function PricingInner() {
     return (
       <Panel tone="muted" padding="md" className="rounded-lg text-sm text-[var(--color-fg-muted)]">
         Sign in to buy Founding Pro — $10 this season for cloud backup and live
-        sync. The draft workspace stays free in this browser.
+        sync. Until then, your leagues stay in this browser only.
       </Panel>
     );
   }
 
-  return <CheckoutButton />;
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-[var(--color-fg-muted)]">
+        You&apos;re signed in, but still on the free local workspace. Founding
+        Pro ($10 this season) turns on cloud backup and live sync — not a
+        countdown sale.
+      </p>
+      <CheckoutButton />
+    </div>
+  );
 }
 
 function PricingPage() {
