@@ -1,1 +1,1 @@
-PLACEHOLDER_ROW
+LOAD_FROM_DISK:/workspace/pointer/src/components/settings/DraftTeamRow.tsx

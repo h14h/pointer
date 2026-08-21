@@ -1,1 +1,1 @@
-PLACEHOLDER_SECTION
+LOAD_FROM_DISK:/workspace/pointer/src/components/settings/DraftSection.tsx
