@@ -352,7 +352,7 @@ describe("parseFootballCsv", () => {
     expect(parseFootballCsv(csv).detectedPosition).toBe("TE");
   });
 
-  test("parses kicker and dwarf layouts", () => {
+  test("parses kicker and DST layouts", () => {
     const kCsv = ["Player,Team,FG,FGA,XPT,FPTS", "Justin Tucker,BAL,32,36,38,140.0"].join("\n");
     const kResult = parseFootballCsv(kCsv);
     expect(kResult.detectedPosition).toBe("K");
@@ -371,3 +371,413 @@ describe("parseFootballCsv", () => {
     expect(dst.DST_TD).toBe(5);
     expect(dst.PTS_ALLOWED).toBe(310);
   });
+
+  test("parses detailed kicker and DST scoring columns", () => {
+    const csv = [
+      "Player,Team,Pos,FG Made (0-19 yards),FG Made (20-29 yards),FG Made (30-39 yards),FG Made (40-49 yards),FG Made (50+ yards),FG Missed,PAT Made,PAT Missed,Points Allowed 0,Points Allowed 1-6,Special Teams TD,Fumble Recovery TD",
+      "Scoring Sample,DST,DST,1,2,3,4,5,2,6,1,3,4,2,1",
+    ].join("\n");
+
+    const result = parseFootballCsv(csv);
+    expect(result.players).toHaveLength(1);
+    expect(result.players[0].FG0_19).toBe(1);
+    expect(result.players[0].FG50_PLUS).toBe(5);
+    expect(result.players[0].FG_MISS).toBe(2);
+    expect(result.players[0].XP).toBe(6);
+    expect(result.players[0].XP_MISS).toBe(1);
+    expect(result.players[0].PA0).toBe(3);
+    expect(result.players[0].PA1_6).toBe(4);
+    expect(result.players[0].ST_TD).toBe(2);
+    expect(result.players[0].FR_TD).toBe(1);
+  });
+
+  test("requests position selection when nothing can be inferred", () => {
+    const csv = ["Player,Team,FPTS", "Mystery Player,FA,100"].join("\n");
+    const result = parseFootballCsv(csv);
+    expect(result.needsPositionSelection).toBe(true);
+    expect(result.players).toHaveLength(0);
+  });
+
+  test("forcePosition assigns rows when no position column exists", () => {
+    const csv = ["Player,Team,FPTS", "Mystery Player,FA,100"].join("\n");
+    const result = parseFootballCsv(csv, { forcePosition: "WR" });
+    expect(result.needsPositionSelection).toBe(false);
+    expect(result.players[0].Position).toBe("WR");
+  });
+
+  test("normalizes position labels including ranked and D/ST forms", () => {
+    expect(normalizeFootballPosition("RB12")).toBe("RB");
+    expect(normalizeFootballPosition("D/ST")).toBe("DST");
+    expect(normalizeFootballPosition("DEF")).toBe("DST");
+    expect(normalizeFootballPosition("PK")).toBe("K");
+    expect(normalizeFootballPosition("Quarterback")).toBe("QB");
+    expect(normalizeFootballPosition("Running Back")).toBe("RB");
+    expect(normalizeFootballPosition("OL")).toBeNull();
+  });
+
+  test("generates stable ids from name + position", () => {
+    const csv = ["Player,Team,Pos,Rush Yds", "Bijan Robinson,ATL,RB,1450"].join("\n");
+    const again = ["Player,Team,Pos,Rush Yds", "Bijan Robinson,ATL,RB,1500"].join("\n");
+    expect(parseFootballCsv(csv).players[0]._id).toBe(parseFootballCsv(again).players[0]._id);
+  });
+
+  test("maps Excel-ish position headers and long labels", () => {
+    const csv = [
+      "Player,Team,Player Position,Pass Yds,Rush Yds,Rec Yds",
+      "Josh Allen,BUF,Quarterback,4100,520,0",
+      "Bijan Robinson,ATL,Running Back,0,1450,420",
+    ].join("\n");
+    const result = parseFootballCsv(csv);
+    expect(result.needsPositionSelection).toBe(false);
+    expect(result.players.map((p) => p.Position)).toEqual(["QB", "RB"]);
+  });
+
+  test("infers mixed positions per row when there is no position column", () => {
+    const csv = [
+      "Player,Team,Pass Cmp,Pass Int,Rush Yds,Rush Att,Rec,Rec Yds,FG,XP,Sack",
+      "Josh Allen,BUF,390,12,520,90,0,0,0,0,0",
+      "Bijan Robinson,ATL,0,0,1450,310,55,420,0,0,0",
+      "Justin Jefferson,MIN,0,0,15,3,105,1550,0,0,0",
+      "Sam LaPorta,DET,0,0,0,0,80,890,0,0,0",
+      "Justin Tucker,BAL,0,0,0,0,0,0,32,38,0",
+      "San Francisco 49ers,SF,0,0,0,0,0,0,0,0,48",
+      "Unknown,FA,0,0,0,0,0,0,0,0,0",
+    ].join("\n");
+    const result = parseFootballCsv(csv, { mixedPositions: true });
+    expect(result.needsPositionSelection).toBe(false);
+    expect(result.mixedPositions).toBe(true);
+    expect(result.players.map((p) => [p.Name, p.Position])).toEqual([
+      ["Josh Allen", "QB"],
+      ["Bijan Robinson", "RB"],
+      ["Justin Jefferson", "WR"],
+      ["Sam LaPorta", "TE"],
+      ["Justin Tucker", "K"],
+      ["San Francisco 49ers", "DST"],
+    ]);
+    expect(result.skippedPositionRows).toBe(1);
+    expect(result.warnings.some((w) => w.includes("1 row"))).toBe(true);
+  });
+
+  test("mixedPositions option classifies rows without forcing one slot", () => {
+    const csv = [
+      "Player,Team,Pass Cmp,Rush Yds,Rec Yds",
+      "Josh Allen,BUF,390,520,0",
+      "Bijan Robinson,ATL,0,1450,420",
+    ].join("\n");
+    const forced = parseFootballCsv(csv, { forcePosition: "RB" });
+    expect(forced.players.every((p) => p.Position === "RB")).toBe(true);
+
+    const mixed = parseFootballCsv(csv, { mixedPositions: true });
+    expect(mixed.mixedPositions).toBe(true);
+    expect(mixed.players.map((p) => p.Position)).toEqual(["QB", "RB"]);
+  });
+
+  test("falls back to per-row infer when file-level position cannot be detected", () => {
+    const csv = [
+      "Player,Team,Pass Yds,FPTS",
+      "Josh Allen,BUF,4100,380",
+      "Nobody,FA,0,12",
+    ].join("\n");
+    const result = parseFootballCsv(csv);
+    expect(result.needsPositionSelection).toBe(false);
+    expect(result.mixedPositions).toBe(true);
+    expect(result.players.map((p) => [p.Name, p.Position])).toEqual([["Josh Allen", "QB"]]);
+    expect(result.skippedPositionRows).toBe(1);
+  });
+});
+
+describe("mergeFootballPlayers", () => {
+  test("replaces players with matching ids and appends new ones", () => {
+    const existing = [makePlayer({ Name: "A", Position: "RB", RUSH_YDS: 100 })];
+    const incoming = [
+      makePlayer({ Name: "A", Position: "RB", RUSH_YDS: 200 }),
+      makePlayer({ Name: "B", Position: "WR" }),
+    ];
+    const merged = mergeFootballPlayers(existing, incoming);
+    expect(merged).toHaveLength(2);
+    expect(merged.find((p) => p.Name === "A")?.RUSH_YDS).toBe(200);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PAR
+// ---------------------------------------------------------------------------
+
+describe("football PAR", () => {
+  test("slot eligibility includes FLEX and SUPERFLEX correctly", () => {
+    expect(getEligibleFootballSlots("QB")).toEqual(["QB", "SUPERFLEX"]);
+    expect(getEligibleFootballSlots("RB")).toEqual(["RB", "FLEX", "SUPERFLEX"]);
+    expect(getEligibleFootballSlots("K")).toEqual(["K"]);
+  });
+
+  test("replacement level is the best player outside the starter pool", () => {
+    // 2-team league, 1 RB slot each, no FLEX → top 2 RBs are starters,
+    // replacement level = RB3's points.
+    const players = [200, 180, 150, 120].map((points, i) => ({
+      player: makePlayer({ Name: `RB${i + 1}`, Position: "RB" as FootballPosition }),
+      projectedPoints: points,
+    }));
+    const roster = {
+      positions: { QB: 0, RB: 1, WR: 0, TE: 0, FLEX: 0, SUPERFLEX: 0, K: 0, DST: 0 },
+      bench: 0,
+    };
+    const levels = calculateFootballReplacementLevels(players, roster, 2);
+    expect(levels.RB).toBe(150);
+
+    const parById = calculateFootballPAR(players, roster, 2);
+    expect(parById.get(players[0].player._id)).toBe(50);
+    expect(parById.get(players[2].player._id)).toBe(0);
+  });
+
+  test("replacement level accounts for bench slots", () => {
+    // 2-team league, 1 RB starter and 1 bench each → top 4 RBs are rostered,
+    // replacement level = RB5's points.
+    const players = [200, 180, 150, 120, 90].map((points, i) => ({
+      player: makePlayer({ Name: `Bench RB${i + 1}`, Position: "RB" as FootballPosition }),
+      projectedPoints: points,
+    }));
+    const roster = {
+      positions: { QB: 0, RB: 1, WR: 0, TE: 0, FLEX: 0, SUPERFLEX: 0, K: 0, DST: 0 },
+      bench: 1,
+    };
+
+    const levels = calculateFootballReplacementLevels(players, roster, 2);
+    expect(levels.RB).toBe(90);
+
+    const parById = calculateFootballPAR(players, roster, 2);
+    expect(parById.get(players[3].player._id)).toBe(30);
+    expect(parById.get(players[4].player._id)).toBe(0);
+  });
+
+  test("positive PAR count follows realistic positional bench demand in a balanced 1-QB league", () => {
+    const roster: FootballRosterSettings = {
+      positions: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 2, SUPERFLEX: 0, K: 1, DST: 1 },
+      bench: 5,
+    };
+    const players = makePointCurvePlayers(
+      { QB: 40, RB: 70, WR: 70, TE: 40, K: 30, DST: 30 },
+      realisticFootballPointCurveStart
+    );
+
+    const parById = calculateFootballPAR(players, roster, 10);
+    const positiveParCount = positiveParCountsByPosition(players, parById);
+    const demand = calculateFootballPositionalRosterDemand(roster, 10);
+
+    expect(demand.QB).toBeGreaterThanOrEqual(18);
+    expect(demand.QB).toBeLessThanOrEqual(20);
+    expect(demand.RB).toBeGreaterThanOrEqual(45);
+    expect(demand.WR).toBeGreaterThanOrEqual(42);
+    expect(demand.K).toBe(10);
+    expect(demand.DST).toBe(10);
+    expect(positiveParCount.QB).toBe(demand.QB);
+    expect(positiveParCount.K).toBe(demand.K);
+    expect(positiveParCount.DST).toBe(demand.DST);
+    expect(Math.abs(positiveParCount.RB - demand.RB)).toBeLessThanOrEqual(5);
+    expect(Math.abs(positiveParCount.WR - demand.WR)).toBeLessThanOrEqual(5);
+    expect(Math.abs(positiveParCount.TE - demand.TE)).toBeLessThanOrEqual(5);
+  });
+
+  test("superflex leagues increase QB roster demand without adding K/DST bench demand", () => {
+    const oneQbRoster: FootballRosterSettings = {
+      positions: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SUPERFLEX: 0, K: 1, DST: 1 },
+      bench: 5,
+    };
+    const superflexRoster: FootballRosterSettings = {
+      positions: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SUPERFLEX: 1, K: 1, DST: 1 },
+      bench: 5,
+    };
+
+    const oneQbDemand = calculateFootballPositionalRosterDemand(oneQbRoster, 10);
+    const superflexDemand = calculateFootballPositionalRosterDemand(superflexRoster, 10);
+
+    expect(superflexDemand.QB).toBeGreaterThan(oneQbDemand.QB);
+    expect(superflexDemand.QB).toBeGreaterThanOrEqual(30);
+    expect(superflexDemand.K).toBe(10);
+    expect(superflexDemand.DST).toBe(10);
+  });
+
+  test("fuzzes positional roster shares and replacement thresholds for common league shapes", () => {
+    const rosterArb = fc.record({
+      qb: fc.integer({ min: 1, max: 2 }),
+      rb: fc.integer({ min: 1, max: 3 }),
+      wr: fc.integer({ min: 2, max: 4 }),
+      te: fc.integer({ min: 1, max: 2 }),
+      flex: fc.integer({ min: 0, max: 3 }),
+      superflex: fc.integer({ min: 0, max: 1 }),
+      bench: fc.integer({ min: 3, max: 8 }),
+      leagueSize: fc.integer({ min: 8, max: 14 }),
+    });
+
+    fc.assert(
+      fc.property(rosterArb, ({ qb, rb, wr, te, flex, superflex, bench, leagueSize }) => {
+        const roster: FootballRosterSettings = {
+          positions: {
+            QB: qb,
+            RB: rb,
+            WR: wr,
+            TE: te,
+            FLEX: flex,
+            SUPERFLEX: superflex,
+            K: 1,
+            DST: 1,
+          },
+          bench,
+        };
+        const demand = calculateFootballPositionalRosterDemand(roster, leagueSize);
+        const players = makePointCurvePlayers({
+          QB: 80,
+          RB: 220,
+          WR: 220,
+          TE: 120,
+          K: 40,
+          DST: 40,
+        }, realisticFootballPointCurveStart);
+        const parById = calculateFootballPAR(players, roster, leagueSize);
+        const positiveParCount = positiveParCountsByPosition(players, parById);
+        const totalRosterSlots =
+          (qb + rb + wr + te + flex + superflex + 2 + bench) * leagueSize;
+        const totalPositive = Object.values(positiveParCount).reduce((sum, count) => sum + count, 0);
+
+        const flexibleStarterCount = (flex + superflex) * leagueSize;
+
+        expect(totalPositive).toBe(totalRosterSlots);
+        expect(demand.K).toBe(leagueSize);
+        expect(demand.DST).toBe(leagueSize);
+        expect(positiveParCount.K).toBe(demand.K);
+        expect(positiveParCount.DST).toBe(demand.DST);
+        expect(Math.abs(positiveParCount.QB - demand.QB)).toBeLessThanOrEqual(
+          superflex > 0 ? leagueSize : 2
+        );
+        expect(Math.abs(positiveParCount.RB - demand.RB)).toBeLessThanOrEqual(
+          flexibleStarterCount
+        );
+        expect(Math.abs(positiveParCount.WR - demand.WR)).toBeLessThanOrEqual(
+          flexibleStarterCount
+        );
+        expect(Math.abs(positiveParCount.TE - demand.TE)).toBeLessThanOrEqual(
+          flexibleStarterCount
+        );
+
+        const qbBench = demand.QB - (qb * leagueSize + Math.round(superflex * leagueSize * 0.75));
+        const qbBenchCap = Math.round((superflex > 0 ? 1.6 : 1) * leagueSize);
+        expect(qbBench).toBeGreaterThanOrEqual(0);
+        expect(qbBench).toBeLessThanOrEqual(qbBenchCap);
+
+        const rbWrShare = (demand.RB + demand.WR) / totalRosterSlots;
+        expect(rbWrShare).toBeGreaterThanOrEqual(0.35);
+        expect(rbWrShare).toBeLessThanOrEqual(0.78);
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  test("FLEX slots absorb the best remaining RB/WR/TE", () => {
+    // 1-team league: RB1 + FLEX1. Two RBs and one WR.
+    const rb1 = { player: makePlayer({ Name: "RB One", Position: "RB" as FootballPosition }), projectedPoints: 200 };
+    const rb2 = { player: makePlayer({ Name: "RB Two", Position: "RB" as FootballPosition }), projectedPoints: 190 };
+    const wr1 = { player: makePlayer({ Name: "WR One", Position: "WR" as FootballPosition }), projectedPoints: 150 };
+    const roster = {
+      positions: { QB: 0, RB: 1, WR: 0, TE: 0, FLEX: 1, SUPERFLEX: 0, K: 0, DST: 0 },
+      bench: 0,
+    };
+    // Starters: RB1 (RB slot), RB2 (FLEX). No RBs remain (RB replacement = 0);
+    // the best remaining FLEX-eligible player is WR1.
+    const levels = calculateFootballReplacementLevels([rb1, rb2, wr1], roster, 1);
+    expect(levels.RB).toBe(0);
+    expect(levels.FLEX).toBe(150);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Ranking pipeline
+// ---------------------------------------------------------------------------
+
+describe("football ranking pipeline", () => {
+  const config = normalizeFootballConfig(undefined);
+
+  const group = {
+    id: "g1",
+    name: "Test",
+    createdAt: new Date().toISOString(),
+    sport: "football" as const,
+    source: { kind: "upload" as const },
+    batters: [],
+    pitchers: [],
+    twoWayPlayers: [],
+    footballPlayers: [
+      makePlayer({ Name: "Lamar Jackson", Position: "QB", PASS_YDS: 3800, PASS_TD: 28, RUSH_YDS: 800, RUSH_TD: 5 }),
+      makePlayer({ Name: "Saquon Barkley", Position: "RB", RUSH_YDS: 1800, RUSH_TD: 14, REC: 40, REC_YDS: 280 }),
+      makePlayer({ Name: "CeeDee Lamb", Position: "WR", REC: 110, REC_YDS: 1500, REC_TD: 10, ADP: 5 }),
+    ],
+    batterIdSource: null,
+    pitcherIdSource: null,
+  };
+
+  test("builds ranked players with points, PAR, and draft status", () => {
+    const draftState = createDefaultDraftState();
+    const saquonId = group.footballPlayers[1]._id;
+    draftState.draftedByTeam[saquonId] = "3";
+
+    const rows = buildFootballRankedPlayers({
+      activeGroup: group,
+      config,
+      leagueSize: 12,
+      draftState,
+    });
+
+    expect(rows).toHaveLength(3);
+    const saquon = rows.find((r) => r.player._id === saquonId);
+    expect(saquon?.isDrafted).toBe(true);
+    expect(saquon?.draftedTeamIndex).toBe(3);
+    expect(saquon?.projectedPoints).toBeGreaterThan(0);
+  });
+
+  test("filters by position, draft status, and search", () => {
+    const rows = buildFootballRankedPlayers({
+      activeGroup: group,
+      config,
+      leagueSize: 12,
+      draftState: createDefaultDraftState(),
+    });
+
+    expect(filterFootballRankedPlayers(rows, "QB", "all", "")).toHaveLength(1);
+    expect(filterFootballRankedPlayers(rows, "FLEX", "all", "")).toHaveLength(2);
+    expect(filterFootballRankedPlayers(rows, "ALL", "all", "lamb")).toHaveLength(1);
+  });
+
+  test("applies per-player stat overlays before scoring", () => {
+    const ceedee = group.footballPlayers[2];
+    const baseline = buildFootballRankedPlayers({
+      activeGroup: group,
+      config,
+      leagueSize: 12,
+      draftState: createDefaultDraftState(),
+    });
+    const overlaid = buildFootballRankedPlayers({
+      activeGroup: group,
+      config,
+      leagueSize: 12,
+      draftState: createDefaultDraftState(),
+      playerStatOverrides: { [ceedee._id]: { REC_TD: 20 } },
+    });
+    const before = baseline.find((row) => row.player._id === ceedee._id);
+    const after = overlaid.find((row) => row.player._id === ceedee._id);
+    expect(after?.hasOverrides).toBe(true);
+    expect(before?.hasOverrides).toBe(false);
+    expect(after?.projectedPoints ?? 0).toBeGreaterThan(before?.projectedPoints ?? 0);
+    expect(ceedee.REC_TD).toBe(10);
+  });
+
+  test("sorts by ADP with nulls last", () => {
+    const rows = buildFootballRankedPlayers({
+      activeGroup: group,
+      config,
+      leagueSize: 12,
+      draftState: createDefaultDraftState(),
+    });
+
+    const sorted = sortFootballRankedPlayers(rows, "adp", "asc");
+    expect(sorted[0].player.Name).toBe("CeeDee Lamb");
+    expect(sorted[sorted.length - 1].player.ADP).toBeNull();
+  });
+});
