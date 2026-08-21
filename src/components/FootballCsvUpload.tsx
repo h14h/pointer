@@ -21,7 +21,7 @@ interface FootballCsvUploadProps {
   onClose: () => void;
 }
 
-type PositionChoice = FootballPosition | "unselected";
+type PositionChoice = FootballPosition | "unselected" | "all";
 
 type UploadFileState = {
   file: File;
@@ -49,7 +49,8 @@ function suggestGroupName(fileName: string | undefined, groupCount: number) {
   return `Football Projections ${groupCount + 1}`;
 }
 
-const POSITION_OPTIONS: { value: FootballPosition; label: string }[] = [
+const POSITION_OPTIONS: { value: FootballPosition | "all"; label: string }[] = [
+  { value: "all", label: "All positions (mixed file)" },
   { value: "QB", label: "Quarterbacks (QB)" },
   { value: "RB", label: "Running Backs (RB)" },
   { value: "WR", label: "Wide Receivers (WR)" },
@@ -75,12 +76,16 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
 
       try {
         const contents = await Promise.all(fileArray.map((file) => readFile(file)));
-        const nextFiles: UploadFileState[] = fileArray.map((file, i) => ({
-          file,
-          content: contents[i],
-          parseResult: parseFootballCsv(contents[i]),
-          positionChoice: "unselected",
-        }));
+        const nextFiles: UploadFileState[] = fileArray.map((file, i) => {
+          const initial = parseFootballCsv(contents[i]);
+          const parseResult = initial.needsPositionSelection
+            ? parseFootballCsv(contents[i], { mixedPositions: true })
+            : initial;
+          const positionChoice: PositionChoice = parseResult.mixedPositions
+            ? "all"
+            : (parseResult.detectedPosition ?? "unselected");
+          return { file, content: contents[i], parseResult, positionChoice };
+        });
 
         if (!groupNameTouched) {
           setGroupName(suggestGroupName(fileArray[0]?.name, projectionGroups.length));
@@ -115,14 +120,17 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
     [handleFiles],
   );
 
-  const setFilePosition = (index: number, position: FootballPosition) => {
+  const setFilePosition = (index: number, position: FootballPosition | "all") => {
     setFiles((current) =>
       current.map((fileState, i) => {
         if (i !== index) return fileState;
         return {
           ...fileState,
           positionChoice: position,
-          parseResult: parseFootballCsv(fileState.content, { forcePosition: position }),
+          parseResult: parseFootballCsv(
+            fileState.content,
+            position === "all" ? { mixedPositions: true } : { forcePosition: position },
+          ),
         };
       }),
     );
@@ -161,7 +169,7 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
       return;
     }
     if (pendingPositionSelection) {
-      setError("Select a position for each file that needs one.");
+      setError("Select All positions or a single position for each file that needs one.");
       return;
     }
 
@@ -228,8 +236,8 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
       {files.length === 0 ? (
         <>
           <p className="mb-4 text-sm text-[var(--color-fg-muted)]">
-            Upload one combined CSV with a position column, or several per-position files
-            (QB, RB, WR, TE, K, D/ST) — they merge into a single projection group.
+            Upload one mixed CSV (All positions) or several per-position files
+            (QB, RB, WR, TE, K, D/ST). They merge into a single projection group.
           </p>
 
           <div
@@ -303,8 +311,13 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
                     ) : (
                       <p className="font-data mt-1 text-sm text-[var(--color-fg-muted)]">
                         {`${parseResult.players.length} players` +
-                          (parseResult.detectedPosition
-                            ? ` (detected: ${parseResult.detectedPosition})`
+                          (parseResult.mixedPositions
+                            ? " (mixed positions)"
+                            : parseResult.detectedPosition
+                              ? ` (detected: ${parseResult.detectedPosition})`
+                              : "") +
+                          (parseResult.skippedPositionRows > 0
+                            ? ` · ${parseResult.skippedPositionRows} skipped`
                             : "")}
                       </p>
                     )}
@@ -322,23 +335,16 @@ export function FootballCsvUpload({ isOpen, onClose }: FootballCsvUploadProps) {
                     <Dropdown
                       value={
                         fileState.positionChoice === "unselected"
-                          ? (parseResult.detectedPosition ?? "unselected")
+                          ? (parseResult.detectedPosition ?? "all")
                           : fileState.positionChoice
                       }
                       onChange={(value) => {
-                        if (value !== "unselected") {
-                          setFilePosition(index, value as FootballPosition);
-                        }
+                        setFilePosition(index, value as FootballPosition | "all");
                       }}
                       ariaLabel={`Position for ${fileState.file.name}`}
                       fullWidth
                       menuClassName="w-full min-w-0"
-                      options={[
-                        ...(needsPosition && fileState.positionChoice === "unselected"
-                          ? [{ value: "unselected", label: "Select a position..." }]
-                          : []),
-                        ...POSITION_OPTIONS,
-                      ]}
+                      options={POSITION_OPTIONS}
                     />
                   </div>
                 )}
