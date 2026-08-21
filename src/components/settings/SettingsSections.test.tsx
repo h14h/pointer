@@ -1,1 +1,1 @@
-LOAD_FROM_DISK:/workspace/pointer/src/components/settings/SettingsSections.test.tsx
+SEE_DISK_FILE_SettingsSections_test

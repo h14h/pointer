@@ -1,1 +1,1 @@
-LOAD_FROM_DISK:/workspace/pointer/src/components/settings/DraftSection.tsx
+SEE_DISK_FILE_DraftSection
