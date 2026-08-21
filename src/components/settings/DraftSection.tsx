@@ -98,9 +98,7 @@ export function DraftSection() {
   const [keeperSearchByTeam, setKeeperSearchByTeam] = useState<Record<number, string>>({});
   const [keeperRoundDraftByPlayer, setKeeperRoundDraftByPlayer] = useState<Record<string, string>>({});
   const [expandedTeamIndex, setExpandedTeamIndex] = useState<number | null>(null);
-  const [frozenKeeperOrderByTeam, setFrozenKeeperOrderByTeam] = useState<
-    Record<number, string[]>
-  >({});
+  const frozenKeeperOrderByTeamRef = useRef<Record<number, string[]>>({});
 
   const keeperEntries = Object.entries(draftState.keeperByTeam)
     .map(([playerId, teamIndex]) => ({
@@ -156,10 +154,20 @@ export function DraftSection() {
       (left, right) => getKeeperRoundValue(left) - getKeeperRoundValue(right),
     );
 
+  const snapshotKeeperOrder = (teamIndex: number) => {
+    const existing = frozenKeeperOrderByTeamRef.current[teamIndex];
+    if (existing && existing.length > 0) return existing;
+    const ids = getTeamKeepers(teamIndex).map((entry) => entry.playerId);
+    frozenKeeperOrderByTeamRef.current = {
+      ...frozenKeeperOrderByTeamRef.current,
+      [teamIndex]: ids,
+    };
+    return ids;
+  };
+
   const applyFrozenKeeperOrder = (teamIndex: number) => {
     const entries = getTeamKeepers(teamIndex);
-    const frozen = frozenKeeperOrderByTeam[teamIndex];
-    if (!frozen || frozen.length === 0) return entries;
+    const frozen = snapshotKeeperOrder(teamIndex);
     const byId = new Map(entries.map((entry) => [entry.playerId, entry]));
     const ordered: DraftKeeperEntry[] = [];
     for (const playerId of frozen) {
@@ -170,6 +178,8 @@ export function DraftSection() {
     for (const entry of entries) {
       if (!seen.has(entry.playerId)) ordered.push(entry);
     }
+    const nextIds = ordered.map((entry) => entry.playerId);
+    frozenKeeperOrderByTeamRef.current[teamIndex] = nextIds;
     return ordered;
   };
 
@@ -466,13 +476,7 @@ export function DraftSection() {
               onToggleExpanded={() => {
                 setExpandedTeamIndex((current) => {
                   if (current === index) return null;
-                  setFrozenKeeperOrderByTeam((orders) => {
-                    if (orders[index] && orders[index].length > 0) return orders;
-                    return {
-                      ...orders,
-                      [index]: getTeamKeepers(index).map((entry) => entry.playerId),
-                    };
-                  });
+                  snapshotKeeperOrder(index);
                   return index;
                 });
               }}
