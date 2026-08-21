@@ -21,11 +21,17 @@ export interface FootballParseResult {
   detectedPosition: FootballPosition | null;
   /** True when no position column exists and inference failed. */
   needsPositionSelection: boolean;
+  /** True when rows were classified individually instead of one file-level position. */
+  mixedPositions: boolean;
+  /** Rows skipped because position could not be mapped or inferred. */
+  skippedPositionRows: number;
 }
 
 export interface FootballParseOptions {
   /** Position to assign to rows that lack a position column. */
   forcePosition?: FootballPosition;
+  /** Classify each row on its own (column or per-row stats). Do not force one slot. */
+  mixedPositions?: boolean;
 }
 
 type CanonicalField =
@@ -45,6 +51,7 @@ function detectDelimiter(content: string): string {
 
 function normalizeHeaderToken(header: string): string {
   return header
+    .replace(/^\ufeff/, "")
     .trim()
     .toUpperCase()
     .replace(/\+/g, " PLUS ")
@@ -64,6 +71,15 @@ const HEADER_ALIASES: Record<string, CanonicalField> = {
   TM: "Team",
   POS: "POS",
   POSITION: "POS",
+  POSN: "POS",
+  "PLAYER POS": "POS",
+  "PLAYER POSITION": "POS",
+  "ROSTER POSITION": "POS",
+  "FANTASY POSITION": "POS",
+  "FANTASY POS": "POS",
+  ELIG: "POS",
+  ELIGIBLE: "POS",
+  ELIGIBILITY: "POS",
   BYE: "BYE",
   "BYE WEEK": "BYE",
   ADP: "ADP",
@@ -369,28 +385,65 @@ export function normalizeFootballPosition(value: string | undefined): FootballPo
   if (!value) return null;
   // Strip positional ranks like "RB12" and whitespace
   const cleaned = value.trim().toUpperCase().replace(/[\s.]/g, "").replace(/\d+$/, "");
-  switch (cleaned) {
+  const primary = cleaned.split("/")[0] ?? cleaned;
+  switch (primary) {
     case "QB":
+    case "QUARTERBACK":
       return "QB";
     case "RB":
     case "HB":
     case "FB":
+    case "RUNNINGBACK":
       return "RB";
     case "WR":
+    case "WIDERECEIVER":
       return "WR";
     case "TE":
+    case "TIGHTEND":
       return "TE";
     case "K":
     case "PK":
+    case "KICKER":
       return "K";
     case "DST":
     case "D/ST":
     case "DEF":
     case "D":
+    case "DEFENSE":
+    case "SPECIALTEAMS":
+    case "TEAMDEF":
       return "DST";
     default:
       return null;
   }
+}
+
+function inferRowPosition(stats: {
+  PASS_CMP: number;
+  PASS_INT: number;
+  PASS_ATT: number;
+  PASS_YDS: number;
+  RUSH_ATT: number;
+  RUSH_YDS: number;
+  RUSH_TD: number;
+  TGT: number;
+  REC: number;
+  REC_YDS: number;
+  REC_TD: number;
+  FG: number;
+  XP: number;
+  SACK: number;
+}): FootballPosition | null {
+  if (stats.FG > 0 && stats.XP > 0) return "K";
+  if (stats.SACK > 0) return "DST";
+  if (stats.PASS_CMP > 0 || stats.PASS_INT > 0 || stats.PASS_ATT > 0 || stats.PASS_YDS > 0) return "QB";
+
+  const hasRush = stats.RUSH_ATT > 0 || stats.RUSH_YDS > 0 || stats.RUSH_TD > 0;
+  const hasRec = stats.REC > 0 || stats.REC_YDS > 0 || stats.TGT > 0 || stats.REC_TD > 0;
+  if (hasRec && !hasRush) return "TE";
+  if (hasRush && (!hasRec || stats.RUSH_YDS >= stats.REC_YDS)) return "RB";
+  if (hasRec) return "WR";
+  return null;
 }
 
 function inferFilePosition(
@@ -462,8 +515,9 @@ export function parseFootballCsv(
   };
 
   const hasPositionColumn = mappedFields.has("POS");
+  const mixedPositions = options?.mixedPositions === true;
   let detectedPosition: FootballPosition | null = null;
-  if (!hasPositionColumn && !options?.forcePosition) {
+  if (!hasPositionColumn && !options?.forcePosition && !mixedPositions) {
     detectedPosition = inferFilePosition(resolution, mappedFields);
     if (detectedPosition) {
       warnings.push(
@@ -473,19 +527,8 @@ export function parseFootballCsv(
     }
   }
 
-  const filePosition = options?.forcePosition ?? detectedPosition;
-
-  if (!hasPositionColumn && !filePosition) {
-    return {
-      players: [],
-      rowCount: dataRows.length,
-      errors,
-      warnings,
-      availableColumns: rawHeaders,
-      detectedPosition: null,
-      needsPositionSelection: true,
-    };
-  }
+  const filePosition = mixedPositions ? undefined : (options?.forcePosition ?? detectedPosition);
+  const useMixedFallback = mixedPositions || (!hasPositionColumn && !filePosition);
 
   let skippedPositionRows = 0;
   const players: FootballPlayer[] = [];
@@ -494,9 +537,30 @@ export function parseFootballCsv(
     const name = (getValue(row, "Name") ?? "").trim();
     if (name === "") return;
 
-    const position = hasPositionColumn
-      ? (normalizeFootballPosition(getValue(row, "POS")) ?? filePosition ?? null)
-      : filePosition;
+    const rowStats = {
+      PASS_CMP: parseNumber(getValue(row, "PASS_CMP")),
+      PASS_INT: parseNumber(getValue(row, "PASS_INT")),
+      PASS_ATT: parseNumber(getValue(row, "PASS_ATT")),
+      PASS_YDS: parseNumber(getValue(row, "PASS_YDS")),
+      RUSH_ATT: parseNumber(getValue(row, "RUSH_ATT")),
+      RUSH_YDS: parseNumber(getValue(row, "RUSH_YDS")),
+      RUSH_TD: parseNumber(getValue(row, "RUSH_TD")),
+      TGT: parseNumber(getValue(row, "TGT")),
+      REC: parseNumber(getValue(row, "REC")),
+      REC_YDS: parseNumber(getValue(row, "REC_YDS")),
+      REC_TD: parseNumber(getValue(row, "REC_TD")),
+      FG: parseNumber(getValue(row, "FG")),
+      XP: parseNumber(getValue(row, "XP")),
+      SACK: parseNumber(getValue(row, "SACK")),
+    };
+    const fromColumn = hasPositionColumn
+      ? normalizeFootballPosition(getValue(row, "POS"))
+      : null;
+    const position =
+      fromColumn ??
+      (useMixedFallback ? inferRowPosition(rowStats) : null) ??
+      filePosition ??
+      null;
     if (!position) {
       skippedPositionRows += 1;
       return;
@@ -563,7 +627,22 @@ export function parseFootballCsv(
   });
 
   if (skippedPositionRows > 0) {
-    warnings.push(`${skippedPositionRows} row(s) skipped — unrecognized position.`);
+    warnings.push(`${skippedPositionRows} row(s) skipped — could not classify position.`);
+  }
+
+  const usedMixed = useMixedFallback && !filePosition;
+  if (usedMixed && players.length === 0 && !hasPositionColumn && !options?.forcePosition && !mixedPositions) {
+    return {
+      players: [],
+      rowCount: dataRows.length,
+      errors,
+      warnings: warnings.filter((warning) => !warning.includes("could not classify position")),
+      availableColumns: rawHeaders,
+      detectedPosition: null,
+      needsPositionSelection: true,
+      mixedPositions: false,
+      skippedPositionRows: 0,
+    };
   }
 
   return {
@@ -574,6 +653,8 @@ export function parseFootballCsv(
     availableColumns: rawHeaders,
     detectedPosition,
     needsPositionSelection: false,
+    mixedPositions: usedMixed,
+    skippedPositionRows,
   };
 }
 
