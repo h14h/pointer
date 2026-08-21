@@ -450,8 +450,23 @@ function inferFilePosition(
   resolution: HeaderResolution,
   fields: Set<CanonicalField>
 ): FootballPosition | null {
-  if (fields.has("FG") && fields.has("XP")) return "K";
-  if (fields.has("SACK")) return "DST";
+  const hasKick = fields.has("FG") && fields.has("XP");
+  const hasDst = fields.has("SACK");
+  const hasPass =
+    fields.has("PASS_CMP") ||
+    fields.has("PASS_INT") ||
+    fields.has("PASS_ATT") ||
+    fields.has("PASS_YDS");
+  const hasRush = fields.has("RUSH_ATT") || fields.has("RUSH_YDS") || fields.has("RUSH_TD");
+  const hasRec = fields.has("REC") || fields.has("REC_YDS") || fields.has("TGT") || fields.has("REC_TD");
+  const hasOffense = hasPass || hasRush || hasRec;
+  // Mixed files (Book1) often keep leftover FG/XP or Sack columns. Do not
+  // force every row into one slot when more than one family is present.
+  const families = [hasKick, hasDst, hasOffense].filter(Boolean).length;
+  if (families > 1) return null;
+
+  if (hasKick) return "K";
+  if (hasDst) return "DST";
   if (fields.has("PASS_CMP") || fields.has("PASS_INT")) return "QB";
 
   const offensiveOrder = resolution.sectionOrder.filter(
