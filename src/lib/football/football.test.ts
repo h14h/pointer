@@ -484,6 +484,30 @@ describe("parseFootballCsv", () => {
     expect(result.players.map((p) => [p.Name, p.Position])).toEqual([["Josh Allen", "QB"]]);
     expect(result.skippedPositionRows).toBe(1);
   });
+
+  test("does not force a mixed no-Pos file to K because leftover FG/XP columns exist", () => {
+    const csv = [
+      "Player,Team,Pass Yds,Rush Yds,Rec Yds,FG,XP,FPTS",
+      "Josh Allen,BUF,4100,520,0,0,0,380",
+      "Bijan Robinson,ATL,0,1450,420,0,0,300",
+      "Justin Jefferson,MIN,0,15,1550,0,0,275",
+      "Sam LaPorta,DET,0,0,890,0,0,170",
+      "Justin Tucker,BAL,0,0,0,32,38,140",
+      "Unknown,FA,0,0,0,0,0,12",
+    ].join("\n");
+    const result = parseFootballCsv(csv);
+    expect(result.detectedPosition).toBeNull();
+    expect(result.mixedPositions).toBe(true);
+    expect(result.needsPositionSelection).toBe(false);
+    expect(result.players.map((p) => [p.Name, p.Position])).toEqual([
+      ["Josh Allen", "QB"],
+      ["Bijan Robinson", "RB"],
+      ["Justin Jefferson", "WR"],
+      ["Sam LaPorta", "TE"],
+      ["Justin Tucker", "K"],
+    ]);
+    expect(result.skippedPositionRows).toBe(1);
+  });
 });
 
 describe("mergeFootballPlayers", () => {
