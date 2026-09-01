@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Tear down the instance this run started. Never kill by process name.
+# Never deletes evidence.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.sh
+source "${SCRIPT_DIR}/common.sh"
+export VERIFY_POINTER_STATE
+
+if [[ ! -f "${VERIFY_POINTER_STATE}" ]]; then
+  echo "verify-pointer cleanup: no state file — nothing to tear down"
+  exit 0
+fi
+
+pgid="$(json_get pgid || true)"
+bun_pid="$(json_get bun_pid || true)"
+url="$(json_get url || true)"
+port="$(json_get port || true)"
+
+echo "verify-pointer cleanup: stopping instance url=${url} port=${port} bun_pid=${bun_pid} pgid=${pgid}"
+
+if [[ -n "${pgid}" && "${pgid}" != "0" && "${pgid}" != "None" ]]; then
+  # Kill the process group we created with setsid — not every bun/vite on the box.
+  if kill -0 -- -"${pgid}" 2>/dev/null; then
+    kill -- -"${pgid}" 2>/dev/null || true
+    for _ in $(seq 1 20); do
+      if ! kill -0 -- -"${pgid}" 2>/dev/null; then
+        break
+      fi
+      sleep 0.2
+    done
+    if kill -0 -- -"${pgid}" 2>/dev/null; then
+      kill -9 -- -"${pgid}" 2>/dev/null || true
+    fi
+  fi
+elif [[ -n "${bun_pid}" ]] && process_alive "${bun_pid}"; then
+  kill "${bun_pid}" 2>/dev/null || true
+  for _ in $(seq 1 20); do
+    process_alive "${bun_pid}" || break
+    sleep 0.2
+  done
+  process_alive "${bun_pid}" && kill -9 "${bun_pid}" 2>/dev/null || true
+fi
+
+rm -f "${VERIFY_POINTER_STATE}"
+echo "verify-pointer cleanup: stopped. evidence left at ${VERIFY_POINTER_EVIDENCE_DIR}"

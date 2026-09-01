@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Start an isolated DraftSpa (pointer) verification instance.
+# Writes PID/port/url to .cursor/skills/verify-pointer/.run/state.json
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.sh
+source "${SCRIPT_DIR}/common.sh"
+export VERIFY_POINTER_STATE VERIFY_POINTER_URL VERIFY_POINTER_PORT VERIFY_POINTER_LOG VERIFY_POINTER_REPO_ROOT VERIFY_POINTER_HOST
+
+if [[ -f "${VERIFY_POINTER_STATE}" ]]; then
+  existing_pid="$(json_get bun_pid || true)"
+  existing_port="$(json_get port || true)"
+  if [[ -n "${existing_pid}" ]] && process_alive "${existing_pid}"; then
+    echo "verify-pointer launch: already running pid=${existing_pid} port=${existing_port}"
+    echo "url=$(json_get url)"
+    exit 0
+  fi
+  rm -f "${VERIFY_POINTER_STATE}"
+fi
+
+listener="$(port_listener_pid "${VERIFY_POINTER_PORT}" || true)"
+if [[ -n "${listener}" ]]; then
+  echo "verify-pointer launch: port ${VERIFY_POINTER_PORT} is already owned by pid ${listener}." >&2
+  echo "Set VERIFY_POINTER_PORT to a free port, or stop that instance if it is yours." >&2
+  exit 1
+fi
+
+if [[ ! -d "${VERIFY_POINTER_REPO_ROOT}/node_modules" ]]; then
+  echo "verify-pointer launch: node_modules missing. From repo root: bun install" >&2
+  exit 1
+fi
+
+: > "${VERIFY_POINTER_LOG}"
+
+# Documented isolation launch (scenarios/README.md + playwright.config.ts):
+# unset Tidewave TLS so Vite stays plain HTTP; --port implies --strictPort.
+cd "${VERIFY_POINTER_REPO_ROOT}"
+setsid env -u TIDEWAVE_HTTPS_KEY -u TIDEWAVE_HTTPS_CERT \
+  bun run dev -- --port "${VERIFY_POINTER_PORT}" \
+  >>"${VERIFY_POINTER_LOG}" 2>&1 < /dev/null &
+bun_pid=$!
+pgid="$(ps -o pgid= -p "${bun_pid}" | tr -d ' ')"
+
+ready=0
+for _ in $(seq 1 60); do
+  if grep -q "Local:   http://localhost:${VERIFY_POINTER_PORT}/" "${VERIFY_POINTER_LOG}" 2>/dev/null \
+    && curl -fsS --max-time 3 "${VERIFY_POINTER_URL}/" >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  if ! process_alive "${bun_pid}"; then
+    echo "verify-pointer launch: bun process ${bun_pid} exited before ready. Log:" >&2
+    tail -n 40 "${VERIFY_POINTER_LOG}" >&2
+    exit 1
+  fi
+  sleep 0.5
+done
+
+if [[ "${ready}" != "1" ]]; then
+  echo "verify-pointer launch: timed out waiting for Vite on ${VERIFY_POINTER_URL}" >&2
+  echo "last log lines:" >&2
+  tail -n 40 "${VERIFY_POINTER_LOG}" >&2
+  if [[ -n "${pgid}" ]]; then
+    kill -- -"${pgid}" 2>/dev/null || true
+  fi
+  exit 1
+fi
+
+vite_pid="$(port_listener_pid "${VERIFY_POINTER_PORT}" || true)"
+dev_pid="$(pgrep -P "${bun_pid}" -f 'scripts/dev.ts' | head -n 1 || true)"
+
+python3 - <<PY
+import json, os
+state = {
+  "app": "DraftSpa",
+  "repo": "pointer",
+  "url": os.environ["VERIFY_POINTER_URL"],
+  "host": os.environ.get("VERIFY_POINTER_HOST", "localhost"),
+  "port": int(os.environ["VERIFY_POINTER_PORT"]),
+  "bun_pid": int("${bun_pid}"),
+  "pgid": int("${pgid}" or 0) or None,
+  "dev_pid": int("${dev_pid}") if "${dev_pid}" else None,
+  "vite_pid": int("${vite_pid}") if "${vite_pid}" else None,
+  "log": os.environ["VERIFY_POINTER_LOG"],
+  "repo_root": os.environ.get("VERIFY_POINTER_REPO_ROOT", ""),
+  "auth_mode": "local-free",
+  "clerk_configured": bool(os.environ.get("VITE_CLERK_PUBLISHABLE_KEY")),
+}
+open(os.environ["VERIFY_POINTER_STATE"], "w").write(json.dumps(state, indent=2) + "\n")
+print("verify-pointer launch: ready")
+print(json.dumps({k: state[k] for k in ("url", "port", "bun_pid", "vite_pid", "auth_mode")}, indent=2))
+PY
