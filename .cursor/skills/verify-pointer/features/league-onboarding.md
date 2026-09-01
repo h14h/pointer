@@ -55,6 +55,12 @@ Preconditions:
   (`e2e/league-url-contract.spec.ts`).
 - Public-dataset bootstrap is async. Wait for `Open workspace` or the
   source name, not a timer. A card can briefly show `no source — visit intel`.
+  A banner `Importing Eligibility` / `Applying 2025 position eligibility
+  to the built-in leaders dataset.` can sit above the hero and the fleet
+  while baseball eligibility still imports — do not treat that as a failed
+  onboard.
+- The add-league control's accessible name is `+ add a league`
+  (`getByRole("button", { name: /add a league/i })` still matches).
 - Reusing a context skips the hero (`hasOnboarded` is persisted). That is
   not a regression of `onboard-hero`.
 - `/settings` and `/league/...` are not gated; only `/` shows the hero.

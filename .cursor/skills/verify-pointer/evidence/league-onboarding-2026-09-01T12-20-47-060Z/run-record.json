@@ -1,0 +1,25 @@
+{
+  "feature": "league-onboarding",
+  "app": "DraftSpa",
+  "url": "http://localhost:3231",
+  "startedAt": "2026-09-01T12:20:47.060Z",
+  "steps": [
+    {
+      "id": "onboard-hero",
+      "status": "ok",
+      "detail": "hero with Football / Baseball before click"
+    },
+    {
+      "id": "onboard-football",
+      "status": "ok",
+      "detail": "clicked Football; fleet shows My Football League + Open workspace + add a league"
+    },
+    {
+      "id": "onboard-url",
+      "status": "ok",
+      "detail": "http://localhost:3231/"
+    }
+  ],
+  "result": "PASS",
+  "finishedAt": "2026-09-01T12:20:53.034Z"
+}

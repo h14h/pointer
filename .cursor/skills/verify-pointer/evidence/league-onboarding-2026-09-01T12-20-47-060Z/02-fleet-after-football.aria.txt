@@ -1,0 +1,32 @@
+- text: Importing Eligibility
+- paragraph: Applying 2025 position eligibility to the built-in leaders dataset.
+- banner:
+  - link "DraftSpa league-specific draft boards":
+    - /url: /
+  - text: 1 league · 1 sport
+- main:
+  - heading "Leagues" [level=1]
+  - text: settings, projections, draft boards, and live tracking by league.
+  - paragraph: Your leagues are saved in this browser only. Clearing site data wipes them. Export a backup. Founding Pro ($10 this season) adds cloud backup when payments are live.
+  - button "Export backup"
+  - article:
+    - text: Football
+    - heading "My Football League" [level=2]
+    - paragraph: 12 teams · 2025 Football Prior-Year Stats
+    - text: 2 of 4 prepped
+    - link "Open workspace":
+      - /url: /league/330b964a-b3ad-4fdf-8d99-0a2dbf48962c/plan
+    - button "Live draft"
+  - button "+ add a league"
+- contentinfo:
+  - paragraph: DraftSpa · fantasy draft workspace
+  - navigation:
+    - link "Pro":
+      - /url: /pricing
+    - link "Support":
+      - /url: /support
+    - link "Privacy":
+      - /url: /privacy
+    - link "Terms":
+      - /url: /terms
+- region "Notifications alt+T"
