@@ -33,8 +33,10 @@ Preconditions:
   matches — that is the side-effect proof.
 - **Your team.** `getByRole("button", { name: "Your team" })` lists
   `Team 1` … `Team 12`. Changing it recomputes Plan pick numbers.
-- **Football scoring.** `getByRole("textbox", { name: "Reception points" })`
-  (aria-label `${label} points` with label `Reception`). Default Half PPR
+- **Football scoring.** `NumericInput` is `type="number"` — role is
+  **spinbutton**, not textbox. Use
+  `getByRole("spinbutton", { name: "Reception points" })` or
+  `locator('input[aria-label="Reception points"]')`. Default Half PPR
   is `0.5`. Set `1`, press Enter, wait ~600ms (debounced persist, same as
   `e2e/persistence-smoke.spec.ts`). Board points for receivers rise.
   Preset: `getByRole("button", { name: "Football scoring preset" })` then
@@ -56,5 +58,7 @@ Preconditions:
 - Delete uses `window.confirm`, not `AppDialog`.
 - League name input is uncontrolled (`defaultValue` + `onBlur`). Assert
   the masthead heading, not the input value after remount.
-- `/settings` still exists as a route; the Solstice workspace Config tab
-  is the user path this map covers.
+- `/settings` is a **legacy redirect**, not a settings page
+  (`src/routes/-settings/SettingsPage.tsx`). `?section=leagues` → `/`;
+  `?section=projections` → `/league/<id>/intel`; anything else →
+  `/league/<id>/config`. The user path this map covers is the Config tab.

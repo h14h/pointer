@@ -14,7 +14,9 @@ tab; the browser back button retraces tab history.
 ## How to get to it (user POV)
 
 - Click **Open workspace** on a fleet card.
-- Visit `/league/<id>`, `/league/<id>/plan`, `/board`, `/intel`, or `/config`.
+- Visit `/league/<id>`, `/league/<id>/plan`, `/league/<id>/board`,
+  `/league/<id>/intel`, or `/league/<id>/config`. Bare `/board` is not a
+  workspace URL.
 - Click Plan / Board / Intel / Config in the workspace tab rail.
 
 ## Driving it with Playwright

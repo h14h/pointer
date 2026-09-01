@@ -135,14 +135,14 @@ for the map.
 | Exit draft | `getByRole("button", { name: /exit live draft/i })` → `/plan` |
 | Quick-log | `getByRole("textbox", { name: /log a pick/i })` (`aria-label="log a pick"`) |
 | Draft tape | `getByRole("…", { name: /draft tape/ })` — `aria-label="draft tape — every pick in order"` |
-| Board search (workspace) | `getByPlaceholder("Search players...")` |
+| Board search (workspace) | `getByPlaceholder("Search players...")`. Football names render abbreviated (`J. Chase`, not `Ja'Marr Chase`) |
 | Board position filter | `getByRole("button", { name: "Position" })` then option `QB` / `RB` / … / `All Positions` |
 | Baseball player type | `getByRole("button", { name: "Player type" })` then `Pitchers` |
 | Plan targets | `getByRole("textbox", { name: "Search players to flag as targets" })` |
 | Slot note | `getByRole("textbox", { name: /Round 1 note/i })` |
 | Config league name | label stamp `League name` wrapping an `input` (no aria-label) |
 | Config your team | `getByRole("button", { name: "Your team" })` (`ariaLabel="Your team"`) |
-| Football Reception | `getByRole("textbox", { name: "Reception points" })` |
+| Football Reception | `getByRole("spinbutton", { name: "Reception points" })` (`type="number"`) |
 | Baseball HR | `locator('input[aria-label="Home Runs (HR) points"]')` |
 | Football preset | `getByRole("button", { name: "Football scoring preset" })` then `Apply Preset` |
 | Delete league | `getByRole("button", { name: /delete league/i })` — native `window.confirm` |

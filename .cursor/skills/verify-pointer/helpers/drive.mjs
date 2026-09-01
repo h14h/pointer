@@ -142,9 +142,16 @@ async function driveBoard(page) {
   await page.locator("table tbody tr").first().waitFor({ timeout: 15_000 });
   await shot(page, "01-board-all.png");
   await page.getByPlaceholder("Search players...").fill("chase");
-  await page.getByText(/Ja.?marr Chase/i).first().waitFor({ timeout: 10_000 });
+  // Football Board abbreviates names (Ja'Marr Chase → "J. Chase").
+  await page.getByText("J. Chase", { exact: true }).waitFor({ timeout: 10_000 });
   await shot(page, "02-board-search-chase.png");
-  step("search", "ok", "search Chase filtered the board");
+  step("search", "ok", "search chase shows abbreviated J. Chase");
+
+  await page.getByRole("button", { name: "Position" }).click();
+  await page.getByRole("button", { name: "RB", exact: true }).click();
+  await page.getByText(/Page 1 of/).waitFor();
+  await shot(page, "03-board-position-rb.png");
+  step("position", "ok", "Position RB applied on the chase-filtered board");
 }
 
 async function driveConfig(page) {
