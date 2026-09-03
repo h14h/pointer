@@ -26,8 +26,10 @@ Preconditions:
 - Workspace Intel tab.
 
 - **Library.** Click `getByRole("link", { name: "Intel", exact: true })`.
-  URL ends in `/intel`. Heading `/football library/i`. A row named
-  `2025 Football Prior-Year Stats` with chip/text `Built-in` is visible.
+  URL ends in `/intel`. Heading `/football library/i`. Library row heading
+  `getByRole("heading", { name: /2025 Football Prior-Year Stats/ })` with
+  chip/text `Built-in`. Do not use bare `getByText` for the source name —
+  the masthead chip also contains it.
   Own-sport upload: `getByRole("button", { name: /upload csv/i })`.
 - **Upload (football).** Click Upload CSV. Dialog title
   `Upload Football Projections`. Copy mentions `All positions` / mixed CSV

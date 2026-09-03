@@ -160,7 +160,8 @@ async function driveIntel(page) {
   await page.getByRole("link", { name: "Intel", exact: true }).click();
   await page.waitForURL(/\/intel/);
   await page.getByRole("heading", { name: /football library/i }).waitFor({ timeout: 10_000 });
-  await page.getByText("2025 Football Prior-Year Stats").waitFor();
+  // Masthead chip also contains this string — pin the library row heading.
+  await page.getByRole("heading", { name: /2025 Football Prior-Year Stats/ }).waitFor();
   await page.getByText("Built-in", { exact: true }).first().waitFor();
   await shot(page, "01-intel-library.png");
   await page.getByRole("button", { name: /upload csv/i }).first().click();
