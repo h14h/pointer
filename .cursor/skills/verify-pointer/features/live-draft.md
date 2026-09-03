@@ -47,7 +47,8 @@ Preconditions:
 - **Proof.** Screenshot in the room (sync strip + receipt) and after
   exit (Plan timeline). Helper:
   `bun .cursor/skills/verify-pointer/helpers/drive.mjs live-draft`
-  (enter/exit only; extend the script for log/undo).
+  (enter, quick-log `mccaffrey`, exit to Plan; extend the script for
+  board-log / undo).
 
 ## Gotchas
 

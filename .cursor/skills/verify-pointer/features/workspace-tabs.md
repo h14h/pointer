@@ -33,14 +33,17 @@ Preconditions:
   Breadcrumb `getByRole("link", { name: "leagues /" })`. Chips include
   `NFL`, `12 teams`, `src · 2025 Football Prior-Year Stats`. Button
   `Start live draft`. Tab rail links `Plan`, `Board`, `Intel`, `Config`.
-  `nav a[aria-current="page"]` text is `Plan`. URL ends in `/plan` or
-  `/league/<id>` (bare id also renders Plan).
+  `nav a[aria-current="page"]` text is `Plan`. URL ends in `/plan`
+  (the Open-workspace link is always `/league/<id>/plan`). Bare
+  `/league/<id>` also renders Plan if visited directly. Plan worksheet
+  proof lives in [plan.md](./plan.md).
 - **Board.** Click `getByRole("link", { name: "Board", exact: true })`.
   URL ends in `/board`. A `table tbody tr` appears. Pagination text
   matches `/Page 1 of/`.
 - **Intel.** Click `Intel`. URL `/intel`. Heading `/football library/i`
   and a built-in row (`2025 Football Prior-Year Stats`, `Built-in`).
-  Upload affordance `Upload CSV` (own sport) is present.
+  Upload affordance `Upload CSV` (own sport) is present. Drive the
+  library and mixed-file dialog via [intel.md](./intel.md), not this file.
 - **Config.** Click `Config`. URL `/config`. Headings: `League identity`,
   `Scoring`, `Roster`, `Draft order & keepers`, `Danger zone`.
 - **Back.** After Plan → Board → Config, `page.goBack()` lands on Board

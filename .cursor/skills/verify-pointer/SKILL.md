@@ -1,6 +1,6 @@
 ---
 name: verify-pointer
-description: Drive DraftSpa (pointer) — the fantasy baseball/football draft web UI — to prove user-facing behavior. Use when verifying onboarding, league workspaces, the board, config, or live draft against a real browser.
+description: Drive DraftSpa (pointer) — the fantasy baseball/football draft web UI — to prove user-facing behavior. Use when verifying onboarding, league workspaces, Plan, Board, Intel, config, or live draft against a real browser.
 ---
 
 # Verify DraftSpa (pointer)
@@ -114,9 +114,9 @@ Recipe helper (one mapped feature per invocation):
 bun .cursor/skills/verify-pointer/helpers/drive.mjs league-onboarding
 ```
 
-Other feature ids: `workspace-tabs`, `board`, `config`, `live-draft`.
-Read `features/` before driving; the helper is a starter, not a substitute
-for the map.
+Other feature ids: `workspace-tabs`, `plan`, `board`, `intel`, `config`,
+`live-draft`. Read `features/` before driving; the helper is a starter,
+not a substitute for the map.
 
 ### Real handles (from `e2e/` + components)
 
@@ -127,7 +127,8 @@ for the map.
 | Open a league | `getByRole("link", { name: /open workspace/i })` → `/league/<id>/plan` |
 | Live draft from card | `getByRole("button", { name: /live draft/i })` |
 | Add league card | `getByRole("button", { name: /add a league/i })` |
-| Add-league dialog | role `dialog`, title `Add a league`; textbox `getByLabel(/league name/i)`; sport `getByRole("button", { name: /^Baseball$/i })` / Football; submit `getByRole("button", { name: /create/i })`; dismiss `getByRole("button", { name: /^Close$/i })` |
+| Add-league dialog | role `dialog`, title `Add a league`; textbox `getByLabel(/league name/i)`; sport `getByRole("button", { name: /^Baseball$/i })` / Football; submit `getByRole("button", { name: /create league/i })` (label `Create league`); dismiss `getByRole("button", { name: /^Close$/i })` |
+| Export backup | `getByRole("button", { name: /export backup/i })` on the fleet (after onboarding) |
 | Brand home | wordmark link (`DraftSpa` / `league-specific draft boards`) → `/` |
 | Breadcrumb | `getByRole("link", { name: "leagues /" })` → `/` |
 | Workspace tabs | `getByRole("link", { name: "Plan", exact: true })` (also `Board`, `Intel`, `Config`). Active tab: `nav a[aria-current="page"]` |
@@ -140,6 +141,7 @@ for the map.
 | Baseball player type | `getByRole("button", { name: "Player type" })` then `Pitchers` |
 | Plan targets | `getByRole("textbox", { name: "Search players to flag as targets" })` |
 | Slot note | `getByRole("textbox", { name: /Round 1 note/i })` |
+| Intel upload | `getByRole("button", { name: /upload csv/i })` → dialog `Upload Football Projections` (football). Copy includes `All positions` |
 | Config league name | label stamp `League name` wrapping an `input` (no aria-label) |
 | Config your team | `getByRole("button", { name: "Your team" })` (`ariaLabel="Your team"`) |
 | Football Reception | `getByRole("spinbutton", { name: "Reception points" })` (`type="number"`) |
