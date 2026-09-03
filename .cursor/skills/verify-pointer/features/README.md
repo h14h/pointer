@@ -67,8 +67,10 @@ handles, required state, commands, and observable proof.
 
 ## Features
 
-- [League onboarding](./league-onboarding.md) — first visit, sport pick, fleet, add a second league.
+- [League onboarding](./league-onboarding.md) — first visit, sport pick, fleet, add a second league, export backup.
 - [Workspace tabs](./workspace-tabs.md) — Plan / Board / Intel / Config URLs, back button, breadcrumb.
+- [Plan](./plan.md) — pick timeline, targets, round notes.
 - [Board](./board.md) — ranked table, search, position filter, pagination.
+- [Intel](./intel.md) — projection library, Upload CSV, football mixed-file intake.
 - [Config](./config.md) — identity, scoring, roster, danger zone, persistence.
 - [Live draft](./live-draft.md) — takeover, quick-log, board log, undo, exit.
