@@ -47,7 +47,8 @@ Preconditions:
   (`aria-current` is `Board`).
 - **Crumb.** Click `leagues /`. Path is `/`. Fleet cards return.
 - **Proof.** Screenshots per tab; record each URL. Helper:
-  `bun .cursor/skills/verify-pointer/helpers/drive.mjs workspace-tabs`.
+  `bun .cursor/skills/verify-pointer/helpers/drive.mjs workspace-tabs`
+  (includes Plan→Board→Config back-button and `leagues /` crumb).
 
 ## Gotchas
 

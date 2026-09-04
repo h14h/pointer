@@ -47,7 +47,8 @@ Preconditions:
   `page.once("dialog", (d) => d.accept())`. Disabled when only one league
   exists. After delete, fleet is `/` and the card is gone.
 - **Proof.** Screenshot after rename (masthead) plus fleet card. Helper:
-  `bun .cursor/skills/verify-pointer/helpers/drive.mjs config`.
+  `bun .cursor/skills/verify-pointer/helpers/drive.mjs config`
+  (rename + `leagues /` fleet-card side effect).
 
 ## Gotchas
 

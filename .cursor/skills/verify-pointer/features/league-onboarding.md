@@ -10,6 +10,7 @@ CSV, no empty board.
 - `onboard-football` replaces the hero with a football league card in one click.
 - `onboard-baseball` does the same for baseball (`2025 Leaders` source).
 - `onboard-add` opens Add a league and appends a second card.
+- `onboard-export` shows **Export backup** on the fleet (no import control).
 
 ## How to get to it (user POV)
 
@@ -40,9 +41,15 @@ Preconditions:
 - **Add baseball.** Click add a league. Dialog title `Add a league`.
   Fill `getByLabel(/league name/i)` with `Sandlot Classic`. Click
   `getByRole("button", { name: /^Baseball$/i })` then
-  `getByRole("button", { name: /create/i })`. A card `Sandlot Classic`
+  `getByRole("button", { name: /create league/i })` (visible label
+  `Create league`). A card `Sandlot Classic`
   with baseball vitals (`2025 Leaders`) appears. Brand stamp becomes
   `2 leagues · 2 sports`.
+- **Export.** After the first card exists,
+  `getByRole("button", { name: /export backup/i })` is on the fleet
+  (local-save disclaimer copy sits to its left). Clicking it downloads
+  `draftspa-backup-YYYY-MM-DD.json` — assert the button for the baseline
+  recipe; catching the download is optional.
 - **Proof.** Screenshot `02-fleet-after-football.png` (or after add) and
   ARIA dump. Both show `My Football League` and `Open workspace`.
   Helper: `bun .cursor/skills/verify-pointer/helpers/drive.mjs league-onboarding`.

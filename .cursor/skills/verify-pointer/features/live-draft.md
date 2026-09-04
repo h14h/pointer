@@ -10,6 +10,8 @@ against the league board. Nothing auto-advances. Exit returns to Plan.
 - `draft-boardlog` logs from a row (`aria-label="log <name>"`).
 - `draft-undo` reverses the last pick (`undo` next to the receipt).
 - `draft-exit` returns to `/plan` via `Exit live draft`.
+- `draft-reset` opens `reset draft` and confirms with `Reset Draft`
+  (clears logged picks; keepers and Plan notes stay).
 
 ## How to get to it (user POV)
 
@@ -45,9 +47,9 @@ Preconditions:
   URL ends in `/plan`. Tab rail returns. A logged slot on Plan reads
   `logged` with the player name.
 - **Proof.** Screenshot in the room (sync strip + receipt) and after
-  exit (Plan timeline). Helper:
+  exit (Plan timeline).   Helper:
   `bun .cursor/skills/verify-pointer/helpers/drive.mjs live-draft`
-  (enter/exit only; extend the script for log/undo).
+  (enter, quick-log `mccaffrey`, exit; Plan shows the logged name).
 
 ## Gotchas
 
@@ -63,3 +65,6 @@ Preconditions:
   context is a new league with zero picks.
 - Night-mode transition (`beginNightTransition`) can veil the first
   paint; wait for the log textbox, not the URL alone.
+- `reset draft` is a draft-room control (`ResetDraftControl`). The
+  confirm dialog title is `Reset all draft picks?`; the destructive
+  button is `Reset Draft`. Not required for the baseline helper.
