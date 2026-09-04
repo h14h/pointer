@@ -1,6 +1,6 @@
 ---
 name: verify-pointer
-description: Drive DraftSpa (pointer) — the fantasy baseball/football draft web UI — to prove user-facing behavior. Use when verifying onboarding, league workspaces, the board, config, or live draft against a real browser.
+description: Drive DraftSpa (pointer) — the fantasy baseball/football draft web UI — to prove user-facing behavior. Use when verifying onboarding, league workspaces, plan, board, intel, config, or live draft against a real browser.
 ---
 
 # Verify DraftSpa (pointer)
@@ -114,9 +114,9 @@ Recipe helper (one mapped feature per invocation):
 bun .cursor/skills/verify-pointer/helpers/drive.mjs league-onboarding
 ```
 
-Other feature ids: `workspace-tabs`, `board`, `config`, `live-draft`.
-Read `features/` before driving; the helper is a starter, not a substitute
-for the map.
+Other feature ids: `workspace-tabs`, `plan`, `board`, `intel`, `config`,
+`live-draft`. Read `features/` before driving; the helper is a starter,
+not a substitute for the map.
 
 ### Real handles (from `e2e/` + components)
 
@@ -127,12 +127,14 @@ for the map.
 | Open a league | `getByRole("link", { name: /open workspace/i })` → `/league/<id>/plan` |
 | Live draft from card | `getByRole("button", { name: /live draft/i })` |
 | Add league card | `getByRole("button", { name: /add a league/i })` |
-| Add-league dialog | role `dialog`, title `Add a league`; textbox `getByLabel(/league name/i)`; sport `getByRole("button", { name: /^Baseball$/i })` / Football; submit `getByRole("button", { name: /create/i })`; dismiss `getByRole("button", { name: /^Close$/i })` |
+| Add-league dialog | role `dialog`, title `Add a league`; textbox `getByLabel(/league name/i)`; sport `getByRole("button", { name: /^Baseball$/i })` / Football; submit `getByRole("button", { name: /create league/i })` (label is `Create league`); dismiss `getByRole("button", { name: /^Close$/i })` |
+| Export backup | `getByRole("button", { name: /export backup/i })` on the fleet (downloads `draftspa-backup-YYYY-MM-DD.json`) |
 | Brand home | wordmark link (`DraftSpa` / `league-specific draft boards`) → `/` |
 | Breadcrumb | `getByRole("link", { name: "leagues /" })` → `/` |
 | Workspace tabs | `getByRole("link", { name: "Plan", exact: true })` (also `Board`, `Intel`, `Config`). Active tab: `nav a[aria-current="page"]` |
 | Start draft | `getByRole("button", { name: /start live draft/i })` → `/league/<id>/draft` |
 | Exit draft | `getByRole("button", { name: /exit live draft/i })` → `/plan` |
+| Reset draft | `getByRole("button", { name: /reset draft/i })` then confirm `Reset Draft` |
 | Quick-log | `getByRole("textbox", { name: /log a pick/i })` (`aria-label="log a pick"`) |
 | Draft tape | `getByRole("…", { name: /draft tape/ })` — `aria-label="draft tape — every pick in order"` |
 | Board search (workspace) | `getByPlaceholder("Search players...")`. Football names render abbreviated (`J. Chase`, not `Ja'Marr Chase`) |

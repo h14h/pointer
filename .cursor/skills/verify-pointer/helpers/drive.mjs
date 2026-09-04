@@ -4,6 +4,8 @@
  *
  * Usage (from repo root, after helpers/launch + helpers/doctor):
  *   bun .cursor/skills/verify-pointer/helpers/drive.mjs league-onboarding
+ *   bun .cursor/skills/verify-pointer/helpers/drive.mjs plan
+ *   bun .cursor/skills/verify-pointer/helpers/drive.mjs intel
  *
  * Reads URL from .cursor/skills/verify-pointer/.run/state.json
  * Writes evidence under .cursor/skills/verify-pointer/evidence/<run-id>/
@@ -22,7 +24,7 @@ const evidenceRoot = process.env.VERIFY_POINTER_EVIDENCE_DIR ?? join(skillDir, "
 const featureId = process.argv[2];
 if (!featureId) {
   console.error("usage: bun helpers/drive.mjs <feature-id>");
-  console.error("mapped: league-onboarding | workspace-tabs | board | config | live-draft");
+  console.error("mapped: league-onboarding | workspace-tabs | plan | board | intel | config | live-draft");
   process.exit(2);
 }
 
@@ -69,7 +71,16 @@ async function shot(page, name) {
   return path;
 }
 
-/** First-visit onboarding → one football league on the fleet. */
+/** Fresh-context football fleet (hero if first visit). */
+async function ensureFootballFleet(page) {
+  await page.goto("/", { waitUntil: "networkidle" });
+  if (await page.getByRole("button", { name: /^Football$/i }).isVisible().catch(() => false)) {
+    await page.getByRole("button", { name: /^Football$/i }).click();
+  }
+  await page.getByRole("link", { name: /open workspace/i }).first().waitFor({ timeout: 15_000 });
+}
+
+/** First-visit onboarding → football fleet, export, add baseball. */
 async function driveLeagueOnboarding(page) {
   await page.goto("/", { waitUntil: "networkidle" });
   await shot(page, "01-onboarding-hero.png");
@@ -81,6 +92,7 @@ async function driveLeagueOnboarding(page) {
   await page.getByRole("heading", { name: "Leagues" }).waitFor();
   await page.getByText("My Football League").waitFor();
   await page.getByRole("button", { name: /add a league/i }).waitFor();
+  await page.getByRole("button", { name: /export backup/i }).waitFor();
   await shot(page, "02-fleet-after-football.png");
   const aria = await ariaDump(page, "02-fleet-after-football.aria.txt");
   const url = page.url();
@@ -92,15 +104,23 @@ async function driveLeagueOnboarding(page) {
   }
   step("onboard-hero", "ok", "hero with Football / Baseball before click");
   step("onboard-football", "ok", "clicked Football; fleet shows My Football League + Open workspace + add a league");
+  step("onboard-export", "ok", "Export backup visible on fleet");
   step("onboard-url", "ok", url);
+
+  await page.getByRole("button", { name: /add a league/i }).click();
+  await page.getByRole("heading", { name: "Add a league" }).waitFor();
+  await page.getByLabel(/league name/i).fill("Sandlot Classic");
+  await page.getByRole("button", { name: /^Baseball$/i }).last().click();
+  await page.getByRole("button", { name: /create league/i }).click();
+  await page.getByText("Sandlot Classic").waitFor({ timeout: 15_000 });
+  await page.getByText(/2 leagues · 2 sports/i).waitFor();
+  await shot(page, "03-fleet-two-leagues.png");
+  step("onboard-add", "ok", "Create league appended Sandlot Classic; stamp 2 leagues · 2 sports");
 }
 
-/** Open workspace and walk Plan → Board → Intel → Config. */
+/** Open workspace and walk Plan → Board → Intel → Config, then back + crumb. */
 async function driveWorkspaceTabs(page) {
-  await page.goto("/", { waitUntil: "networkidle" });
-  if (await page.getByRole("button", { name: /^Football$/i }).isVisible().catch(() => false)) {
-    await page.getByRole("button", { name: /^Football$/i }).click();
-  }
+  await ensureFootballFleet(page);
   await page.getByRole("link", { name: /open workspace/i }).first().click();
   await page.waitForURL(/\/league\/[^/]+/, { timeout: 10_000 });
   await page.getByRole("heading", { name: "My Football League" }).waitFor({ timeout: 15_000 });
@@ -130,13 +150,56 @@ async function driveWorkspaceTabs(page) {
   if ((await active.textContent())?.trim() !== "Config") {
     throw new Error(`expected active tab Config, got ${await active.textContent()}`);
   }
+
+  await page.getByRole("link", { name: "Plan", exact: true }).click();
+  await page.getByRole("link", { name: "Board", exact: true }).click();
+  await page.getByRole("link", { name: "Config", exact: true }).click();
+  await page.goBack();
+  await page.waitForURL(new RegExp(`/league/${leagueId}/board`));
+  if ((await active.textContent())?.trim() !== "Board") {
+    throw new Error(`expected back-button tab Board, got ${await active.textContent()}`);
+  }
+  step("ws-back", "ok", "Plan→Board→Config then goBack landed on Board");
+
+  await page.getByRole("link", { name: "leagues /" }).click();
+  await page.waitForURL((next) => new URL(next).pathname === "/");
+  await page.getByRole("link", { name: /open workspace/i }).first().waitFor();
+  step("ws-crumb", "ok", "leagues / returned to fleet /");
+}
+
+async function drivePlan(page) {
+  await ensureFootballFleet(page);
+  await page.getByRole("link", { name: /open workspace/i }).first().click();
+  await page.getByRole("heading", { name: /pick timeline/i }).waitFor({ timeout: 15_000 });
+  await page.getByRole("heading", { name: "Targets" }).waitFor();
+  await page.getByRole("heading", { name: "Tier supply" }).waitFor();
+  await page.getByText("R1.01").waitFor();
+  await shot(page, "01-plan-worksheet.png");
+  step("plan-timeline", "ok", "Pick timeline + Targets + Tier supply on /plan");
+
+  const targetSearch = page.getByRole("textbox", { name: "Search players to flag as targets" });
+  await targetSearch.fill("chase");
+  await page.getByRole("button", { name: /Ja'Marr Chase/i }).click();
+  await page.getByText(/1 flagged/i).waitFor();
+  await shot(page, "02-plan-target.png");
+  step("plan-targets", "ok", "flagged Ja'Marr Chase from targets search");
+
+  const note = page.getByRole("textbox", { name: /Round 1 note/i });
+  await note.fill("force RB if CMC gone");
+  await note.blur();
+  await page.getByRole("link", { name: "Board", exact: true }).click();
+  await page.getByRole("link", { name: "Plan", exact: true }).click();
+  await page.getByRole("textbox", { name: /Round 1 note/i }).waitFor();
+  const kept = await page.getByRole("textbox", { name: /Round 1 note/i }).inputValue();
+  if (kept !== "force RB if CMC gone") {
+    throw new Error(`Round 1 note lost after tab switch: ${JSON.stringify(kept)}`);
+  }
+  await shot(page, "03-plan-note.png");
+  step("plan-notes", "ok", "Round 1 note persisted across Board → Plan");
 }
 
 async function driveBoard(page) {
-  await page.goto("/", { waitUntil: "networkidle" });
-  if (await page.getByRole("button", { name: /^Football$/i }).isVisible().catch(() => false)) {
-    await page.getByRole("button", { name: /^Football$/i }).click();
-  }
+  await ensureFootballFleet(page);
   await page.getByRole("link", { name: /open workspace/i }).first().click();
   await page.getByRole("link", { name: "Board", exact: true }).click();
   await page.locator("table tbody tr").first().waitFor({ timeout: 15_000 });
@@ -154,11 +217,26 @@ async function driveBoard(page) {
   step("position", "ok", "Position RB applied on the chase-filtered board");
 }
 
+async function driveIntel(page) {
+  await ensureFootballFleet(page);
+  await page.getByRole("link", { name: /open workspace/i }).first().click();
+  await page.getByRole("link", { name: "Intel", exact: true }).click();
+  await page.waitForURL(/\/intel/);
+  await page.getByRole("heading", { name: /football library/i }).waitFor({ timeout: 15_000 });
+  const footballSource = page.getByRole("heading", { name: "2025 Football Prior-Year Stats" });
+  await footballSource.waitFor();
+  // Both sport libraries can show a Built-in badge after bootstrap.
+  await footballSource.locator("xpath=..").getByText("Built-in").waitFor();
+  await page.getByText("Selected").first().waitFor();
+  await page.getByRole("button", { name: /upload csv/i }).waitFor();
+  await page.getByRole("heading", { name: /baseball library/i }).waitFor();
+  await shot(page, "01-intel-libraries.png");
+  step("intel-own", "ok", "football library + built-in Selected + Upload CSV");
+  step("intel-other", "ok", "baseball library heading present");
+}
+
 async function driveConfig(page) {
-  await page.goto("/", { waitUntil: "networkidle" });
-  if (await page.getByRole("button", { name: /^Football$/i }).isVisible().catch(() => false)) {
-    await page.getByRole("button", { name: /^Football$/i }).click();
-  }
+  await ensureFootballFleet(page);
   await page.getByRole("link", { name: /open workspace/i }).first().click();
   await page.getByRole("link", { name: "Config", exact: true }).click();
   const nameInput = page.locator("label").filter({ hasText: /league name/i }).locator("input");
@@ -168,28 +246,42 @@ async function driveConfig(page) {
   await page.getByRole("heading", { name: "Verify Pointer League" }).waitFor({ timeout: 5_000 });
   await shot(page, "01-renamed.png");
   step("rename", "ok", "masthead heading is Verify Pointer League");
+
+  await page.getByRole("link", { name: "leagues /" }).click();
+  await page.waitForURL((next) => new URL(next).pathname === "/");
+  await page.getByRole("heading", { name: "Verify Pointer League" }).waitFor({ timeout: 5_000 });
+  await shot(page, "02-fleet-renamed.png");
+  step("rename-fleet", "ok", "fleet card title is Verify Pointer League");
 }
 
 async function driveLiveDraft(page) {
-  await page.goto("/", { waitUntil: "networkidle" });
-  if (await page.getByRole("button", { name: /^Football$/i }).isVisible().catch(() => false)) {
-    await page.getByRole("button", { name: /^Football$/i }).click();
-  }
+  await ensureFootballFleet(page);
   await page.getByRole("link", { name: /open workspace/i }).first().click();
   await page.getByRole("button", { name: /start live draft/i }).click();
   await page.waitForURL(/\/draft/);
-  await page.getByRole("textbox", { name: /log a pick/i }).waitFor({ timeout: 15_000 });
+  const log = page.getByRole("textbox", { name: /log a pick/i });
+  await log.waitFor({ timeout: 15_000 });
   await shot(page, "01-draft-room.png");
+  await log.fill("mccaffrey");
+  await log.press("Enter");
+  await page.getByText(/logged: p1/i).waitFor({ timeout: 10_000 });
+  await shot(page, "02-after-quicklog.png");
+  step("draft-quicklog", "ok", "quick-log mccaffrey → logged: p1");
+
   await page.getByRole("button", { name: /exit live draft/i }).click();
   await page.waitForURL(/\/plan/);
-  await shot(page, "02-exited-to-plan.png");
-  step("draft-enter-exit", "ok", "entered /draft via Start live draft and returned to /plan");
+  await page.getByText("logged", { exact: true }).first().waitFor({ timeout: 10_000 });
+  await page.getByText(/McCaffrey/i).waitFor();
+  await shot(page, "03-exited-to-plan.png");
+  step("draft-enter-exit", "ok", "entered /draft, logged a pick, returned to /plan with logged McCaffrey");
 }
 
 const drivers = {
   "league-onboarding": driveLeagueOnboarding,
   "workspace-tabs": driveWorkspaceTabs,
+  plan: drivePlan,
   board: driveBoard,
+  intel: driveIntel,
   config: driveConfig,
   "live-draft": driveLiveDraft,
 };
