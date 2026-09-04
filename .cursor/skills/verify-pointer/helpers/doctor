@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# Read-only: is this verify-pointer instance worth driving?
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.sh
+source "${SCRIPT_DIR}/common.sh"
+export VERIFY_POINTER_STATE
+
+if [[ ! -f "${VERIFY_POINTER_STATE}" ]]; then
+  echo "verify-pointer doctor: FAIL — no state at ${VERIFY_POINTER_STATE}" >&2
+  echo "Run helpers/launch first." >&2
+  exit 1
+fi
+
+url="$(json_get url)"
+port="$(json_get port)"
+bun_pid="$(json_get bun_pid)"
+vite_pid="$(json_get vite_pid)"
+auth_mode="$(json_get auth_mode)"
+host="$(json_get host)"
+
+fail=0
+note() { echo "verify-pointer doctor: $*"; }
+bad() { echo "verify-pointer doctor: FAIL — $*" >&2; fail=1; }
+
+if [[ "${host}" != "localhost" ]]; then
+  bad "host is '${host}'; this stack binds IPv6 localhost. Use localhost, not 127.0.0.1."
+fi
+
+if ! process_alive "${bun_pid}"; then
+  bad "bun_pid ${bun_pid} is not running"
+else
+  note "process up: bun_pid=${bun_pid}"
+fi
+
+listener="$(port_listener_pid "${port}" || true)"
+if [[ -z "${listener}" ]]; then
+  bad "nothing listening on port ${port}"
+else
+  note "port ${port} listener pid=${listener}"
+  # The listener is the Vite node child, not bun itself. Confirm it is in
+  # our launch tree (descendant of bun_pid) rather than a stranger.
+  if [[ -n "${vite_pid}" && "${listener}" != "${vite_pid}" ]]; then
+    note "warning: state vite_pid=${vite_pid} but listener is ${listener} (child recycle is ok if bun_pid is ancestor)"
+  fi
+  if ! python3 -c "
+import os, sys
+listener, root = int(sys.argv[1]), int(sys.argv[2])
+pid = listener
+seen = set()
+while pid and pid not in seen:
+    if pid == root:
+        sys.exit(0)
+    seen.add(pid)
+    try:
+        with open(f'/proc/{pid}/stat') as f:
+            # pid comm state ppid ...
+            parts = f.read().split()
+            pid = int(parts[3])
+    except FileNotFoundError:
+        break
+sys.exit(1)
+" "${listener}" "${bun_pid}"; then
+    bad "port ${port} is owned by pid ${listener}, which is not a child of bun_pid ${bun_pid}"
+  else
+    note "port owned by our launch tree"
+  fi
+fi
+
+tmp_html="$(mktemp)"
+http_code="$(curl -sS --max-time 5 -o "${tmp_html}" -w '%{http_code}' "${url}/" || true)"
+if [[ "${http_code}" != "200" ]]; then
+  bad "GET ${url}/ returned HTTP ${http_code:-000} (use localhost, not 127.0.0.1)"
+else
+  note "GET ${url}/ → 200"
+fi
+
+if ! python3 -c "
+import sys
+html = open(sys.argv[1], 'rb').read().decode('utf-8', 'replace')
+ok = True
+if 'DraftSpa — fantasy draft workspace' not in html:
+    print('missing <title> DraftSpa — fantasy draft workspace', file=sys.stderr)
+    ok = False
+if 'tanstack-start' not in html and 'virtual:tanstack-start-dev-client-entry' not in html:
+    print('missing TanStack Start / Vite client entry — wrong build', file=sys.stderr)
+    ok = False
+sys.exit(0 if ok else 1)
+" "${tmp_html}"; then
+  bad "response is not the DraftSpa TanStack Start / Vite dev build"
+else
+  note "right build: DraftSpa title + TanStack Start Vite client"
+fi
+rm -f "${tmp_html}"
+
+# Auth: core verification is local-free. Clerk keys are optional; when unset,
+# AccountControls render nothing and no sign-in is required.
+if [[ "${auth_mode}" == "local-free" ]]; then
+  if [[ -n "${VITE_CLERK_PUBLISHABLE_KEY:-}" ]]; then
+    note "warning: this shell has VITE_CLERK_PUBLISHABLE_KEY set; the launched instance may still be local-free if launch unset it"
+  fi
+  note "auth valid: local-free (Clerk unconfigured; Sign in is hidden)"
+else
+  bad "unexpected auth_mode=${auth_mode}"
+fi
+
+if [[ "${fail}" == "1" ]]; then
+  echo "verify-pointer doctor: UNHEALTHY — do not drive this instance" >&2
+  exit 1
+fi
+
+echo "verify-pointer doctor: HEALTHY"
+echo "url=${url}"
+echo "port=${port}"
+echo "auth_mode=${auth_mode}"
