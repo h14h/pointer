@@ -38,6 +38,10 @@ Preconditions:
   `Open workspace`, button `Live draft`. Dashed button
   `getByRole("button", { name: /add a league/i })`. Stamp like
   `1 league · 1 sport`. URL path is `/`.
+- **Baseball-first (separate fresh context).** `page.goto("/")` then
+  `getByRole("button", { name: /^Baseball$/i })`. Card title
+  `My Baseball League`. Subtitle includes `2025 Leaders`. Do not
+  treat Add-league baseball as this sub-feature.
 - **Add baseball.** Click add a league. Dialog title `Add a league`.
   Fill `getByLabel(/league name/i)` with `Sandlot Classic`. Click
   `getByRole("button", { name: /^Baseball$/i })` then

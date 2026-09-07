@@ -137,7 +137,7 @@ not a substitute for the map.
 | Reset draft | `getByRole("button", { name: /reset draft/i })` then confirm `Reset Draft` |
 | Quick-log | `getByRole("textbox", { name: /log a pick/i })` (`aria-label="log a pick"`) |
 | Draft tape | `getByRole("…", { name: /draft tape/ })` — `aria-label="draft tape — every pick in order"` |
-| Board search (workspace) | `getByPlaceholder("Search players...")`. Football names render abbreviated (`J. Chase`, not `Ja'Marr Chase`) |
+| Board search (workspace) | `getByPlaceholder("Search players...")`. Football names render abbreviated (`J. Chase`, not `Ja'Marr Chase`). Workspace Board does not log picks — that is live draft. |
 | Board position filter | `getByRole("button", { name: "Position" })` then option `QB` / `RB` / … / `All Positions` |
 | Baseball player type | `getByRole("button", { name: "Player type" })` then `Pitchers` |
 | Plan targets | `getByRole("textbox", { name: "Search players to flag as targets" })` |

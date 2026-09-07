@@ -70,7 +70,7 @@ handles, required state, commands, and observable proof.
 - [League onboarding](./league-onboarding.md) — first visit, sport pick, fleet, add a second league, export backup.
 - [Workspace tabs](./workspace-tabs.md) — Plan / Board / Intel / Config URLs, back button, breadcrumb.
 - [Plan](./plan.md) — pick timeline, targets, slot notes, tier supply.
-- [Board](./board.md) — ranked table, search, position filter, pagination.
+- [Board](./board.md) — ranked table, search, position filter, pagination, football overlays.
 - [Intel](./intel.md) — sport libraries, built-in source, upload affordance.
-- [Config](./config.md) — identity, scoring, roster, danger zone, persistence.
+- [Config](./config.md) — identity, scoring, roster, draft order & keepers, danger zone, persistence.
 - [Live draft](./live-draft.md) — takeover, quick-log, board log, undo, exit.

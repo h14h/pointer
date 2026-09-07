@@ -1,9 +1,10 @@
 # Board
 
 The Board tab is the ranked player table for the current league: search,
-position filter, pagination, and (in draft mode) pick logging from the list.
-Football and baseball tables share the search placeholder and pagination
-words but not the same columns.
+position filter, pagination, and (football) projection overlays. Pick
+logging is not on this tab — it lives in the live-draft room. Football
+and baseball tables share the search placeholder and pagination words
+but not the same columns.
 
 ## Sub-features
 
@@ -31,6 +32,8 @@ Preconditions:
   Wait for `page.locator("table tbody tr").first()`. URL ends in `/board`.
   Visible column words include `PLAYER` / `POS` / `PTS` / `PAR` (stamped).
   `Page 1 of` and `Next` are present. Screenshot `01-board-all.png`.
+- **Page.** Click `getByRole("button", { name: "Next" })`. Pagination
+  text matches `/Page 2 of/`. Then search (search can collapse paging).
 - **Search.** `getByPlaceholder("Search players...").fill("chase")`.
   A row showing exact text `J. Chase` remains (abbreviated from Ja'Marr
   Chase). Search also matches other surnames (`C. Brown` = Chase Brown).
@@ -44,7 +47,10 @@ Preconditions:
   `getByRole("button", { name: "Player type" })` then `Pitchers`. Wait for
   `th:has-text("ERA")` (`e2e/leaderboard.spec.ts`).
 - **Proof.** Action screenshot (typed query) plus result screenshot (filtered
-  row). Helper: `bun .cursor/skills/verify-pointer/helpers/drive.mjs board`.
+  row). Helper: `bun .cursor/skills/verify-pointer/helpers/drive.mjs board`
+  (table, Next → page 2, search `chase`, Position RB). Overlay is not
+  in the starter helper — click a player name whose `title` ends in
+  `edit overlays`.
 
 ## Gotchas
 
@@ -56,6 +62,9 @@ Preconditions:
 - Baseball Board headers say **Points**, not PTS. Position there is
   multi-select with no `All Positions` option. `e2e/leaderboard.spec.ts`
   proves `/leaderboard-visual` (baseball fixture), not this tab.
+- Workspace Board does **not** log picks. Store `isDraftMode` stays
+  `false` in production; `/leaderboard-visual?variant=draft` is a golden
+  fixture, not this tab. Log picks in [live-draft.md](./live-draft.md).
 - Do not use `/leaderboard-visual` to prove the Board tab. That page seeds
   a store fixture and skips onboarding.
 - Position menus are custom dropdowns (`getByRole("button")` options), not

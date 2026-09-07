@@ -30,8 +30,10 @@ Preconditions:
 - **Worksheet.** After Open workspace, wait for
   `getByRole("heading", { name: /pick timeline/i })` (accessible name
   `Pick timeline — your slots`). Also visible: heading `Targets` with
-  stamp `0 flagged`, heading `Tier supply`, and a first slot `R1.01`
-  marked `on deck`. Screenshot `01-plan-worksheet.png`.
+  stamp `0 flagged`, heading `Tier supply` with stamp
+  `remaining vs. printed pool` and at least one `{n} of {n}` row, and
+  a first slot `R1.01` marked `on deck`. Screenshot
+  `01-plan-worksheet.png`.
 - **Targets.** Fill `getByRole("textbox", { name: "Search players to flag as targets" })`
   with `chase`. Click the dropdown button whose name matches
   `/Ja'Marr Chase/i` (Plan uses the full stored name, not the Board
@@ -41,7 +43,8 @@ Preconditions:
   a phrase, blur. Click Board then Plan. The Round 1 note input still
   holds that phrase.
 - **Proof.** Action + result screenshots. Helper:
-  `bun .cursor/skills/verify-pointer/helpers/drive.mjs plan`.
+  `bun .cursor/skills/verify-pointer/helpers/drive.mjs plan`
+  (timeline, targets, notes, and tier-supply stamp).
 
 ## Gotchas
 

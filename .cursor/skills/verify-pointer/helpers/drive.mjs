@@ -173,9 +173,12 @@ async function drivePlan(page) {
   await page.getByRole("heading", { name: /pick timeline/i }).waitFor({ timeout: 15_000 });
   await page.getByRole("heading", { name: "Targets" }).waitFor();
   await page.getByRole("heading", { name: "Tier supply" }).waitFor();
+  await page.getByText(/remaining vs\. printed pool/i).waitFor();
+  await page.getByText(/\d+ of \d+/).first().waitFor();
   await page.getByText("R1.01").waitFor();
   await shot(page, "01-plan-worksheet.png");
   step("plan-timeline", "ok", "Pick timeline + Targets + Tier supply on /plan");
+  step("plan-tiers", "ok", "Tier supply remaining vs. printed pool + N of N row");
 
   const targetSearch = page.getByRole("textbox", { name: "Search players to flag as targets" });
   await targetSearch.fill("chase");
@@ -203,7 +206,12 @@ async function driveBoard(page) {
   await page.getByRole("link", { name: /open workspace/i }).first().click();
   await page.getByRole("link", { name: "Board", exact: true }).click();
   await page.locator("table tbody tr").first().waitFor({ timeout: 15_000 });
+  await page.getByText(/Page 1 of/).waitFor();
   await shot(page, "01-board-all.png");
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByText(/Page 2 of/).waitFor({ timeout: 10_000 });
+  await shot(page, "01b-board-page-2.png");
+  step("board-page", "ok", "Next advanced pagination to Page 2 of");
   await page.getByPlaceholder("Search players...").fill("chase");
   // Football Board abbreviates names (Ja'Marr Chase → "J. Chase").
   await page.getByText("J. Chase", { exact: true }).waitFor({ timeout: 10_000 });
@@ -228,10 +236,11 @@ async function driveIntel(page) {
   // Both sport libraries can show a Built-in badge after bootstrap.
   await footballSource.locator("xpath=..").getByText("Built-in").waitFor();
   await page.getByText("Selected").first().waitFor();
+  await page.getByText(/via fallback/i).first().waitFor();
   await page.getByRole("button", { name: /upload csv/i }).waitFor();
   await page.getByRole("heading", { name: /baseball library/i }).waitFor();
   await shot(page, "01-intel-libraries.png");
-  step("intel-own", "ok", "football library + built-in Selected + Upload CSV");
+  step("intel-own", "ok", "football library + built-in Selected via fallback + Upload CSV");
   step("intel-other", "ok", "baseball library heading present");
 }
 
