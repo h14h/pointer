@@ -695,6 +695,43 @@ describe("football PAR", () => {
     );
   });
 
+  test("equal-point QB PAR rises when Superflex lowers the QB leftover", () => {
+    const curve = (position: FootballPosition, count: number, start: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        player: makePlayer({ Name: `${position}${i + 1}`, Position: position }),
+        projectedPoints: start - i * 3,
+      }));
+    const players = [
+      { player: makePlayer({ Name: "QBSTAR", Position: "QB" }), projectedPoints: 300 },
+      { player: makePlayer({ Name: "RBSTAR", Position: "RB" }), projectedPoints: 300 },
+      ...curve("QB", 40, 270),
+      ...curve("RB", 70, 250),
+      ...curve("WR", 70, 245),
+      ...curve("TE", 40, 180),
+      ...curve("K", 20, 140),
+      ...curve("DST", 20, 130),
+    ];
+    const oneQb: FootballRosterSettings = {
+      positions: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SUPERFLEX: 0, K: 1, DST: 1 },
+      bench: 5,
+    };
+    const superflex: FootballRosterSettings = {
+      positions: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SUPERFLEX: 1, K: 1, DST: 1 },
+      bench: 5,
+    };
+
+    const oneQbLevels = calculateFootballReplacementLevels(players, oneQb, 10);
+    const superflexLevels = calculateFootballReplacementLevels(players, superflex, 10);
+    const oneQbPar = calculateFootballPAR(players, oneQb, 10);
+    const superflexPar = calculateFootballPAR(players, superflex, 10);
+    const qbId = players[0].player._id;
+    const rbId = players[1].player._id;
+
+    expect(oneQbLevels.QB).toBeGreaterThan(superflexLevels.QB ?? 0);
+    expect(oneQbPar.get(qbId)).toBeLessThan(oneQbPar.get(rbId) ?? 0);
+    expect(superflexPar.get(qbId)).toBeGreaterThan(oneQbPar.get(qbId) ?? 0);
+  });
+
   test("FLEX slots absorb the best remaining RB/WR/TE", () => {
     // 1-team league: RB1 + FLEX1. Two RBs and one WR.
     const rb1 = { player: makePlayer({ Name: "RB One", Position: "RB" as FootballPosition }), projectedPoints: 200 };

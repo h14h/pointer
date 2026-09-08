@@ -278,6 +278,56 @@ describe("calculatePAR", () => {
       expectReplacementBoundary(result, 169);
     });
 
+    it("gives equal-point stars a scarcity premium at the thinner position after a mixed C/OF/UTIL fill", () => {
+      // 2 teams × (1 C + 3 OF + 1 UTIL). Steep catcher drop-off, deep OF pool.
+      // Global fill: 2 catchers + 6 OF + 2 UTIL (the next OF). Leftovers are C3
+      // (200) and OF9 (320), so the 400-point catcher must outrank the 400-point
+      // OF. A single pool-wide baseline would give both players the same PAR.
+      const catchers = [400, 300, 200, 100, 50].map((points, index) =>
+        createBatter(`C${index + 1}`, ["C"], points)
+      );
+      const outfielders = [400, 390, 380, 370, 360, 350, 340, 330, 320, 310, 300, 290].map(
+        (points, index) => createBatter(`OF${index + 1}`, ["LF"], points)
+      );
+      const settings = createLeagueSettings({ C: 1, OF: 3, UTIL: 1 }, 2);
+
+      const result = calculatePAR([...catchers, ...outfielders], settings);
+      const byName = Object.fromEntries(result.map(row => [row.player.Name, row]));
+
+      expect(byName.PlayerC3.par).toBe(0);
+      expect(byName.PlayerOF9.par).toBe(0);
+      expect(byName.PlayerC1.par).toBe(200);
+      expect(byName.PlayerOF1.par).toBe(80);
+      expect(byName.PlayerC1.par).toBeGreaterThan(byName.PlayerOF1.par);
+    });
+
+    it("does not consume baseball bench slots when choosing replacement", () => {
+      const catchers = [400, 300, 200, 100, 50].map((points, index) =>
+        createBatter(`C${index + 1}`, ["C"], points)
+      );
+      const outfielders = [400, 390, 380, 370, 360, 350, 340, 330, 320, 310, 300, 290].map(
+        (points, index) => createBatter(`OF${index + 1}`, ["LF"], points)
+      );
+      const roster = { C: 1, OF: 3, UTIL: 1 } as const;
+
+      const withoutBench = calculatePAR(
+        [...catchers, ...outfielders],
+        createLeagueSettings(roster, 2, { bench: 0 })
+      );
+      const withBench = calculatePAR(
+        [...catchers, ...outfielders],
+        createLeagueSettings(roster, 2, { bench: 3 })
+      );
+
+      expect(withBench.find(row => row.player.Name === "PlayerC1")?.par).toBe(
+        withoutBench.find(row => row.player.Name === "PlayerC1")?.par
+      );
+      expect(withBench.find(row => row.player.Name === "PlayerOF1")?.par).toBe(
+        withoutBench.find(row => row.player.Name === "PlayerOF1")?.par
+      );
+      expect(withBench.find(row => row.player.Name === "PlayerC3")?.par).toBe(0);
+    });
+
   });
 
   describe("pitcher pools", () => {
