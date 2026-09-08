@@ -94,13 +94,17 @@ Replacement level scales with league size because deeper leagues draft more play
 - **6-team league:** Replacement at each position is higher (fewer teams = fewer starting slots)
 - **20-team league:** Replacement at each position is lower (more teams = more starting slots)
 
-The replacement threshold is computed once at PAR calculation time, using the static roster configuration. It does not update during the draft.
+The baseball replacement threshold is computed once at PAR calculation time, using the static roster configuration. It does not update during the draft. Football replacement does update from logged picks — see [Football PAR](football.md).
 
 ## Design Decisions
 
-**Static vs. dynamic replacement.** PAR uses static replacement levels computed from the full player pool and league roster settings. This is the pre-draft baseline. During a draft, the actual replacement level (available free agents) changes, but PAR does not — it's a draft value tool, not a live valuation.
+**Static vs. dynamic replacement.** Baseball PAR uses static replacement levels computed from the full player pool and league roster settings. This is the pre-draft baseline and does not update as picks are logged. Football PAR is different: it recomputes from the remaining undrafted pool and remaining roster demand so mid-draft positional saturation (especially 1-QB) is visible on the board. See [docs/football.md](football.md).
 
 **Global allocation.** All replacement levels come from the same final rostered universe. This keeps pooled slots aligned with their component positions, so `MI` reflects the better of the available `2B`/`SS` leftovers, `CI` reflects the better of `1B`/`3B`, and `UTIL` reflects the best hitter actually left on the waiver wire after the whole starting lineup is filled.
+
+**Positional scarcity.** Replacement is per slot type, not a single pool-wide baseline. After the global fill, a catcher's replacement is the best leftover catcher and an OF's replacement is the best leftover OF. Equal projected points therefore produce a higher PAR at the thinner position when that position's leftover is worse — for example a 400-point catcher against a 200-point leftover C, versus a 400-point OF against a 320-point leftover OF. Scarcity does **not** come from slot count alone: fewer slots leave a *better* leftover unless the talent curve drops off. That is why 1-QB football QBs can look "cheap" on PAR (QB replacement is still a good player) while Superflex lowers the QB leftover and raises QB PAR.
+
+**Baseball bench is not roster demand.** Baseball PAR fills active hitter and pitcher slots only. `roster.bench` does not add backup-catcher or extra-OF demand. Football PAR is different: it adds a positional bench heuristic on top of starting slots. Including baseball bench would require an explicit allocation policy (how many backup C vs OF vs P) and would lower replacement at positions that typically take bench spots.
 
 **Start-limit approximation.** Weekly start limits make starts a scarce resource. The first-pass model assumes `1.2` starts per rostered SP per week and a `25` week fantasy season; both constants are defined in `src/lib/leaderboard/par.ts` and should become configurable if owners need league-specific tuning. Starter capacity is estimated as `SP + P + bench`, and the start penalty scales with the share of expected starts above the cap. At or below the cap, a Poisson tail probability provides a small non-zero penalty for loose-cap leagues where individual teams can still run into clustered start weeks. When the cap leaves flexible starter-capable slots over-provisioned, those slots become relief-side replacement demand, so true RPs are compared against the marginal reliever needed to absorb that free pitching capacity.
 
