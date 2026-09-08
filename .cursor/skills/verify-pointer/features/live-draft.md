@@ -59,8 +59,9 @@ Preconditions:
   / `Team 11` / `Team 12` all look like `T1`). Assert overall pick
   number and player name, not tape initials
   (`scenarios/draft-room.md`).
-- Workspace Board's `Undo Last Pick` is a different control from the
-  draft-room `undo` receipt action.
+- Workspace Board does **not** show `Undo Last Pick` (`isDraftMode`
+  stays false). Undo is the draft-room receipt `undo` next to
+  `logged: pN` (Rail also has `undo last pick`).
 - Re-entering `/draft` resumes the same IndexedDB pick index. A fresh
   context is a new league with zero picks.
 - Night-mode transition (`beginNightTransition`) can veil the first
