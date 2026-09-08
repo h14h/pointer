@@ -3,12 +3,14 @@
 The Board tab is the ranked player table for the current league: search,
 position filter, pagination, and (football) projection overlays. Pick
 logging is not on this tab — it lives in the live-draft room. Football
-and baseball tables share the search placeholder and pagination words
-but not the same columns.
+rows default to **live PAR ↓** (not raw points). Baseball stays on
+projected points. Football and baseball tables share the search
+placeholder and pagination words but not the same columns.
 
 ## Sub-features
 
-- `board-table` renders ranked rows with PLAYER / POS / PTS / PAR (football; also #, Bye, ADP, and stat columns).
+- `board-table` renders ranked rows with PLAYER / POS / PTS / PAR (football; also #, Bye, ADP, and stat columns). Football default sort is PAR ↓ (header `PAR ↓`).
+- `board-live-par` (football) — after picks are logged in live draft, returning here recomputes PAR from remaining demand. Once ~`leagueSize` QBs are logged in default 1QB, remaining QBs sort below WR/TE (paginate; they may be off page 1).
 - `board-search` filters by `Search players...`. Names render abbreviated (`Ja'Marr Chase` → `J. Chase`).
 - `board-position` filters via the Position dropdown.
 - `board-page` pages with Prev / Next and `Page N of M`.
@@ -31,7 +33,8 @@ Preconditions:
 - **Table.** Click `getByRole("link", { name: "Board", exact: true })`.
   Wait for `page.locator("table tbody tr").first()`. URL ends in `/board`.
   Visible column words include `PLAYER` / `POS` / `PTS` / `PAR` (stamped).
-  `Page 1 of` and `Next` are present. Screenshot `01-board-all.png`.
+  Football PAR header reads `PAR ↓`. `Page 1 of` and `Next` are present.
+  Screenshot `01-board-all.png`.
 - **Page.** Click `getByRole("button", { name: "Next" })`. Pagination
   text matches `/Page 2 of/`. Then search (search can collapse paging).
 - **Search.** `getByPlaceholder("Search players...").fill("chase")`.
@@ -46,11 +49,17 @@ Preconditions:
 - **Baseball type (only on a baseball league).**
   `getByRole("button", { name: "Player type" })` then `Pitchers`. Wait for
   `th:has-text("ERA")` (`e2e/leaderboard.spec.ts`).
+- **Live PAR after draft (football).** Do not log picks here. Enter
+  `/draft`, click filter `QB`, then `getByRole("button", { name: /^log /i })`
+  twelve times (default 12-team 1QB). Exit → Board. All Positions: first
+  available WR/TE stay near the top; paginate until the first available
+  QB — its `#` and PAR are worse than those WR/TE (example: J. Dart
+  `#52` PAR +81 vs P. Nacua `#5` +217 and T. McBride `#16` +158).
 - **Proof.** Action screenshot (typed query) plus result screenshot (filtered
   row). Helper: `bun .cursor/skills/verify-pointer/helpers/drive.mjs board`
   (table, Next → page 2, search `chase`, Position RB). Overlay is not
   in the starter helper — click a player name whose `title` ends in
-  `edit overlays`.
+  `edit overlays`. Live PAR saturation is the extra path above.
 
 ## Gotchas
 
@@ -64,7 +73,9 @@ Preconditions:
   proves `/leaderboard-visual` (baseball fixture), not this tab.
 - Workspace Board does **not** log picks. Store `isDraftMode` stays
   `false` in production; `/leaderboard-visual?variant=draft` is a golden
-  fixture, not this tab. Log picks in [live-draft.md](./live-draft.md).
+  fixture, not this tab. Log picks in [live-draft.md](./live-draft.md),
+  then come back — drafted rows show a `D` chip and live PAR has already
+  moved remaining QBs down.
 - Do not use `/leaderboard-visual` to prove the Board tab. That page seeds
   a store fixture and skips onboarding.
 - Position menus are custom dropdowns (`getByRole("button")` options), not

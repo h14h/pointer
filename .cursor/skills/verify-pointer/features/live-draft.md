@@ -2,6 +2,8 @@
 
 Live draft is a full-screen night-mode takeover for logging every pick
 against the league board. Nothing auto-advances. Exit returns to Plan.
+Football rows are ordered by **live PAR** (PROJ is still shown). After
+enough QBs are logged in default 1QB, remaining QBs sort below WR/TE.
 
 ## Sub-features
 
@@ -12,6 +14,9 @@ against the league board. Nothing auto-advances. Exit returns to Plan.
 - `draft-exit` returns to `/plan` via `Exit live draft`.
 - `draft-reset` opens `reset draft` and confirms with `Reset Draft`
   (clears logged picks; keepers and Plan notes stay).
+- `draft-par-sat` (football) — after ~`leagueSize` QBs are logged in
+  default 1QB, the first remaining QB on filter `ALL` sits below the
+  first WR and first TE (POS · TEAM column; PAR column).
 
 ## How to get to it (user POV)
 
@@ -46,10 +51,19 @@ Preconditions:
 - **Exit.** Click `getByRole("button", { name: /exit live draft/i })`.
   URL ends in `/plan`. Tab rail returns. A logged slot on Plan reads
   `logged` with the player name.
+- **QB saturation (football).** Click draft-board filter `QB` (chip, not
+  the workspace Position dropdown). Repeatedly
+  `getByRole("button", { name: /^log /i }).first()` until 12 QBs are
+  logged (receipt `logged: p12`, strip pick 13). Click filter `ALL`.
+  Collect rows; first `QB ·` must have a higher RNK than first `WR ·`
+  and first `TE ·`. Example: Jaxson Dart r39 PAR +81 below Puka
+  Nacua r4 +217 and Trey McBride r11 +158. Then Exit → Board and
+  re-check [board.md](./board.md) `board-live-par`.
 - **Proof.** Screenshot in the room (sync strip + receipt) and after
   exit (Plan timeline).   Helper:
   `bun .cursor/skills/verify-pointer/helpers/drive.mjs live-draft`
   (enter, quick-log `mccaffrey`, exit; Plan shows the logged name).
+  Saturation is not in the starter helper.
 
 ## Gotchas
 
@@ -62,6 +76,9 @@ Preconditions:
 - Workspace Board does **not** show `Undo Last Pick` (`isDraftMode`
   stays false). Undo is the draft-room receipt `undo` next to
   `logged: pN` (Rail also has `undo last pick`).
+- Football board order is live PAR, not PROJ. Pre-draft a top QB can
+  still sit above TE (Josh Allen r6 vs first TE r15). Saturation is the
+  mid-draft drop, not the pre-draft 1QB baseline.
 - Re-entering `/draft` resumes the same IndexedDB pick index. A fresh
   context is a new league with zero picks.
 - Night-mode transition (`beginNightTransition`) can veil the first
