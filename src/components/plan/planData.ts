@@ -71,7 +71,7 @@ export function fromBaseballRanked(rows: RankedPlayer[]): PlanPlayer[] {
 
 export function fromFootballRanked(rows: FootballRankedPlayer[]): PlanPlayer[] {
   return [...rows]
-    .sort((a, b) => b.projectedPoints - a.projectedPoints)
+    .sort((a, b) => b.par - a.par || b.projectedPoints - a.projectedPoints)
     .map((row, index) => ({
       id: row.player._id,
       name: row.player.Name,

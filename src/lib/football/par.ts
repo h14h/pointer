@@ -5,12 +5,12 @@ import type {
   FootballRosterSlot,
 } from "@/types";
 
-// Football PAR mirrors the baseball implementation: allocate the top players
-// to every starting slot league-wide (maximum bipartite matching, best players
-// first), then allocate bench depth by realistic football roster construction.
-// A position's replacement level is the best player left in the pool. A
-// player's PAR is their points above the best replacement level among the slots
-// they can fill.
+// Football PAR mirrors the baseball starter-allocation model, then layers on
+// football bench demand. Unlike baseball, football PAR is live during a draft:
+// drafted/keeper players leave the pool and consume remaining slot demand, so
+// a saturated position (typical case: 1-QB after the starter run) no longer
+// outranks leftover WR/TE value. A player's PAR is their points above the
+// best remaining replacement level among the slots they can fill.
 
 const SLOT_POSITIONS: Record<FootballRosterSlot, FootballPosition[]> = {
   QB: ["QB"],
@@ -178,6 +178,77 @@ function calculateFootballPositionalBenchDemand(
   return demand;
 }
 
+export type FootballPAROptions = {
+  /** Drafted and keeper player ids. Remaining demand ignores these players. */
+  takenPlayerIds?: Iterable<string>;
+};
+
+function getTakenPlayerIdSet(options?: FootballPAROptions): Set<string> {
+  return new Set(options?.takenPlayerIds ?? []);
+}
+
+function getStarterSlotCounts(
+  roster: FootballRosterSettings,
+  leagueSize: number
+): Partial<Record<FootballRosterSlot, number>> {
+  return Object.fromEntries(
+    FOOTBALL_ROSTER_SLOTS.map(
+      (slot) => [slot, (roster.positions[slot] ?? 0) * leagueSize] as const
+    ).filter(([, count]) => count > 0)
+  ) as Partial<Record<FootballRosterSlot, number>>;
+}
+
+function getAllocationSlotCounts(
+  roster: FootballRosterSettings,
+  leagueSize: number
+): Partial<Record<FootballRosterSlot, number>> {
+  const starterSlotCounts = getStarterSlotCounts(roster, leagueSize);
+  const benchDemand = calculateFootballPositionalBenchDemand(roster, leagueSize);
+
+  return FOOTBALL_ROSTER_SLOTS.reduce<Partial<Record<FootballRosterSlot, number>>>((counts, slot) => {
+    const starterCount = starterSlotCounts[slot] ?? 0;
+    const benchCount = SLOT_POSITIONS[slot].length === 1 ? benchDemand[SLOT_POSITIONS[slot][0]] : 0;
+    const total = starterCount + benchCount;
+    if (total > 0) counts[slot] = total;
+    return counts;
+  }, {});
+}
+
+function consumeTakenPlayerSlots(
+  slotCounts: Partial<Record<FootballRosterSlot, number>>,
+  takenPlayers: ScoredFootballPlayer[]
+): Partial<Record<FootballRosterSlot, number>> {
+  const remaining: Partial<Record<FootballRosterSlot, number>> = { ...slotCounts };
+  const take = (slot: FootballRosterSlot, count: number): number => {
+    if (count <= 0) return 0;
+    const available = remaining[slot] ?? 0;
+    const consumed = Math.min(available, count);
+    if (consumed > 0) {
+      const next = available - consumed;
+      if (next > 0) remaining[slot] = next;
+      else delete remaining[slot];
+    }
+    return count - consumed;
+  };
+
+  const takenByPosition = emptyPositionalDemand();
+  for (const scored of takenPlayers) {
+    takenByPosition[scored.player.Position] += 1;
+  }
+
+  const leftoverQB = take("QB", takenByPosition.QB);
+  const leftoverRB = take("RB", takenByPosition.RB);
+  const leftoverWR = take("WR", takenByPosition.WR);
+  const leftoverTE = take("TE", takenByPosition.TE);
+  take("K", takenByPosition.K);
+  take("DST", takenByPosition.DST);
+
+  const leftoverSkill = take("FLEX", leftoverRB + leftoverWR + leftoverTE);
+  take("SUPERFLEX", leftoverQB + leftoverSkill);
+
+  return remaining;
+}
+
 function allocatePlayersToSlots(
   players: ScoredFootballPlayer[],
   slotCounts: Partial<Record<FootballRosterSlot, number>>
@@ -231,30 +302,29 @@ function allocatePlayersToSlots(
 export function calculateFootballReplacementLevels(
   players: ScoredFootballPlayer[],
   roster: FootballRosterSettings,
-  leagueSize: number
+  leagueSize: number,
+  options?: FootballPAROptions
 ): Partial<Record<FootballRosterSlot, number>> {
-  const activeSlotCounts = Object.fromEntries(
-    FOOTBALL_ROSTER_SLOTS.map(
-      (slot) => [slot, (roster.positions[slot] ?? 0) * leagueSize] as const
-    ).filter(([, count]) => count > 0)
-  ) as Partial<Record<FootballRosterSlot, number>>;
+  const takenIds = getTakenPlayerIdSet(options);
+  const takenPlayers = takenIds.size === 0
+    ? []
+    : players.filter((scored) => takenIds.has(scored.player._id));
+  const availablePlayers = takenIds.size === 0
+    ? players
+    : players.filter((scored) => !takenIds.has(scored.player._id));
 
-  const benchDemand = calculateFootballPositionalBenchDemand(roster, leagueSize);
-  const assignedPlayerIds = allocatePlayersToSlots(
-    players,
-    FOOTBALL_ROSTER_SLOTS.reduce<Partial<Record<FootballRosterSlot, number>>>((counts, slot) => {
-      const activeCount = activeSlotCounts[slot] ?? 0;
-      const benchCount = SLOT_POSITIONS[slot].length === 1 ? benchDemand[SLOT_POSITIONS[slot][0]] : 0;
-      const total = activeCount + benchCount;
-      if (total > 0) counts[slot] = total;
-      return counts;
-    }, {})
-  );
-  const sortedPlayers = getSortedPlayers(players);
+  const starterSlotCounts = getStarterSlotCounts(roster, leagueSize);
+  const allocationSlotCounts = getAllocationSlotCounts(roster, leagueSize);
+  const remainingSlotCounts = takenPlayers.length === 0
+    ? allocationSlotCounts
+    : consumeTakenPlayerSlots(allocationSlotCounts, takenPlayers);
+
+  const assignedPlayerIds = allocatePlayersToSlots(availablePlayers, remainingSlotCounts);
+  const sortedPlayers = getSortedPlayers(availablePlayers);
 
   const replacementLevels: Partial<Record<FootballRosterSlot, number>> = {};
   for (const slot of FOOTBALL_ROSTER_SLOTS) {
-    if ((activeSlotCounts[slot] ?? 0) === 0) continue;
+    if ((starterSlotCounts[slot] ?? 0) === 0) continue;
     const bestRemaining = sortedPlayers.find(
       (scored) =>
         !assignedPlayerIds.has(scored.player._id) &&
@@ -269,9 +339,15 @@ export function calculateFootballReplacementLevels(
 export function calculateFootballPAR(
   players: ScoredFootballPlayer[],
   roster: FootballRosterSettings,
-  leagueSize: number
+  leagueSize: number,
+  options?: FootballPAROptions
 ): Map<string, number> {
-  const replacementLevels = calculateFootballReplacementLevels(players, roster, leagueSize);
+  const replacementLevels = calculateFootballReplacementLevels(
+    players,
+    roster,
+    leagueSize,
+    options
+  );
 
   const parById = new Map<string, number>();
   for (const scored of players) {

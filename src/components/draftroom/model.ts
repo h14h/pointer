@@ -131,8 +131,9 @@ const searchTextFor = (name: string, team: string, pos: string) =>
   `${name} ${team} ${pos}`.toLowerCase();
 
 /**
- * The full ranked pool (drafted + keepers included), sorted by projected
- * points descending. Sport-specific ranking engines feed one shape.
+ * The full ranked pool (drafted + keepers included). Football sorts by live
+ * PAR so saturated positions fall as the draft fills those slots. Baseball
+ * stays on projected points.
  */
 export function buildRoomPlayers(
   league: League,
@@ -150,7 +151,7 @@ export function buildRoomPlayers(
       draftState: league.draftState,
       playerStatOverrides: league.playerStatOverrides,
     });
-    return sortFootballRankedPlayers(rows, "points", "desc").map((row) => ({
+    return sortFootballRankedPlayers(rows, "par", "desc").map((row) => ({
       id: row.player._id,
       name: row.player.Name,
       pos: row.player.Position,

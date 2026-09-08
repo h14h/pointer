@@ -259,7 +259,7 @@ export function FootballLeaderboard() {
 	const [positionFilter, setPositionFilter] =
 		useState<FootballPositionFilter>("ALL");
 	const [draftFilter, setDraftFilter] = useState<FootballDraftFilter>("available");
-	const [sort, setSort] = useState<SortState>({ key: "points", desc: true });
+	const [sort, setSort] = useState<SortState>({ key: "par", desc: true });
 	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
 	const [editingPlayer, setEditingPlayer] = useState<FootballPlayer | null>(null);
 

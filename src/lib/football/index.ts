@@ -24,6 +24,7 @@ export {
   calculateFootballPositionalRosterDemand,
   calculateFootballReplacementLevels,
   calculateFootballPAR,
+  type FootballPAROptions,
 } from "./par";
 
 export {

@@ -1,6 +1,11 @@
 import { describe, test, expect } from "bun:test";
 import fc from "fast-check";
-import type { FootballPlayer, FootballPosition, FootballRosterSettings } from "@/types";
+import type {
+  FootballLeagueConfig,
+  FootballPlayer,
+  FootballPosition,
+  FootballRosterSettings,
+} from "@/types";
 import {
   buildFootballPlayerId,
   buildFootballRankedPlayers,
@@ -732,6 +737,138 @@ describe("football PAR", () => {
     expect(superflexPar.get(qbId)).toBeGreaterThan(oneQbPar.get(qbId) ?? 0);
   });
 
+  test("after league-wide QB starters are taken, remaining QBs fall behind leftover WR/TE", () => {
+    const roster: FootballRosterSettings = {
+      positions: { QB: 1, RB: 0, WR: 1, TE: 1, FLEX: 0, SUPERFLEX: 0, K: 0, DST: 0 },
+      bench: 0,
+    };
+    const players = [
+      { player: makePlayer({ Name: "QB1", Position: "QB" }), projectedPoints: 300 },
+      { player: makePlayer({ Name: "QB2", Position: "QB" }), projectedPoints: 280 },
+      { player: makePlayer({ Name: "QB3", Position: "QB" }), projectedPoints: 260 },
+      { player: makePlayer({ Name: "QB4", Position: "QB" }), projectedPoints: 240 },
+      { player: makePlayer({ Name: "WR1", Position: "WR" }), projectedPoints: 220 },
+      { player: makePlayer({ Name: "WR2", Position: "WR" }), projectedPoints: 210 },
+      { player: makePlayer({ Name: "WR3", Position: "WR" }), projectedPoints: 180 },
+      { player: makePlayer({ Name: "TE1", Position: "TE" }), projectedPoints: 200 },
+      { player: makePlayer({ Name: "TE2", Position: "TE" }), projectedPoints: 190 },
+      { player: makePlayer({ Name: "TE3", Position: "TE" }), projectedPoints: 150 },
+    ];
+
+    const preDraft = calculateFootballPAR(players, roster, 2);
+    expect(preDraft.get(players[0].player._id)).toBe(40);
+    expect(preDraft.get(players[2].player._id)).toBe(0);
+    expect(preDraft.get(players[4].player._id)).toBe(40);
+
+    const takenPlayerIds = [players[0].player._id, players[1].player._id];
+    const live = calculateFootballPAR(players, roster, 2, { takenPlayerIds });
+    const remainingQb = live.get(players[2].player._id) ?? 0;
+    const leftoverWr = live.get(players[4].player._id) ?? 0;
+    const leftoverTe = live.get(players[7].player._id) ?? 0;
+
+    expect(remainingQb).toBeLessThanOrEqual(0);
+    expect(leftoverWr).toBeGreaterThan(0);
+    expect(leftoverTe).toBeGreaterThan(0);
+    expect(remainingQb).toBeLessThan(leftoverWr);
+    expect(remainingQb).toBeLessThan(leftoverTe);
+
+    const liveRows = players.map((scored) => ({
+      player: scored.player,
+      projectedPoints: scored.projectedPoints,
+      par: live.get(scored.player._id) ?? 0,
+      isDrafted: takenPlayerIds.includes(scored.player._id),
+      isKeeper: false,
+      searchText: scored.player.Name.toLowerCase(),
+      hasOverrides: false,
+    }));
+    const available = sortFootballRankedPlayers(
+      liveRows.filter((row) => !row.isDrafted),
+      "par",
+      "desc"
+    );
+    expect(available[0].player.Position).not.toBe("QB");
+    expect(available.find((row) => row.player.Name === "QB3")?.par ?? 0)
+      .toBeLessThan(available.find((row) => row.player.Name === "WR1")?.par ?? 0);
+  });
+
+  test("default 1QB starter saturation drops remaining QBs behind WR/TE despite higher raw points", () => {
+    const roster: FootballRosterSettings = {
+      positions: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SUPERFLEX: 0, K: 1, DST: 1 },
+      bench: 5,
+    };
+    const curve = (position: FootballPosition, count: number, start: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        player: makePlayer({ Name: `${position}${i + 1}`, Position: position }),
+        projectedPoints: start - i * 3,
+      }));
+    const players = [
+      ...curve("QB", 40, 300),
+      ...curve("RB", 70, 250),
+      ...curve("WR", 70, 245),
+      ...curve("TE", 40, 180),
+      ...curve("K", 20, 140),
+      ...curve("DST", 20, 130),
+    ];
+    const takenPlayerIds = players
+      .filter((scored) => scored.player.Position === "QB")
+      .slice(0, 10)
+      .map((scored) => scored.player._id);
+
+    const live = calculateFootballPAR(players, roster, 10, { takenPlayerIds });
+    const remainingQb = players.find((scored) => scored.player.Name === "QB11");
+    const leftoverWr = players.find((scored) => scored.player.Name === "WR1");
+    const leftoverTe = players.find((scored) => scored.player.Name === "TE1");
+    const qbPar = live.get(remainingQb?.player._id ?? "") ?? 0;
+    const wrPar = live.get(leftoverWr?.player._id ?? "") ?? 0;
+    const tePar = live.get(leftoverTe?.player._id ?? "") ?? 0;
+
+    expect(remainingQb?.projectedPoints ?? 0).toBeGreaterThan(leftoverWr?.projectedPoints ?? 0);
+    expect(remainingQb?.projectedPoints ?? 0).toBeGreaterThan(leftoverTe?.projectedPoints ?? 0);
+    expect(qbPar).toBeLessThan(wrPar);
+    expect(qbPar).toBeLessThan(tePar);
+
+    const available = sortFootballRankedPlayers(
+      players
+        .filter((scored) => !takenPlayerIds.includes(scored.player._id))
+        .map((scored) => ({
+          player: scored.player,
+          projectedPoints: scored.projectedPoints,
+          par: live.get(scored.player._id) ?? 0,
+          isDrafted: false,
+          isKeeper: false,
+          searchText: scored.player.Name.toLowerCase(),
+          hasOverrides: false,
+        })),
+      "par",
+      "desc"
+    );
+    const firstQbIndex = available.findIndex((row) => row.player.Position === "QB");
+    const firstWrIndex = available.findIndex((row) => row.player.Position === "WR");
+    const firstTeIndex = available.findIndex((row) => row.player.Position === "TE");
+    expect(firstWrIndex).toBeGreaterThanOrEqual(0);
+    expect(firstTeIndex).toBeGreaterThanOrEqual(0);
+    expect(firstQbIndex).toBeGreaterThan(firstWrIndex);
+    expect(firstQbIndex).toBeGreaterThan(firstTeIndex);
+  });
+
+  test("keepers consume football PAR demand the same way logged picks do", () => {
+    const roster: FootballRosterSettings = {
+      positions: { QB: 1, RB: 0, WR: 1, TE: 0, FLEX: 0, SUPERFLEX: 0, K: 0, DST: 0 },
+      bench: 0,
+    };
+    const players = [
+      { player: makePlayer({ Name: "QB1", Position: "QB" }), projectedPoints: 300 },
+      { player: makePlayer({ Name: "QB2", Position: "QB" }), projectedPoints: 260 },
+      { player: makePlayer({ Name: "WR1", Position: "WR" }), projectedPoints: 200 },
+      { player: makePlayer({ Name: "WR2", Position: "WR" }), projectedPoints: 150 },
+    ];
+    const live = calculateFootballPAR(players, roster, 1, {
+      takenPlayerIds: [players[0].player._id],
+    });
+    expect(live.get(players[1].player._id)).toBeLessThanOrEqual(0);
+    expect(live.get(players[2].player._id)).toBeGreaterThan(0);
+  });
+
   test("FLEX slots absorb the best remaining RB/WR/TE", () => {
     // 1-team league: RB1 + FLEX1. Two RBs and one WR.
     const rb1 = { player: makePlayer({ Name: "RB One", Position: "RB" as FootballPosition }), projectedPoints: 200 };
@@ -773,6 +910,50 @@ describe("football ranking pipeline", () => {
     batterIdSource: null,
     pitcherIdSource: null,
   };
+
+  test("rebuilds PAR from remaining demand so saturated QBs drop down the board", () => {
+    const tightRoster: FootballLeagueConfig = {
+      scoring: config.scoring,
+      roster: {
+        positions: { QB: 1, RB: 0, WR: 1, TE: 1, FLEX: 0, SUPERFLEX: 0, K: 0, DST: 0 },
+        bench: 0,
+      },
+    };
+    const saturationGroup = {
+      ...group,
+      footballPlayers: [
+        makePlayer({ Name: "QB1", Position: "QB", PASS_YDS: 5000, PASS_TD: 40 }),
+        makePlayer({ Name: "QB2", Position: "QB", PASS_YDS: 4500, PASS_TD: 35 }),
+        makePlayer({ Name: "QB3", Position: "QB", PASS_YDS: 4000, PASS_TD: 30 }),
+        makePlayer({ Name: "WR1", Position: "WR", REC: 110, REC_YDS: 1500, REC_TD: 10 }),
+        makePlayer({ Name: "WR2", Position: "WR", REC: 100, REC_YDS: 1300, REC_TD: 8 }),
+        makePlayer({ Name: "TE1", Position: "TE", REC: 80, REC_YDS: 900, REC_TD: 8 }),
+        makePlayer({ Name: "TE2", Position: "TE", REC: 70, REC_YDS: 800, REC_TD: 6 }),
+      ],
+    };
+    const draftState = createDefaultDraftState();
+    draftState.draftedByTeam[saturationGroup.footballPlayers[0]._id] = "0";
+    draftState.draftedByTeam[saturationGroup.footballPlayers[1]._id] = "1";
+
+    const live = buildFootballRankedPlayers({
+      activeGroup: saturationGroup,
+      config: tightRoster,
+      leagueSize: 2,
+      draftState,
+    });
+    const available = sortFootballRankedPlayers(
+      live.filter((row) => !row.isDrafted),
+      "par",
+      "desc"
+    );
+    const qb3 = available.find((row) => row.player.Name === "QB3");
+    const wr1 = available.find((row) => row.player.Name === "WR1");
+    const te1 = available.find((row) => row.player.Name === "TE1");
+
+    expect(qb3?.par ?? 0).toBeLessThan(wr1?.par ?? 0);
+    expect(qb3?.par ?? 0).toBeLessThan(te1?.par ?? 0);
+    expect(available[0].player.Position).not.toBe("QB");
+  });
 
   test("builds ranked players with points, PAR, and draft status", () => {
     const draftState = createDefaultDraftState();

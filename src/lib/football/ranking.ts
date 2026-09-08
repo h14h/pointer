@@ -59,7 +59,13 @@ export function buildFootballRankedPlayers({
     };
   });
 
-  const parById = calculateFootballPAR(scored, config.roster, leagueSize);
+  const takenPlayerIds = new Set([
+    ...Object.keys(draftState.draftedByTeam),
+    ...Object.keys(draftState.keeperByTeam),
+  ]);
+  const parById = calculateFootballPAR(scored, config.roster, leagueSize, {
+    takenPlayerIds,
+  });
 
   return scored.map(({ player, projectedPoints, hasOverrides }) => ({
     player,
@@ -126,8 +132,11 @@ export function sortFootballRankedPlayers(
         if (bAdp === null) return -1;
         return multiplier * (aAdp - bAdp);
       }
-      case "par":
-        return multiplier * (a.par - b.par);
+      case "par": {
+        const parDiff = a.par - b.par;
+        if (parDiff !== 0) return multiplier * parDiff;
+        return multiplier * (a.projectedPoints - b.projectedPoints);
+      }
       case "points":
       default:
         return multiplier * (a.projectedPoints - b.projectedPoints);

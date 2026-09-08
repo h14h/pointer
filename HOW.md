@@ -9,7 +9,7 @@ Each spec is the authoritative reference for its domain. When code changes, the 
 | Domain | Description | Source Files | Spec |
 |--------|-------------|-------------|------|
 | Types & Schemas | Core data structures used across the app | `src/types/` (`player.ts`, `league.ts`, `draft.ts`, `projection.ts`, `football.ts`, `index.ts`) | [docs/types.md](docs/types.md) |
-| Football | Fantasy football domain: scoring presets (Standard/Half PPR/PPR), projections CSV parsing, FLEX/Superflex-aware PAR, and the ranking pipeline | `src/lib/football/` | [docs/football.md](docs/football.md) |
+| Football | Fantasy football domain: scoring presets (Standard/Half PPR/PPR), projections CSV parsing, FLEX/Superflex-aware live PAR, and the ranking pipeline | `src/lib/football/` | [docs/football.md](docs/football.md) |
 | Pro / Monetization | Clerk auth + billing and Convex cloud league sync for the Pro tier; app remains fully functional without configuration | `src/lib/pro/`, `src/lib/cloudSync/`, `src/components/pro/`, `src/components/providers/AppProviders.tsx`, `src/app/pricing/page.tsx`, `src/proxy.ts`, `convex/` | [docs/monetization.md](docs/monetization.md) |
 | Scoring | Point calculation, scoring presets, and league-specific weight application | `src/lib/scoring/` | [docs/scoring.md](docs/scoring.md) |
 | Draft | Snake draft math, keeper reservations, pick tracking, and pure state transformers | `src/lib/draft/` | [docs/state.md](docs/state.md) |

@@ -94,11 +94,11 @@ Replacement level scales with league size because deeper leagues draft more play
 - **6-team league:** Replacement at each position is higher (fewer teams = fewer starting slots)
 - **20-team league:** Replacement at each position is lower (more teams = more starting slots)
 
-The replacement threshold is computed once at PAR calculation time, using the static roster configuration. It does not update during the draft.
+The baseball replacement threshold is computed once at PAR calculation time, using the static roster configuration. It does not update during the draft. Football replacement does update from logged picks — see [Football PAR](football.md).
 
 ## Design Decisions
 
-**Static vs. dynamic replacement.** PAR uses static replacement levels computed from the full player pool and league roster settings. This is the pre-draft baseline. During a draft, the actual replacement level (available free agents) changes, but PAR does not — it's a draft value tool, not a live valuation.
+**Static vs. dynamic replacement.** Baseball PAR uses static replacement levels computed from the full player pool and league roster settings. This is the pre-draft baseline and does not update as picks are logged. Football PAR is different: it recomputes from the remaining undrafted pool and remaining roster demand so mid-draft positional saturation (especially 1-QB) is visible on the board. See [docs/football.md](football.md).
 
 **Global allocation.** All replacement levels come from the same final rostered universe. This keeps pooled slots aligned with their component positions, so `MI` reflects the better of the available `2B`/`SS` leftovers, `CI` reflects the better of `1B`/`3B`, and `UTIL` reflects the best hitter actually left on the waiver wire after the whole starting lineup is filled.
 
