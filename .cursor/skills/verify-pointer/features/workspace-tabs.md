@@ -40,7 +40,8 @@ Preconditions:
   matches `/Page 1 of/`.
 - **Intel.** Click `Intel`. URL `/intel`. Heading `/football library/i`
   and a built-in row (`2025 Football Prior-Year Stats`, `Built-in`).
-  Upload affordance `Upload CSV` (own sport) is present.
+  Upload affordance matches `/upload csv/i` (after bootstrap the
+  dashed button is the long “lands in the {sport} library” copy).
 - **Config.** Click `Config`. URL `/config`. Headings: `League identity`,
   `Scoring`, `Roster`, `Draft order & keepers`, `Danger zone`.
 - **Back.** After Plan → Board → Config, `page.goBack()` lands on Board

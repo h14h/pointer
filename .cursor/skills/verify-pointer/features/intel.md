@@ -32,12 +32,18 @@ Preconditions:
   `getByRole("heading", { name: /football library/i })` (DOM text is
   lowercase `football library`; CSS stamps it). Built-in row heading
   `2025 Football Prior-Year Stats` with badge `Built-in` and chip
-  `Selected`. `used by` includes `My Football League`. After bootstrap
-  the baseball library often also has a `Built-in` row (`2025 Leaders`)
-  — do not use a page-wide exact `getByText("Built-in")`.
+  `Selected`. Fresh onboard also stamps `via fallback` (league
+  `projectionGroupId` is still unset). `used by` includes
+  `My Football League`. After bootstrap the baseball library often
+  also has a `Built-in` row (`2025 Leaders`) — do not use a page-wide
+  exact `getByText("Built-in")`.
 - **Upload.** `getByRole("button", { name: /upload csv/i })` — after
   bootstrap the label is the long dashed-button copy, not exact
-  `Upload CSV`.
+  `Upload CSV`. Opening the dialog is optional for the baseline;
+  title is `Upload Football Projections`. Empty-state copy mentions
+  mixed **All positions** vs per-position files. A mixed CSV with a
+  `Pos` column is enough to create a second football source for
+  `intel-select`.
 - **Other library.** Heading `/baseball library/i` is present. Its
   upload hint is read-only (`uploads land here from any baseball
   league's Intel tab`) unless you opened a baseball league.
@@ -49,8 +55,7 @@ Preconditions:
 
 - Use `/football library/i`, not a visual `FOOTBALL LIBRARY` string.
 - Built-in rows cannot be renamed or deleted (`rename` / delete ✕ are
-  upload-only). `Use for this league` appears only when the row is not
-  already the resolved source.
+  upload-only).
 - A first-visit baseball library may still say `empty library` until
   `PublicDatasetBootstrap` finishes, or already show the built-in
   `2025 Leaders` row (`eligibility not imported` until that pipeline
@@ -59,4 +64,12 @@ Preconditions:
   load.
 - Opening the upload dialog (`Upload Player Projections` /
   `Upload Football Projections`) is optional. Submit labels inside are
-  `Import Group` variants — not the tab's `Upload CSV` text.
+  `Import Group` variants — not the tab's `Upload CSV` text. Football
+  files can be one mixed CSV (`All positions (mixed file)`) or several
+  per-position files.
+- After onboarding, `Selected` plus `via fallback` is the normal
+  built-in state. `Use for this league` appears on a row that is not
+  already the resolved source — needs a second source of the same sport.
+- Baseball source rows expose **Eligibility season** plus
+  `Import eligibility` / `Re-run eligibility` even on a football
+  league's Intel tab. Not required for the baseline recipe.
