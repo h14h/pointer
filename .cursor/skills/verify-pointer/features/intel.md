@@ -70,6 +70,8 @@ Preconditions:
 - After onboarding, `Selected` plus `via fallback` is the normal
   built-in state. `Use for this league` appears on a row that is not
   already the resolved source — needs a second source of the same sport.
-- Baseball source rows expose **Eligibility season** plus
+- Baseball source rows expose a lowercase stamp `eligibility season`
+  (input `aria-label` is `Eligibility season for {source}`) plus
   `Import eligibility` / `Re-run eligibility` even on a football
-  league's Intel tab. Not required for the baseline recipe.
+  league's Intel tab. Prefer `getByLabel(/Eligibility season/i)`, not
+  an exact title-case stamp. Not required for the baseline recipe.
