@@ -206,8 +206,10 @@ async function driveBoard(page) {
   await page.getByRole("link", { name: /open workspace/i }).first().click();
   await page.getByRole("link", { name: "Board", exact: true }).click();
   await page.locator("table tbody tr").first().waitFor({ timeout: 15_000 });
+  await page.getByText("PAR ↓", { exact: true }).waitFor({ timeout: 5_000 });
   await page.getByText(/Page 1 of/).waitFor();
   await shot(page, "01-board-all.png");
+  step("board-par", "ok", "football default sort header PAR ↓");
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByText(/Page 2 of/).waitFor({ timeout: 10_000 });
   await shot(page, "01b-board-page-2.png");

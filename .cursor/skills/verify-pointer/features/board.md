@@ -57,9 +57,9 @@ Preconditions:
   `#52` PAR +81 vs P. Nacua `#5` +217 and T. McBride `#16` +158).
 - **Proof.** Action screenshot (typed query) plus result screenshot (filtered
   row). Helper: `bun .cursor/skills/verify-pointer/helpers/drive.mjs board`
-  (table, Next → page 2, search `chase`, Position RB). Overlay is not
-  in the starter helper — click a player name whose `title` ends in
-  `edit overlays`. Live PAR saturation is the extra path above.
+  (table + `PAR ↓`, Next → page 2, search `chase`, Position RB). Overlay
+  is not in the starter helper — click a player name whose `title` ends
+  in `edit overlays`. Live PAR saturation is the extra path above.
 
 ## Gotchas
 
@@ -84,3 +84,7 @@ Preconditions:
 - Built-in football pool is hundreds of rows; `Page 1 of 28` was true on
   2026-07-10 and may drift if the dataset is regenerated. Assert `Page 1 of`
   plus a known player, not a fixed page count.
+- The overlay dialog title is the player's **full** stored name (e.g.
+  `Christian McCaffrey`), not the word "overlay". Description starts
+  with `Replace uploaded projections`. Field labels gain ` · overlay`
+  and the `OV` chip appear only after an override exists.
