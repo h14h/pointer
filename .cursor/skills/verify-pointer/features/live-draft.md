@@ -40,9 +40,11 @@ Preconditions:
   `Exit live draft` and pick progress (`PICK 1`, `on the clock`).
 - **Quick-log.** Focus is already in the textbox (placeholder
   `log a pick — type a name, Enter confirms to Team 1`). Type `mccaffrey`
-  and press Enter, or press Enter on the empty box to take
-  `recommend: …`. Receipt text matches `/logged: p1/`. Strip advances
-  to pick 2. The logged name leaves the board list.
+  and press Enter. When you are on the clock (default pick 1, Team 1),
+  the meta line shows `recommend: …` and empty-box Enter logs that
+  player. On anyone else's pick the recommend line is hidden and empty
+  Enter does nothing. Receipt text matches `/logged: p1/`. Strip
+  advances to pick 2. The logged name leaves the board list.
 - **Board log.** `getByRole("button", { name: /^log /i })` on a row
   (`aria-label="log ${player.name}"`) logs that player to the on-clock
   team.
@@ -56,9 +58,9 @@ Preconditions:
   `getByRole("button", { name: /^log /i }).first()` until 12 QBs are
   logged (receipt `logged: p12`, strip pick 13). Click filter `ALL`.
   Collect rows; first `QB ·` must have a higher RNK than first `WR ·`
-  and first `TE ·`. Example: Jaxson Dart r39 PAR +81 below Puka
-  Nacua r4 +217 and Trey McBride r11 +158. Then Exit → Board and
-  re-check [board.md](./board.md) `board-live-par`.
+  and first `TE ·`. Example: Jaxson Dart r40 PAR +81 below Puka
+  Nacua r5 +217 and Trey McBride r12 +158. Then Exit →
+  Board and re-check [board.md](./board.md) `board-live-par`.
 - **Proof.** Screenshot in the room (sync strip + receipt) and after
   exit (Plan timeline).   Helper:
   `bun .cursor/skills/verify-pointer/helpers/drive.mjs live-draft`
@@ -79,6 +81,9 @@ Preconditions:
 - Football board order is live PAR, not PROJ. Pre-draft a top QB can
   still sit above TE (Josh Allen r6 vs first TE r15). Saturation is the
   mid-draft drop, not the pre-draft 1QB baseline.
+- Empty-box Enter only takes `recommend: …` when you are on the clock.
+  After pick 1 (Team 2's turn) the recommend line disappears; type a
+  name or use a row `log` button.
 - Re-entering `/draft` resumes the same IndexedDB pick index. A fresh
   context is a new league with zero picks.
 - Night-mode transition (`beginNightTransition`) can veil the first

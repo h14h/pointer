@@ -72,6 +72,10 @@ Preconditions:
   onboard.
 - The add-league control's accessible name is `+ add a league`
   (`getByRole("button", { name: /add a league/i })` still matches).
+- Creating a league with a blank name yields **My League**, not the
+  sport-specific onboarding defaults (`My Football League` /
+  `My Baseball League`). The Add-league name field placeholder is
+  `My League`.
 - Reusing a context skips the hero (`hasOnboarded` is persisted). That is
   not a regression of `onboard-hero`.
 - `/settings` and `/league/...` are not gated; only `/` shows the hero.
