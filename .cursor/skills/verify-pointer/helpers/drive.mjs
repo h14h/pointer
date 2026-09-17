@@ -80,8 +80,13 @@ async function ensureFootballFleet(page) {
   await page.getByRole("link", { name: /open workspace/i }).first().waitFor({ timeout: 15_000 });
 }
 
-/** First-visit onboarding → football fleet, export, add baseball. */
-async function driveLeagueOnboarding(page) {
+const freshContextOptions = {
+  viewport: { width: 1280, height: 900 },
+  reducedMotion: "reduce",
+};
+
+/** First-visit onboarding → football fleet, export, add baseball, baseball-first. */
+async function driveLeagueOnboarding(page, browser) {
   await page.goto("/", { waitUntil: "networkidle" });
   await shot(page, "01-onboarding-hero.png");
   const heroCopy = page.getByText(/Create your first league/i);
@@ -116,6 +121,24 @@ async function driveLeagueOnboarding(page) {
   await page.getByText(/2 leagues · 2 sports/i).waitFor();
   await shot(page, "03-fleet-two-leagues.png");
   step("onboard-add", "ok", "Create league appended Sandlot Classic; stamp 2 leagues · 2 sports");
+
+  // Baseball-first is a separate first visit — new origin context, empty IndexedDB.
+  const baseballCtx = await browser.newContext({
+    baseURL,
+    ...freshContextOptions,
+  });
+  const baseballPage = await baseballCtx.newPage();
+  try {
+    await baseballPage.goto("/", { waitUntil: "networkidle" });
+    await baseballPage.getByRole("button", { name: /^Baseball$/i }).click();
+    await baseballPage.getByRole("link", { name: /open workspace/i }).first().waitFor({ timeout: 15_000 });
+    await baseballPage.getByText("My Baseball League").waitFor();
+    await baseballPage.getByText("2025 Leaders").waitFor();
+    await shot(baseballPage, "04-baseball-first.png");
+    step("onboard-baseball", "ok", "fresh context Baseball → My Baseball League + 2025 Leaders");
+  } finally {
+    await baseballCtx.close();
+  }
 }
 
 /** Open workspace and walk Plan → Board → Intel → Config, then back + crumb. */
@@ -250,6 +273,15 @@ async function driveConfig(page) {
   await page.getByRole("link", { name: "Config", exact: true }).click();
   const nameInput = page.locator("label").filter({ hasText: /league name/i }).locator("input");
   await nameInput.waitFor({ timeout: 10_000 });
+  await page.getByRole("heading", { name: /league identity/i }).waitFor({ timeout: 10_000 });
+  await page.getByRole("heading", { name: /danger zone/i }).waitFor();
+  await page.getByRole("button", { name: /duplicate league/i }).waitFor();
+  const deleteBtn = page.getByRole("button", { name: /delete league/i });
+  if (!(await deleteBtn.isDisabled())) {
+    throw new Error("Delete league should be disabled when only one league exists");
+  }
+  step("config-danger", "ok", "Duplicate league visible; Delete league disabled on the sole league");
+
   await nameInput.fill("Verify Pointer League");
   await nameInput.blur();
   await page.getByRole("heading", { name: "Verify Pointer League" }).waitFor({ timeout: 5_000 });
@@ -276,6 +308,17 @@ async function driveLiveDraft(page) {
   await page.getByText(/logged: p1/i).waitFor({ timeout: 10_000 });
   await shot(page, "02-after-quicklog.png");
   step("draft-quicklog", "ok", "quick-log mccaffrey → logged: p1");
+
+  await page.getByRole("button", { name: /^undo$/i }).click();
+  await page.getByText(/logged: p1/i).waitFor({ state: "hidden", timeout: 8_000 });
+  await page.getByText("PICK 1", { exact: true }).waitFor();
+  await shot(page, "02b-after-undo.png");
+  step("draft-undo", "ok", "undo cleared logged: p1 and returned to PICK 1");
+
+  await log.fill("mccaffrey");
+  await log.press("Enter");
+  await page.getByText(/logged: p1/i).waitFor({ timeout: 10_000 });
+  step("draft-quicklog-replay", "ok", "re-logged mccaffrey after undo for Plan proof");
 
   await page.getByRole("button", { name: /exit live draft/i }).click();
   await page.waitForURL(/\/plan/);
@@ -304,13 +347,12 @@ if (!driver) {
 const browser = await chromium.launch();
 const context = await browser.newContext({
   baseURL,
-  viewport: { width: 1280, height: 900 },
-  reducedMotion: "reduce",
+  ...freshContextOptions,
 });
 const page = await context.newPage();
 
 try {
-  await driver(page);
+  await driver(page, browser);
   record.result = "PASS";
 } catch (error) {
   record.result = "FAIL";

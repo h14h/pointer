@@ -14,6 +14,9 @@ enough QBs are logged in default 1QB, remaining QBs sort below WR/TE.
 - `draft-exit` returns to `/plan` via `Exit live draft`.
 - `draft-reset` opens `reset draft` and confirms with `Reset Draft`
   (clears logged picks; keepers and Plan notes stay).
+- `draft-complete` replaces the cockpit with chip `draft complete` and
+  heading `my roster` once every slot is logged. **Exit live draft** and
+  **reset draft** remain. Not in the starter helper (full-board log).
 - `draft-par-sat` (football) — after ~`leagueSize` QBs are logged in
   default 1QB, the first remaining QB on filter `ALL` sits below the
   first WR and first TE (POS · TEAM column; PAR column).
@@ -36,8 +39,9 @@ Preconditions:
   URL ends in `/draft`. `getByRole("textbox", { name: /log a pick/i })`
   is visible. `nav a[aria-current="page"]` count is 0. League masthead
   heading count is 0 (`e2e/league-url-contract.spec.ts` draft-room
-  outcome). Tape: `getByLabel(/draft tape/i)`. Top strip includes
-  `Exit live draft` and pick progress (`PICK 1`, `on the clock`).
+  outcome).   Tape: `getByLabel(/draft tape/i)`. Top strip includes
+  `Exit live draft`, stamp `on the board` with `PICK 1`, and a
+  separate stamp `on the clock`.
 - **Quick-log.** Focus is already in the textbox (placeholder
   `log a pick — type a name, Enter confirms to Team 1`). Type `mccaffrey`
   and press Enter, or press Enter on the empty box to take
@@ -62,8 +66,9 @@ Preconditions:
 - **Proof.** Screenshot in the room (sync strip + receipt) and after
   exit (Plan timeline).   Helper:
   `bun .cursor/skills/verify-pointer/helpers/drive.mjs live-draft`
-  (enter, quick-log `mccaffrey`, exit; Plan shows the logged name).
-  Saturation is not in the starter helper.
+  (enter, quick-log `mccaffrey`, undo back to `PICK 1`, re-log, exit;
+  Plan shows the logged name). Saturation and draft-complete are not
+  in the starter helper.
 
 ## Gotchas
 
@@ -83,6 +88,10 @@ Preconditions:
   context is a new league with zero picks.
 - Night-mode transition (`beginNightTransition`) can veil the first
   paint; wait for the log textbox, not the URL alone.
+- After the last slot is logged the room swaps to `draft complete` /
+  `my roster`. Do not wait for the quick-log box on a finished draft.
+  Reaching that screen means logging every roster slot (12 teams ×
+  roster size) — not a baseline recipe.
 - `reset draft` is a draft-room control (`ResetDraftControl`). The
   confirm dialog title is `Reset all draft picks?`; the destructive
   button is `Reset Draft`. Not required for the baseline helper.

@@ -136,7 +136,7 @@ not a substitute for the map.
 | Exit draft | `getByRole("button", { name: /exit live draft/i })` → `/plan` |
 | Reset draft | `getByRole("button", { name: /reset draft/i })` then confirm `Reset Draft` |
 | Quick-log | `getByRole("textbox", { name: /log a pick/i })` (`aria-label="log a pick"`) |
-| Draft tape | `getByRole("…", { name: /draft tape/ })` — `aria-label="draft tape — every pick in order"` |
+| Draft tape | `getByLabel(/draft tape/i)` (`aria-label="draft tape — every pick in order"`) |
 | Board search (workspace) | `getByPlaceholder("Search players...")`. Football names render abbreviated (`J. Chase`, not `Ja'Marr Chase`). Default football sort is live PAR ↓. Workspace Board does not log picks — that is live draft. |
 | Board position filter | `getByRole("button", { name: "Position" })` then option `QB` / `RB` / … / `All Positions` |
 | Draft-room position | chips `ALL` / `QB` / `RB` / `WR` / `TE` / `K` / `DST` (`getByRole("button", { name: /^QB$/i })`) |

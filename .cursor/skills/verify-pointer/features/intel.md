@@ -61,7 +61,9 @@ Preconditions:
   `2025 Leaders` row (`eligibility not imported` until that pipeline
   finishes). Wait for the football built-in row, not a timer. The
   eligibility banner can sit above the workspace — not a failed Intel
-  load.
+  load. An empty *other-sport* library shows
+  `open a {sport} league to upload here`, not the dashed
+  `uploads land here from any {sport} league's Intel tab` line.
 - Opening the upload dialog (`Upload Player Projections` /
   `Upload Football Projections`) is optional. Submit labels inside are
   `Import Group` variants — not the tab's `Upload CSV` text. Football

@@ -43,12 +43,16 @@ Preconditions:
   `Apply Preset`.
 - **Baseball scoring.** `locator('input[aria-label="Home Runs (HR) points"]')`
   — the persistence-smoke handle.
-- **Delete.** `getByRole("button", { name: /delete league/i })`. Accept
-  `page.once("dialog", (d) => d.accept())`. Disabled when only one league
-  exists. After delete, fleet is `/` and the card is gone.
+- **Danger.** `getByRole("button", { name: /duplicate league/i })` is
+  enabled. `getByRole("button", { name: /delete league/i })` is
+  **disabled** while this is the only league. With two or more leagues,
+  accept `page.once("dialog", (d) => d.accept())` then click Delete —
+  fleet is `/` and that card is gone. Confirm copy:
+  `Delete “{name}”? This cannot be undone.`
 - **Proof.** Screenshot after rename (masthead) plus fleet card. Helper:
   `bun .cursor/skills/verify-pointer/helpers/drive.mjs config`
-  (rename + `leagues /` fleet-card side effect).
+  (Duplicate visible, Delete disabled on the sole league, rename +
+  `leagues /` fleet-card side effect).
 
 ## Gotchas
 

@@ -10,7 +10,8 @@ returns to after exit.
 - `plan-timeline` lists one row per roster slot (`R1.01`, `p1 overall`) with on-deck / projected / logged chips.
 - `plan-targets` flags players from `Search players to flag as targets`.
 - `plan-notes` saves a per-round slot note on blur (`Round 1 note`).
-- `plan-tiers` shows remaining-vs-printed supply by position (`Tier supply`).
+- `plan-tiers` shows remaining-vs-printed supply by position group
+  (`Tier supply`: football QB / RB / WR / TE; baseball Batters / Pitchers).
 
 ## How to get to it (user POV)
 
@@ -56,6 +57,8 @@ Preconditions:
   console warning on blur has been seen historically; prove persistence
   by leaving the tab and coming back, not by re-reading the input
   immediately in the same mount.
+- Football target `rk` and timeline “likely on board” follow **live PAR**
+  (same order as Board), not raw projected points.
 - Without a projection source the tab shows `No football source selected`
   and an Intel link — wait for the timeline heading, not the URL.
 - Changing **Your team** on Config recomputes every overall pick number
