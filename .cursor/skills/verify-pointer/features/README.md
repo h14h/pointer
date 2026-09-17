@@ -73,4 +73,4 @@ handles, required state, commands, and observable proof.
 - [Board](./board.md) — ranked table, search, position filter, pagination, football overlays, live PAR.
 - [Intel](./intel.md) — sport libraries, built-in source, upload affordance.
 - [Config](./config.md) — identity, scoring, roster, draft order & keepers, danger zone, persistence.
-- [Live draft](./live-draft.md) — takeover, quick-log, board log, undo, exit, football QB saturation.
+- [Live draft](./live-draft.md) — takeover, quick-log, board log, undo, exit, draft complete, football QB saturation.

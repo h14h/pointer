@@ -56,7 +56,9 @@ Preconditions:
   recipe; catching the download is optional.
 - **Proof.** Screenshot `02-fleet-after-football.png` (or after add) and
   ARIA dump. Both show `My Football League` and `Open workspace`.
-  Helper: `bun .cursor/skills/verify-pointer/helpers/drive.mjs league-onboarding`.
+  Helper: `bun .cursor/skills/verify-pointer/helpers/drive.mjs league-onboarding`
+  (football fleet + add baseball, then a second fresh context for
+  baseball-first).
 
 ## Gotchas
 
