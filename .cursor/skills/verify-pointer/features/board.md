@@ -49,8 +49,9 @@ Preconditions:
 - **Baseball type (only on a baseball league).**
   `getByRole("button", { name: "Player type" })` then `Pitchers`. Wait for
   `th:has-text("ERA")` (`e2e/leaderboard.spec.ts`).
-- **Live PAR after draft (football).** Do not log picks here. Enter
-  `/draft`, click filter `QB`, then `getByRole("button", { name: /^log /i })`
+- **Live PAR after draft (football).** Do not log picks here. Open
+  `/league/<id>/draft` (Start live draft — bare `/draft` is Not Found).
+  Click filter `QB`, then `getByRole("button", { name: /^log /i })`
   twelve times (default 12-team 1QB). Exit → Board. All Positions: first
   available WR/TE stay near the top; paginate until the first available
   QB — its `#` and PAR are worse than those WR/TE (example: J. Dart
@@ -78,6 +79,8 @@ Preconditions:
   moved remaining QBs down.
 - Do not use `/leaderboard-visual` to prove the Board tab. That page seeds
   a store fixture and skips onboarding.
+- The live-draft room is `/league/<id>/draft`. `page.goto("/draft")` renders
+  Not Found and never opens the room.
 - Position menus are custom dropdowns (`getByRole("button")` options), not
   native `<select>`.
 - Pagination buttons are `Prev` / `Next` (not "Previous").
