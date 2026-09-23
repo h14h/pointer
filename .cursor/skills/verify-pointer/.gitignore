@@ -1,1 +1,6 @@
 .run/
+
+# Per-run proof. helpers/cleanup never deletes this tree; do not commit it.
+# evidence/README.md stays tracked.
+evidence/*
+!evidence/README.md

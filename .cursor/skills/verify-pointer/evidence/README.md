@@ -10,4 +10,4 @@ evidence/<feature-id>-<ISO-timestamp>/
   *.aria.txt
 ```
 
-`helpers/cleanup` never deletes this directory. Launch scratch (PIDs, logs) lives in `../.run/` and is discarded.
+`helpers/cleanup` never deletes this directory. Launch scratch (PIDs, logs) lives in `../.run/` and is discarded. Run directories here are gitignored; only this README is tracked.
