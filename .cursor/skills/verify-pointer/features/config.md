@@ -37,8 +37,9 @@ Preconditions:
   **spinbutton**, not textbox. Use
   `getByRole("spinbutton", { name: "Reception points" })` or
   `locator('input[aria-label="Reception points"]')`. Default Half PPR
-  is `0.5`. Set `1`, press Enter, wait ~600ms (debounced persist, same as
-  `e2e/persistence-smoke.spec.ts`). Board points for receivers rise.
+  is `0.5`. Set `1` and press Enter. Offense weights commit on a 150ms
+  debounce; `e2e/persistence-smoke.spec.ts` waits 600ms before reading
+  the derived Board. Board points for receivers rise.
   Preset: `getByRole("button", { name: "Football scoring preset" })` then
   `Apply Preset`.
 - **Baseball scoring.** `locator('input[aria-label="Home Runs (HR) points"]')`

@@ -60,8 +60,8 @@ Preconditions:
   `getByRole("button", { name: /^log /i }).first()` until 12 QBs are
   logged (receipt `logged: p12`, strip pick 13). Click filter `ALL`.
   Collect rows; first `QB ·` must have a higher RNK than first `WR ·`
-  and first `TE ·`. Example: Jaxson Dart r39 PAR +81 below Puka
-  Nacua r4 +217 and Trey McBride r11 +158. Then Exit → Board and
+  and first `TE ·`. Example: Jaxson Dart r40 PAR +81 below Puka
+  Nacua r5 +217 and Trey McBride r12 +158. Then Exit → Board and
   re-check [board.md](./board.md) `board-live-par`.
 - **Proof.** Screenshot in the room (sync strip + receipt) and after
   exit (Plan timeline).   Helper:
@@ -82,7 +82,7 @@ Preconditions:
   stays false). Undo is the draft-room receipt `undo` next to
   `logged: pN` (Rail also has `undo last pick`).
 - Football board order is live PAR, not PROJ. Pre-draft a top QB can
-  still sit above TE (Josh Allen r6 vs first TE r15). Saturation is the
+  still sit above TE (Josh Allen r7 vs first TE r16). Saturation is the
   mid-draft drop, not the pre-draft 1QB baseline.
 - Re-entering `/draft` resumes the same IndexedDB pick index. A fresh
   context is a new league with zero picks.
