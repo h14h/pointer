@@ -44,8 +44,10 @@ Preconditions:
   separate stamp `on the clock`.
 - **Quick-log.** Focus is already in the textbox (placeholder
   `log a pick — type a name, Enter confirms to Team 1`). Type `mccaffrey`
-  and press Enter, or press Enter on the empty box to take
-  `recommend: …`. Receipt text matches `/logged: p1/`. Strip advances
+  and press Enter. Empty Enter takes `recommend: …` only while it is
+  your pick (default onboarding: Team 1 is on the clock at pick 1).
+  On another team's clock there is no recommendation and empty Enter
+  logs nothing. Receipt text matches `/logged: p1/`. Strip advances
   to pick 2. The logged name leaves the board list.
 - **Board log.** `getByRole("button", { name: /^log /i })` on a row
   (`aria-label="log ${player.name}"`) logs that player to the on-clock
