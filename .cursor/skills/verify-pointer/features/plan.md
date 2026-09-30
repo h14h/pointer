@@ -25,7 +25,9 @@ returns to after exit.
 Preconditions:
 
 - Doctor HEALTHY. Fresh context + football onboarding (12 teams, Team 1
-  is you, built-in pool attached).
+  is you). The new league does not store a projection source; after
+  bootstrap the worksheet uses the built-in pool via fallback (Intel
+  shows `via fallback`).
 - Workspace Plan tab.
 
 - **Worksheet.** After Open workspace, wait for
@@ -59,7 +61,10 @@ Preconditions:
   immediately in the same mount.
 - Football target `rk` and timeline “likely on board” follow **live PAR**
   (same order as Board), not raw projected points.
-- Without a projection source the tab shows `No football source selected`
-  and an Intel link — wait for the timeline heading, not the URL.
+- Without a projection source the tab shows `No {sport} source selected`
+  and an Intel link, and it does **not** render `Pick timeline — your slots`.
+  Waiting for that heading in the empty state never succeeds. Once the
+  built-in pool has resolved, prove the worksheet by waiting for the
+  timeline heading, not by the URL alone.
 - Changing **Your team** on Config recomputes every overall pick number
   on this timeline.
