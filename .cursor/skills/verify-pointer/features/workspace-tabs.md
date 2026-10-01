@@ -1,8 +1,9 @@
 # Workspace tabs
 
 A league workspace is one shell with four tabs — Plan, Board, Intel, Config —
-plus a full-screen live-draft takeover. The URL always names the league and
-tab; the browser back button retraces tab history.
+plus a full-screen live-draft takeover. Clicking a tab puts the league and
+the tab in the URL, and the browser back button retraces that history. A
+bare `/league/<id>` (no tab segment) still shows Plan.
 
 ## Sub-features
 

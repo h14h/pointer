@@ -59,7 +59,11 @@ Preconditions:
   immediately in the same mount.
 - Football target `rk` and timeline “likely on board” follow **live PAR**
   (same order as Board), not raw projected points.
-- Without a projection source the tab shows `No football source selected`
-  and an Intel link — wait for the timeline heading, not the URL.
+- Without a projection source the tab shows `No {sport} source selected`
+  (football: `No football source selected`) and an Intel link. That empty
+  state replaces the worksheet — `Pick timeline — your slots` is not
+  rendered, so waiting for the timeline heading never succeeds. Wait for
+  the empty-state heading, not the URL. After the built-in pool resolves,
+  wait for the timeline heading.
 - Changing **Your team** on Config recomputes every overall pick number
   on this timeline.

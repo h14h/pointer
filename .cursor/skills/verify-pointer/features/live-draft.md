@@ -60,9 +60,11 @@ Preconditions:
   `getByRole("button", { name: /^log /i }).first()` until 12 QBs are
   logged (receipt `logged: p12`, strip pick 13). Click filter `ALL`.
   Collect rows; first `QB ·` must have a higher RNK than first `WR ·`
-  and first `TE ·`. Example: Jaxson Dart r39 PAR +81 below Puka
-  Nacua r4 +217 and Trey McBride r11 +158. Then Exit → Board and
-  re-check [board.md](./board.md) `board-live-par`.
+  and first `TE ·`. RNK is the 1-based row index, zero-padded to two
+  digits. Example: Jaxson Dart RNK 40 PAR +81 below Puka Nacua RNK 05
+  PAR +217 and Trey McBride RNK 12 PAR +158. Then Exit → Board and
+  re-check [board.md](./board.md) `board-live-par` (Board `#` still
+  counts drafted players, so those rows read `#52`, `#5`, and `#16`).
 - **Proof.** Screenshot in the room (sync strip + receipt) and after
   exit (Plan timeline).   Helper:
   `bun .cursor/skills/verify-pointer/helpers/drive.mjs live-draft`
@@ -82,8 +84,9 @@ Preconditions:
   stays false). Undo is the draft-room receipt `undo` next to
   `logged: pN` (Rail also has `undo last pick`).
 - Football board order is live PAR, not PROJ. Pre-draft a top QB can
-  still sit above TE (Josh Allen r6 vs first TE r15). Saturation is the
-  mid-draft drop, not the pre-draft 1QB baseline.
+  still sit above TE (Josh Allen RNK 07 PAR +204 vs first TE Trey
+  McBride RNK 16 PAR +158). Saturation is the mid-draft drop, not the
+  pre-draft 1QB baseline.
 - Re-entering `/draft` resumes the same IndexedDB pick index. A fresh
   context is a new league with zero picks.
 - Night-mode transition (`beginNightTransition`) can veil the first
