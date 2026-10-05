@@ -13,25 +13,51 @@ if [[ ! -f "${VERIFY_POINTER_STATE}" ]]; then
   exit 0
 fi
 
-pgid="$(json_get pgid || true)"
+stored_pgid="$(json_get pgid || true)"
 bun_pid="$(json_get bun_pid || true)"
+vite_pid="$(json_get vite_pid || true)"
 url="$(json_get url || true)"
 port="$(json_get port || true)"
 
-echo "verify-pointer cleanup: stopping instance url=${url} port=${port} bun_pid=${bun_pid} pgid=${pgid}"
+# Prefer the live group of bun_pid. The stored pgid can be stale if it
+# was sampled before setsid(2) switched groups; killing that id can miss
+# the server or signal an unrelated group.
+live_pgid=""
+if [[ -n "${bun_pid}" ]] && process_alive "${bun_pid}"; then
+  live_pgid="$(ps -o pgid= -p "${bun_pid}" 2>/dev/null | tr -d ' ' || true)"
+fi
 
-if [[ -n "${pgid}" && "${pgid}" != "0" && "${pgid}" != "None" ]]; then
-  # Kill the process group we created with setsid — not every bun/vite on the box.
-  if kill -0 -- -"${pgid}" 2>/dev/null; then
-    kill -- -"${pgid}" 2>/dev/null || true
+echo "verify-pointer cleanup: stopping instance url=${url} port=${port} bun_pid=${bun_pid} pgid=${live_pgid:-${stored_pgid}}"
+
+kill_group() {
+  local group="$1"
+  [[ -n "${group}" && "${group}" != "0" && "${group}" != "None" ]] || return 0
+  if kill -0 -- -"${group}" 2>/dev/null; then
+    kill -- -"${group}" 2>/dev/null || true
     for _ in $(seq 1 20); do
-      if ! kill -0 -- -"${pgid}" 2>/dev/null; then
+      if ! kill -0 -- -"${group}" 2>/dev/null; then
         break
       fi
       sleep 0.2
     done
-    if kill -0 -- -"${pgid}" 2>/dev/null; then
-      kill -9 -- -"${pgid}" 2>/dev/null || true
+    if kill -0 -- -"${group}" 2>/dev/null; then
+      kill -9 -- -"${group}" 2>/dev/null || true
+    fi
+  fi
+}
+
+if [[ -n "${live_pgid}" ]]; then
+  kill_group "${live_pgid}"
+elif [[ -n "${port}" && -n "${vite_pid}" ]]; then
+  # bun already exited; only stop the listener if it is the vite pid we started.
+  listener="$(port_listener_pid "${port}" || true)"
+  if [[ -n "${listener}" && "${listener}" == "${vite_pid}" ]]; then
+    listener_pgid="$(ps -o pgid= -p "${listener}" 2>/dev/null | tr -d ' ' || true)"
+    if [[ -n "${listener_pgid}" ]]; then
+      kill_group "${listener_pgid}"
+    fi
+    if process_alive "${listener}"; then
+      kill "${listener}" 2>/dev/null || true
     fi
   fi
 elif [[ -n "${bun_pid}" ]] && process_alive "${bun_pid}"; then

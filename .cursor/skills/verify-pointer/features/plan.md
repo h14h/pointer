@@ -36,10 +36,11 @@ Preconditions:
   a first slot `R1.01` marked `on deck`. Screenshot
   `01-plan-worksheet.png`.
 - **Targets.** Fill `getByRole("textbox", { name: "Search players to flag as targets" })`
-  with `chase`. Click the dropdown button whose name matches
-  `/Ja'Marr Chase/i` (Plan uses the full stored name, not the Board
-  abbreviation). Stamp becomes `1 flagged`. The flagged row stays in
-  the Targets panel after the search clears.
+  with `chase`. Click the result button whose name matches
+  `/Ja'Marr Chase/i` (a search-result row, not a menu; Plan uses the
+  full stored name, not the Board abbreviation). Stamp becomes
+  `1 flagged`. The flagged row stays in the Targets panel after the
+  search clears.
 - **Note.** Fill `getByRole("textbox", { name: /Round 1 note/i })` with
   a phrase, blur. Click Board then Plan. The Round 1 note input still
   holds that phrase.

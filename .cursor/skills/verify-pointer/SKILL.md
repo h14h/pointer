@@ -200,8 +200,9 @@ Proof standards:
 .cursor/skills/verify-pointer/helpers/cleanup
 ```
 
-Kills the `setsid` process group recorded in `.run/state.json` (`bun_pid` /
-`pgid`), then deletes the state file. Leaves `evidence/` and the repo
+Kills the live process group of the recorded `bun_pid` (launch samples
+`pgid` only after Vite is ready, so it is the `setsid` group), then
+deletes the state file. Leaves `evidence/` and the repo
 untouched. If launch failed part-way, still run cleanup.
 
 Never `pkill -f vite` or `killall bun`. A human may have Tidewave on :3200.

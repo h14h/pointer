@@ -60,9 +60,12 @@ Preconditions:
   `getByRole("button", { name: /^log /i }).first()` until 12 QBs are
   logged (receipt `logged: p12`, strip pick 13). Click filter `ALL`.
   Collect rows; first `QB ·` must have a higher RNK than first `WR ·`
-  and first `TE ·`. Example: Jaxson Dart r39 PAR +81 below Puka
-  Nacua r4 +217 and Trey McBride r11 +158. Then Exit → Board and
-  re-check [board.md](./board.md) `board-live-par`.
+  and first `TE ·`. RNK is the zero-padded row on this available list,
+  not the workspace Board `#` (drafted players stay on Board and shift
+  those numbers). On the built-in 2025 set at default Half PPR: Jaxson
+  Dart r40 PAR +81 sits below Puka Nacua r05 +217 and Trey McBride r12
+  +158. Assert that order, not a frozen rank, if the dataset changes.
+  Then Exit → Board and re-check [board.md](./board.md) `board-live-par`.
 - **Proof.** Screenshot in the room (sync strip + receipt) and after
   exit (Plan timeline).   Helper:
   `bun .cursor/skills/verify-pointer/helpers/drive.mjs live-draft`

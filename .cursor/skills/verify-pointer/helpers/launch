@@ -40,7 +40,9 @@ setsid env -u TIDEWAVE_HTTPS_KEY -u TIDEWAVE_HTTPS_CERT \
   bun run dev -- --port "${VERIFY_POINTER_PORT}" \
   >>"${VERIFY_POINTER_LOG}" 2>&1 < /dev/null &
 bun_pid=$!
-pgid="$(ps -o pgid= -p "${bun_pid}" | tr -d ' ')"
+# setsid(2) has not necessarily switched the group yet. Sampling pgid
+# here can record the parent shell's group; cleanup would then miss
+# this server (or signal the wrong group). Sample after ready.
 
 ready=0
 for _ in $(seq 1 60); do
@@ -57,12 +59,17 @@ for _ in $(seq 1 60); do
   sleep 0.5
 done
 
+# Process group after setsid has settled. This is the group cleanup kills.
+pgid="$(ps -o pgid= -p "${bun_pid}" 2>/dev/null | tr -d ' ' || true)"
+
 if [[ "${ready}" != "1" ]]; then
   echo "verify-pointer launch: timed out waiting for Vite on ${VERIFY_POINTER_URL}" >&2
   echo "last log lines:" >&2
   tail -n 40 "${VERIFY_POINTER_LOG}" >&2
-  if [[ -n "${pgid}" ]]; then
+  if [[ -n "${pgid}" && "${pgid}" != "0" ]]; then
     kill -- -"${pgid}" 2>/dev/null || true
+  elif process_alive "${bun_pid}"; then
+    kill "${bun_pid}" 2>/dev/null || true
   fi
   exit 1
 fi
