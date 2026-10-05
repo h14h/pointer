@@ -37,10 +37,17 @@ Preconditions:
   **spinbutton**, not textbox. Use
   `getByRole("spinbutton", { name: "Reception points" })` or
   `locator('input[aria-label="Reception points"]')`. Default Half PPR
-  is `0.5`. Set `1`, press Enter, wait ~600ms (debounced persist, same as
-  `e2e/persistence-smoke.spec.ts`). Board points for receivers rise.
+  is `0.5`. Set `1`, press Enter. The scoring callback itself debounces
+  at 150ms; a reload proof still needs ~600ms so IndexedDB finishes
+  (same pause as `e2e/persistence-smoke.spec.ts`). A reload around 200ms
+  still shows `0.5`. After the longer wait, reload and expect `1`.
+  Board points for receivers rise.
   Preset: `getByRole("button", { name: "Football scoring preset" })` then
   `Apply Preset`.
+- **Roster.** `getByRole("spinbutton", { name: "Roster QB" })` defaults
+  to `1`. The section stamp reads `14 slots per team`. Set `2` and press
+  Enter. The stamp becomes `15 slots per team` immediately (roster
+  steppers are not on the scoring debounce). Not in the starter helper.
 - **Baseball scoring.** `locator('input[aria-label="Home Runs (HR) points"]')`
   — the persistence-smoke handle.
 - **Danger.** `getByRole("button", { name: /duplicate league/i })` is
