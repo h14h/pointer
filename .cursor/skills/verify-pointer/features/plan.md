@@ -59,7 +59,10 @@ Preconditions:
   immediately in the same mount.
 - Football target `rk` and timeline “likely on board” follow **live PAR**
   (same order as Board), not raw projected points.
-- Without a projection source the tab shows `No football source selected`
-  and an Intel link — wait for the timeline heading, not the URL.
+- With no resolvable projection source the tab shows `No football source selected`
+  and an Intel link, and it does **not** render `Pick timeline — your slots`.
+  Wait for that empty-state heading. A normal onboard still prints the
+  timeline: `projectionGroupId` stays unset and Intel stamps `via fallback`
+  on the built-in pool.
 - Changing **Your team** on Config recomputes every overall pick number
   on this timeline.

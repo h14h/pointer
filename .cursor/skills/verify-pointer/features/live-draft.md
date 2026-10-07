@@ -44,9 +44,11 @@ Preconditions:
   separate stamp `on the clock`.
 - **Quick-log.** Focus is already in the textbox (placeholder
   `log a pick — type a name, Enter confirms to Team 1`). Type `mccaffrey`
-  and press Enter, or press Enter on the empty box to take
-  `recommend: …`. Receipt text matches `/logged: p1/`. Strip advances
-  to pick 2. The logged name leaves the board list.
+  and press Enter. On your pick, an empty box shows `recommend: …` and
+  Enter logs that player. On another team's clock the box has no
+  recommendation, and empty Enter leaves the pick unchanged. Receipt
+  text matches `/logged: p1/`. Strip advances to pick 2. The logged
+  name leaves the board list.
 - **Board log.** `getByRole("button", { name: /^log /i })` on a row
   (`aria-label="log ${player.name}"`) logs that player to the on-clock
   team.
@@ -60,8 +62,9 @@ Preconditions:
   `getByRole("button", { name: /^log /i }).first()` until 12 QBs are
   logged (receipt `logged: p12`, strip pick 13). Click filter `ALL`.
   Collect rows; first `QB ·` must have a higher RNK than first `WR ·`
-  and first `TE ·`. Example: Jaxson Dart r39 PAR +81 below Puka
-  Nacua r4 +217 and Trey McBride r11 +158. Then Exit → Board and
+  and first `TE ·`. Example RNK cells (1-based, zero-padded): Jaxson
+  Dart `40` PAR +81 below Puka Nacua `05` +217 and Trey McBride `12`
+  +158. Then Exit → Board and
   re-check [board.md](./board.md) `board-live-par`.
 - **Proof.** Screenshot in the room (sync strip + receipt) and after
   exit (Plan timeline).   Helper:
@@ -82,8 +85,11 @@ Preconditions:
   stays false). Undo is the draft-room receipt `undo` next to
   `logged: pN` (Rail also has `undo last pick`).
 - Football board order is live PAR, not PROJ. Pre-draft a top QB can
-  still sit above TE (Josh Allen r6 vs first TE r15). Saturation is the
-  mid-draft drop, not the pre-draft 1QB baseline.
+  still sit above TE (Josh Allen RNK `07` PAR +204 vs first TE Trey
+  McBride RNK `16` PAR +158). Saturation is the mid-draft drop, not
+  the pre-draft 1QB baseline.
+- Empty Enter logs `recommend:` only on your pick. The next empty
+  Enter (other team's clock) stays on that pick and does not log.
 - Re-entering `/draft` resumes the same IndexedDB pick index. A fresh
   context is a new league with zero picks.
 - Night-mode transition (`beginNightTransition`) can veil the first
